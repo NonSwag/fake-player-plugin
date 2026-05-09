@@ -1,0 +1,11 @@
+{
+  "id": "fpp",
+  "name": "FakePlayerPlugin",
+  "version": "1.6.6.2",
+  "description": "Advanced Fake Player Spoofer for Paper 1.21+ with realistic fake players, join/leave messages, in-world bodies, chunk loading, LuckPerms integration, proxy network support, and extension support.",
+  "url": "https://fpp.wtf",
+  "authors": [
+    "el_pepes"
+  ],
+  "main": "me.bill.fakePlayerPlugin.FakePlayerPlugin"
+}
