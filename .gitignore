@@ -15,7 +15,6 @@ dependency-reduced-pom.xml
 *.log
 
 # IDEs
-/.idea/
 *.iml
 *.iws
 /.project
@@ -49,7 +48,6 @@ logs/
 # Misc
 *.swp
 *.tmp
-/.idea/
 
 # Keep libs (vendor) unless you want to ignore them intentionally
 # /libs/
