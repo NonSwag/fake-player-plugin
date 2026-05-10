@@ -873,24 +873,11 @@ public final class ConfigMigrator {
   }
 
   private static boolean v55to56(YamlConfiguration cfg) {
-    boolean changed = false;
-    changed |= setIfMissing(cfg, "nametag-integration.block-nick-conflicts", true);
-    changed |= setIfMissing(cfg, "nametag-integration.bot-isolation", true);
-    if (changed) {
-      log("v55→v56", "added nametag-integration section (NameTag soft-dependency support)");
-    }
-    return changed;
+    return false;
   }
 
   private static boolean v56to57(YamlConfiguration cfg) {
-    boolean changed = setIfMissing(cfg, "nametag-integration.sync-nick-as-rename", false);
-    if (changed) {
-      log(
-          "v56→v57",
-          "added nametag-integration.sync-nick-as-rename (auto-rename bots when NameTag"
-              + " assigns them a nick)");
-    }
-    return changed;
+    return false;
   }
 
   private static boolean v57to58(YamlConfiguration cfg) {

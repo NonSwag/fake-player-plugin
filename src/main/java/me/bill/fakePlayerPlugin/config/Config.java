@@ -235,6 +235,14 @@ public final class Config {
     return bool("ping.latency-effect", true);
   }
 
+  public static boolean pingBehaviorEffect() {
+    return bool("ping.behavior-effect", true);
+  }
+
+  public static int pingMaxBehaviorSkipTicks() {
+    return Math.max(1, integer("ping.max-behavior-skip-ticks", 8));
+  }
+
   public static double pingSpikeChance() {
     return decimal("ping.spike-chance", 0.04);
   }
@@ -320,6 +328,18 @@ public final class Config {
 
   public static boolean skinUseSkinFolder() {
     return cfg.getBoolean("skin.use-skin-folder", true);
+  }
+
+  public static boolean skinMineSkinUrlUploadEnabled() {
+    return cfg.getBoolean("skin.mineskin.url-upload-enabled", true);
+  }
+
+  public static String skinMineSkinApiKey() {
+    return cfg.getString("skin.mineskin.api-key", "");
+  }
+
+  public static String skinMineSkinVisibility() {
+    return cfg.getString("skin.mineskin.visibility", "public");
   }
 
   public static boolean spawnBody() {
@@ -1174,18 +1194,6 @@ public final class Config {
 
   public static void debugSwap(String message) {
     FppLogger.debug("SWAP", debugSwap(), message);
-  }
-
-  public static boolean nameTagBlockNickConflicts() {
-    return cfg.getBoolean("nametag-integration.block-nick-conflicts", true);
-  }
-
-  public static boolean nameTagIsolation() {
-    return cfg.getBoolean("nametag-integration.bot-isolation", true);
-  }
-
-  public static boolean nameTagSyncNickAsRename() {
-    return cfg.getBoolean("nametag-integration.sync-nick-as-rename", false);
   }
 
   public static double attackMobDefaultRange() {

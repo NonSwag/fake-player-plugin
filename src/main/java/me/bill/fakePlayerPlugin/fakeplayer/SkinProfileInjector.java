@@ -20,6 +20,12 @@ public final class SkinProfileInjector {
     apply(gameProfile, skin.getValue(), skin.getSignature());
   }
 
+  public static void clear(Object gameProfile) throws Exception {
+    if (gameProfile == null) return;
+    Object propertyMap = resolvePropertyMap(gameProfile);
+    clearExistingTextures(propertyMap);
+  }
+
   public static void apply(Object gameProfile, String value, String signature) throws Exception {
     if (gameProfile == null || value == null || value.isBlank()) return;
 

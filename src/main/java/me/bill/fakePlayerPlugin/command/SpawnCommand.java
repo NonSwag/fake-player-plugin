@@ -2,6 +2,7 @@ package me.bill.fakePlayerPlugin.command;
 
 import java.util.ArrayList;
 import java.util.List;
+import me.bill.fakePlayerPlugin.api.FppSpawnLocationProvider;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotType;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
@@ -312,17 +313,18 @@ public class SpawnCommand implements FppCommand {
       }
     }
 
-    if (customName != null
-        && me.bill.fakePlayerPlugin.FakePlayerPlugin.getInstance().isNameTagAvailable()
-        && me.bill.fakePlayerPlugin.config.Config.nameTagBlockNickConflicts()
-        && me.bill.fakePlayerPlugin.util.NameTagHelper.isNickUsedByRealPlayer(
-            customName, manager)) {
-      sender.sendMessage(Lang.get("spawn-name-taken-nick", "name", customName));
-      return true;
-    }
-
     if (spawnAtLastLocation && customName != null) {
-      Location lastKnown = manager.getLastKnownLocation(customName);
+      Location lastKnown = null;
+      var plugin = me.bill.fakePlayerPlugin.FakePlayerPlugin.getInstance();
+      var api = plugin != null ? plugin.getFppApi() : null;
+      FppSpawnLocationProvider provider =
+          api != null ? api.getService(FppSpawnLocationProvider.class) : null;
+      if (provider != null) {
+        lastKnown = provider.getSpawnLocation(customName, sender);
+      }
+      if (lastKnown == null || lastKnown.getWorld() == null) {
+        lastKnown = manager.getLastKnownLocation(customName);
+      }
       if (lastKnown != null && lastKnown.getWorld() != null) {
         location = lastKnown;
       }

@@ -11,7 +11,7 @@ import me.bill.fakePlayerPlugin.util.FppLogger;
 
 public class DatabaseManager {
 
-  private static final int SCHEMA_VERSION = 22;
+  private static final int SCHEMA_VERSION = 23;
 
   public static int getCurrentSchemaVersion() {
     return SCHEMA_VERSION;
@@ -249,6 +249,8 @@ public class DatabaseManager {
           + "  xp_total       INTEGER      DEFAULT 0,"
           + "  xp_level       INTEGER      DEFAULT 0,"
           + "  xp_progress    REAL         DEFAULT 0.0,"
+          + "  skin_texture   TEXT         DEFAULT NULL,"
+          + "  skin_signature TEXT         DEFAULT NULL,"
           + "  saved_at       BIGINT       NOT NULL,"
           + "  PRIMARY KEY (bot_name, server_id)"
           + ")";
@@ -412,6 +414,10 @@ public class DatabaseManager {
     },
     {
       "ALTER TABLE fpp_active_bots ADD COLUMN ping_user_set BOOLEAN DEFAULT 0"
+    },
+    {
+      "ALTER TABLE fpp_despawn_snapshots ADD COLUMN skin_texture   TEXT DEFAULT NULL",
+      "ALTER TABLE fpp_despawn_snapshots ADD COLUMN skin_signature TEXT DEFAULT NULL"
     }
   };
 
@@ -622,6 +628,8 @@ public class DatabaseManager {
     execSilent("ALTER TABLE fpp_active_bots ADD COLUMN prevent_bad_omen   BOOLEAN DEFAULT 1");
     execSilent("ALTER TABLE fpp_active_bots ADD COLUMN respawn_on_death    BOOLEAN DEFAULT 0");
     execSilent("ALTER TABLE fpp_active_bots ADD COLUMN ping_user_set       BOOLEAN DEFAULT 0");
+    execSilent("ALTER TABLE fpp_despawn_snapshots ADD COLUMN skin_texture   TEXT DEFAULT NULL");
+    execSilent("ALTER TABLE fpp_despawn_snapshots ADD COLUMN skin_signature TEXT DEFAULT NULL");
     execSilent("CREATE INDEX IF NOT EXISTS idx_sessions_bot_name    ON fpp_bot_sessions(bot_name)");
     execSilent("CREATE INDEX IF NOT EXISTS idx_sessions_spawned_by  ON fpp_bot_sessions(spawned_by)");
     execSilent("CREATE INDEX IF NOT EXISTS idx_sessions_removed_at  ON fpp_bot_sessions(removed_at)");
@@ -2177,10 +2185,12 @@ public class DatabaseManager {
       boolean autoMilkEnabled,
       boolean preventBadOmen,
       boolean respawnOnDeath,
-      boolean pingUserSet) {
+      boolean pingUserSet,
+      String luckpermsGroup) {
     if (!isAlive()) return;
     final String tier = chatTier, rcc = rightClickCmd, pers = aiPersonality;
     final String pvePri = pvePriority, pveMob = pveMobType, pveMode = pveSmartAttackMode;
+    final String lpGroup = luckpermsGroup;
     enqueue(
         () -> {
           if (!isAlive()) return;
@@ -2189,7 +2199,7 @@ public class DatabaseManager {
                   + "ai_personality=?,pickup_items=?,pickup_xp=?,head_ai_enabled=?,"
                   + "nav_parkour=?,nav_break_blocks=?,nav_place_blocks=?,nav_avoid_water=?,nav_avoid_lava=?,swim_ai_enabled=?,chunk_load_radius=?,"
                   + "ping=?,pve_enabled=?,pve_range=?,pve_priority=?,pve_mob_type=?,pve_smart_attack_mode=?,"
-                  + "auto_milk_enabled=?,prevent_bad_omen=?,respawn_on_death=?,ping_user_set=? WHERE bot_uuid=?";
+                  + "auto_milk_enabled=?,prevent_bad_omen=?,respawn_on_death=?,ping_user_set=?,luckperms_group=? WHERE bot_uuid=?";
           try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setBoolean(1, frozen);
             ps.setBoolean(2, chatEnabled);
@@ -2222,7 +2232,9 @@ public class DatabaseManager {
             ps.setBoolean(23, preventBadOmen);
             ps.setBoolean(24, respawnOnDeath);
             ps.setBoolean(25, pingUserSet);
-            ps.setString(26, uuid);
+            if (lpGroup != null && !lpGroup.isBlank()) ps.setString(26, lpGroup);
+            else ps.setNull(26, java.sql.Types.VARCHAR);
+            ps.setString(27, uuid);
             ps.executeUpdate();
           } catch (SQLException e) {
             FppLogger.error("DB updateBotAllSettings: " + e.getMessage());
@@ -2376,8 +2388,12 @@ public class DatabaseManager {
       String inventoryData,
       int xpTotal,
       int xpLevel,
-      float xpProgress) {
+      float xpProgress,
+      String skinTexture,
+      String skinSignature) {
     if (!isAlive()) return;
+    final String skinTex = skinTexture;
+    final String skinSig = skinSignature;
     final long savedAt = System.currentTimeMillis();
     enqueue(
         () -> {
@@ -2385,13 +2401,14 @@ public class DatabaseManager {
           String sql =
               isMysql
                   ? "INSERT INTO fpp_despawn_snapshots"
-                      + " (bot_name,server_id,inventory_data,xp_total,xp_level,xp_progress,saved_at)"
-                      + " VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE"
+                      + " (bot_name,server_id,inventory_data,xp_total,xp_level,xp_progress,skin_texture,skin_signature,saved_at)"
+                      + " VALUES (?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE"
                       + " inventory_data=VALUES(inventory_data),xp_total=VALUES(xp_total),"
-                      + " xp_level=VALUES(xp_level),xp_progress=VALUES(xp_progress),saved_at=VALUES(saved_at)"
+                      + " xp_level=VALUES(xp_level),xp_progress=VALUES(xp_progress),"
+                      + " skin_texture=VALUES(skin_texture),skin_signature=VALUES(skin_signature),saved_at=VALUES(saved_at)"
                   : "INSERT OR REPLACE INTO fpp_despawn_snapshots"
-                      + " (bot_name,server_id,inventory_data,xp_total,xp_level,xp_progress,saved_at)"
-                      + " VALUES (?,?,?,?,?,?,?)";
+                      + " (bot_name,server_id,inventory_data,xp_total,xp_level,xp_progress,skin_texture,skin_signature,saved_at)"
+                      + " VALUES (?,?,?,?,?,?,?,?,?)";
           try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, botName);
             ps.setString(2, serverId);
@@ -2399,7 +2416,11 @@ public class DatabaseManager {
             ps.setInt(4, xpTotal);
             ps.setInt(5, xpLevel);
             ps.setFloat(6, xpProgress);
-            ps.setLong(7, savedAt);
+            if (skinTex != null) ps.setString(7, skinTex);
+            else ps.setNull(7, java.sql.Types.CLOB);
+            if (skinSig != null) ps.setString(8, skinSig);
+            else ps.setNull(8, java.sql.Types.CLOB);
+            ps.setLong(9, savedAt);
             ps.executeUpdate();
             Config.debugDatabase(
                 "DB saved despawn snapshot for '" + botName + "' on server '" + serverId + "'.");
@@ -2436,7 +2457,7 @@ public class DatabaseManager {
     if (!isAlive()) return list;
     try (PreparedStatement ps =
         connection.prepareStatement(
-            "SELECT bot_name,server_id,inventory_data,xp_total,xp_level,xp_progress,saved_at"
+            "SELECT bot_name,server_id,inventory_data,xp_total,xp_level,xp_progress,skin_texture,skin_signature,saved_at"
                 + " FROM fpp_despawn_snapshots WHERE server_id=?")) {
       ps.setString(1, serverId);
       try (ResultSet rs = ps.executeQuery()) {
@@ -2449,6 +2470,8 @@ public class DatabaseManager {
                   rs.getInt("xp_total"),
                   rs.getInt("xp_level"),
                   rs.getFloat("xp_progress"),
+                  rs.getString("skin_texture"),
+                  rs.getString("skin_signature"),
                   rs.getLong("saved_at")));
         }
       }
@@ -2551,6 +2574,8 @@ public class DatabaseManager {
       int xpTotal,
       int xpLevel,
       float xpProgress,
+      String skinTexture,
+      String skinSignature,
       long savedAt) {}
 
   public record BotTaskRow(

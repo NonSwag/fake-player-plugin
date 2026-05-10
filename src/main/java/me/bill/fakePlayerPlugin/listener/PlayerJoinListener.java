@@ -50,39 +50,6 @@ public class PlayerJoinListener implements Listener {
     if (event.getPlayer().getFirstPlayed() != 0L) {
       forceHasPlayedBefore(event.getPlayer());
     }
-
-    if (plugin.isNameTagAvailable() && me.bill.fakePlayerPlugin.config.Config.nameTagIsolation()) {
-      final java.util.UUID botUuid = event.getPlayer().getUniqueId();
-      FppScheduler.runSyncLater(
-          plugin,
-          () -> {
-            me.bill.fakePlayerPlugin.util.NameTagHelper.NickData nickData =
-                me.bill.fakePlayerPlugin.util.NameTagHelper.clearBotFromCache(botUuid);
-
-            me.bill.fakePlayerPlugin.fakeplayer.FakePlayer botFp = manager.getByUuid(botUuid);
-            if (botFp != null && nickData != null) {
-
-              botFp.setNameTagNick(nickData.nick());
-              if (plugin.getSkinManager() != null && nickData.skin() != null) {
-                plugin.getSkinManager().applyNameTagSkin(botFp, nickData.skin(), nickData.nick());
-              }
-
-              if (me.bill.fakePlayerPlugin.config.Config.nameTagSyncNickAsRename()
-                  && nickData.canRename()
-                  && !nickData.plainNick().equalsIgnoreCase(botFp.getName())) {
-                final me.bill.fakePlayerPlugin.util.NameTagHelper.BotSkin savedSkin = nickData.skin();
-                final String targetName = nickData.plainNick();
-                new me.bill.fakePlayerPlugin.util.BotRenameHelper(plugin, manager)
-                    .rename(org.bukkit.Bukkit.getConsoleSender(), botFp, targetName);
-
-                if (savedSkin != null) {
-                  schedulePostRenameSkinApply(targetName, savedSkin, botUuid);
-                }
-              }
-            }
-          },
-          2L);
-    }
   }
 
   @EventHandler(priority = EventPriority.LOWEST)
@@ -160,32 +127,6 @@ public class PlayerJoinListener implements Listener {
       }
     }
     return null;
-  }
-
-  private void schedulePostRenameSkinApply(
-      String renamedBotName,
-      me.bill.fakePlayerPlugin.util.NameTagHelper.BotSkin skin,
-      java.util.UUID oldUuid) {
-    final int[] elapsed = {0};
-    final int[] taskId = {-1};
-    taskId[0] =
-        FppScheduler.runSyncRepeatingWithId(
-            plugin,
-            () -> {
-              elapsed[0] += 5;
-              if (elapsed[0] > 120) {
-                FppScheduler.cancelTask(taskId[0]);
-                return;
-              }
-              me.bill.fakePlayerPlugin.fakeplayer.FakePlayer newBot = manager.getByName(renamedBotName);
-              if (newBot == null) return;
-              FppScheduler.cancelTask(taskId[0]);
-              if (plugin.getSkinManager() != null) {
-                plugin.getSkinManager().applyNameTagSkin(newBot, skin, renamedBotName);
-              }
-            },
-            20L,
-            5L);
   }
 
   @EventHandler(priority = EventPriority.MONITOR)
@@ -307,6 +248,8 @@ public class PlayerJoinListener implements Listener {
 
     FakePlayer fp = manager.getByUuid(uuid);
     if (fp != null) {
+      if (isServerStopping()) return;
+      manager.removeByName(fp.getName());
       return;
     }
 
@@ -321,5 +264,14 @@ public class PlayerJoinListener implements Listener {
           }
         },
         2L);
+  }
+
+  private static boolean isServerStopping() {
+    try {
+      Object stopping = Bukkit.class.getMethod("isStopping").invoke(null);
+      return stopping instanceof Boolean b && b;
+    } catch (Throwable ignored) {
+      return false;
+    }
   }
 }

@@ -270,9 +270,6 @@ logging:
 update-checker:
   enabled: true   # Check for new plugin versions on startup and /fpp reload
 
-# ── NameTag Integration ───────────────────────────────────────────────────────
-# Soft-dependency on the NameTag plugin (lode.gg). These settings only apply
-# when NameTag is installed alongside FakePlayerPlugin.
 # ── Attack Mob Targeting ──────────────────────────────────────────────────────
 # Defaults for /fpp attack --mob (PvE auto-targeting mode).
 attack-mob:
@@ -281,21 +278,6 @@ attack-mob:
   smooth-rotation-speed: 12.0 # Degrees per tick for head rotation toward target
   retarget-interval: 10       # Ticks between scanning for a new target (when idle)
   line-of-sight: true         # Require unobstructed line of sight to target
-
-nametag-integration:
-  # Prevent spawning a bot whose --name matches a real player's current NameTag
-  # nick. Blocks the spawn and sends 'spawn-name-taken-nick' to the sender.
-  block-nick-conflicts: true
-  # After each bot spawns, remove it from NameTag's internal player cache.
-  # This prevents NameTag from treating bots as real players and attempting to
-  # store or apply nick data to them. If a bot already has a nick set via NameTag,
-  # the cache entry is preserved (see sync-nick-as-rename below).
-  bot-isolation: true
-  # When a bot has a NameTag nick set (e.g. via /nick BotA Steve), automatically
-  # trigger FPP's rename command so the bot's actual Minecraft name becomes "Steve".
-  # The rename is silent (console-only output) and preserves all bot state.
-  # Requires bot-isolation: true. Default false — opt in consciously.
-  sync-nick-as-rename: false
 
 # ── Metrics ───────────────────────────────────────────────────────────────────
 # Anonymous usage statistics via FastStats. No personal data collected.

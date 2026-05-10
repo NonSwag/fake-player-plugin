@@ -102,7 +102,9 @@ public class FakePlayerManager {
       ItemStack[] extraContents,
       int xpTotal,
       int xpLevel,
-      float xpProgress) {}
+      float xpProgress,
+      String skinTexture,
+      String skinSignature) {}
 
   private final ConcurrentHashMap<String, DespawnSnapshot> despawnSnapshots =
       new ConcurrentHashMap<>();
@@ -312,6 +314,7 @@ public class FakePlayerManager {
 
                 if (bot == null || !bot.isValid() || !bot.isOnline() || bot.isDead()) continue;
                 boolean sendVisualSyncThisTick = shouldSendLaggedVisualUpdate(fp);
+                boolean runBehaviorThisTick = shouldRunLaggedBehaviorUpdate(fp);
                 Location before = bot.getLocation();
 
                 if (!fp.isFrozen()) {
@@ -319,14 +322,16 @@ public class FakePlayerManager {
                   boolean isNavigating = plugin.getPathfindingService() != null
                       && plugin.getPathfindingService().isNavigating(fp.getUuid());
 
-                  if (fp.isSwimAiEnabled()) {
+                  if (runBehaviorThisTick && fp.isSwimAiEnabled()) {
                     boolean navJump =
                         isNavigating && navJumpHolding.getOrDefault(fp.getUuid(), 0) > 0;
                     PathfindingService.tickSwimAi(bot, navJump, isNavigating);
                   }
-                  navJumpHolding.computeIfPresent(fp.getUuid(), (k, v) -> v > 1 ? v - 1 : null);
+                  if (runBehaviorThisTick) {
+                    navJumpHolding.computeIfPresent(fp.getUuid(), (k, v) -> v > 1 ? v - 1 : null);
+                  }
 
-                  if (fp.isAutoEatEnabled()) {
+                  if (runBehaviorThisTick && fp.isAutoEatEnabled()) {
                     tickAutoEat(bot);
                   }
 
@@ -356,7 +361,8 @@ public class FakePlayerManager {
 
                   NmsPlayerSpawner.tickPhysics(bot);
 
-                  if (doHeadAi
+                  if (runBehaviorThisTick
+                      && doHeadAi
                       && fp.isHeadAiEnabled()
                       && !actionLockedBots.containsKey(fp.getUuid())
                       && !navLockedBots.contains(fp.getUuid())) {
@@ -442,7 +448,7 @@ public class FakePlayerManager {
                   }
 
                   Location miningLock = actionLockedBots.get(fp.getUuid());
-                  if (miningLock != null) {
+                  if (runBehaviorThisTick && miningLock != null) {
                     Location cur = bot.getLocation();
                     boolean outOfPlace =
                         !cur.getWorld().equals(miningLock.getWorld())
@@ -472,9 +478,12 @@ public class FakePlayerManager {
                     bot.setVelocity(ZERO_VELOCITY);
                   }
 
-                  // Fire addon tick handlers.
-                  var fppApiTick = plugin.getFppApiImpl();
-                  if (fppApiTick != null) fppApiTick.fireTickHandlers(fp, bot);
+                  if (runBehaviorThisTick) {
+                    // Tick handlers represent bot input/AI. Under simulated latency they are delayed,
+                    // while entity physics still runs every tick so the server body remains valid.
+                    var fppApiTick = plugin.getFppApiImpl();
+                    if (fppApiTick != null) fppApiTick.fireTickHandlers(fp, bot);
+                  }
                 }
 
                 Location after = bot.getLocation();
@@ -777,6 +786,7 @@ public class FakePlayerManager {
       fp.setBotType(botType);
 
       fp.setSkinName(pickRandomSkinName());
+      applyDespawnSnapshotSkin(fp);
 
       String cleanBotName = "bot" + (alreadyOwned + i + 1);
       String rawUserName =
@@ -817,6 +827,7 @@ public class FakePlayerManager {
             record,
             net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
                 .serialize(me.bill.fakePlayerPlugin.util.TextUtil.colorize(ubn.displayName())));
+        persistActiveSkin(fp);
       }
     }
     if (batch.isEmpty()) return 0;
@@ -880,6 +891,7 @@ public class FakePlayerManager {
 
     String spawnerName = spawner != null ? spawner.getName() : "CONSOLE";
     UUID spawnerUuid = spawner != null ? spawner.getUniqueId() : new UUID(0, 0);
+    UUID resolvedCustomUuid = null;
 
     if (customName != null) {
 
@@ -890,6 +902,7 @@ public class FakePlayerManager {
           || !effectiveName.matches("[a-zA-Z0-9_]+")) return -2;
 
       if (usedNames.contains(effectiveName)) return 0;
+      if (getByName(effectiveName) != null) return 0;
       if (explicitUuid != null && activePlayers.containsKey(explicitUuid)) return 0;
 
       Player realPlayer = Bukkit.getPlayerExact(effectiveName);
@@ -898,13 +911,9 @@ public class FakePlayerManager {
         Player realPlayerByUuid = Bukkit.getPlayer(explicitUuid);
         if (realPlayerByUuid != null && !activePlayers.containsKey(explicitUuid)) return -4;
       }
+      resolvedCustomUuid = explicitUuid != null ? explicitUuid : resolveUuid(effectiveName);
+      if (activePlayers.containsKey(resolvedCustomUuid)) return 0;
 
-      if (plugin.isNameTagAvailable()
-          && me.bill.fakePlayerPlugin.config.Config.nameTagBlockNickConflicts()
-          && me.bill.fakePlayerPlugin.util.NameTagHelper.isNickUsedByRealPlayer(
-              effectiveName, this)) {
-        return -5;
-      }
       count = 1;
     }
 
@@ -922,7 +931,10 @@ public class FakePlayerManager {
       }
 
       if (name == null) break;
-      UUID uuid = explicitUuid != null ? explicitUuid : resolveUuid(name);
+      UUID uuid =
+          resolvedCustomUuid != null
+              ? resolvedCustomUuid
+              : explicitUuid != null ? explicitUuid : resolveUuid(name);
       PlayerProfile profile = Bukkit.createProfile(uuid, name);
       FakePlayer fp = new FakePlayer(uuid, name, profile);
       if (explicitUuid != null) {
@@ -933,6 +945,7 @@ public class FakePlayerManager {
       fp.setBotType(botType);
 
       fp.setSkinName(baseName != null ? baseName : name);
+      applyDespawnSnapshotSkin(fp);
 
       String rawAdminName = Config.adminBotNameFormat().replace("{bot_name}", name);
       fp.setRawDisplayName(rawAdminName);
@@ -941,6 +954,7 @@ public class FakePlayerManager {
       fp.setSpawnLocation(location);
       fp.setSpawnedBy(spawnerName, spawnerUuid);
       fp.setSpawnTick(System.currentTimeMillis());
+      usedNames.add(name);
       activePlayers.put(uuid, fp);
       nameIndex.put(name.toLowerCase(), fp);
       batch.add(fp);
@@ -967,6 +981,7 @@ public class FakePlayerManager {
             record,
             net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
                 .serialize(me.bill.fakePlayerPlugin.util.TextUtil.colorize(displayName)));
+        persistActiveSkin(fp);
       }
     }
     if (batch.isEmpty()) return 0;
@@ -1243,63 +1258,6 @@ public class FakePlayerManager {
                 } catch (Throwable ignored) {
                 }
               }
-
-              if (plugin.isNameTagAvailable()
-                  && me.bill.fakePlayerPlugin.config.Config.nameTagIsolation()) {
-                final java.util.UUID isolateUuid = fp.getUuid();
-                FppScheduler.runSyncLater(
-                    plugin,
-                    () -> {
-                      me.bill.fakePlayerPlugin.util.NameTagHelper.NickData nickData =
-                          me.bill.fakePlayerPlugin.util.NameTagHelper.clearBotFromCache(
-                              isolateUuid);
-
-                      FakePlayer botFp = getByUuid(isolateUuid);
-                      if (botFp != null && nickData != null) {
-                        botFp.setNameTagNick(nickData.nick());
-                        if (plugin.getSkinManager() != null && nickData.skin() != null) {
-                          plugin
-                              .getSkinManager()
-                              .applyNameTagSkin(botFp, nickData.skin(), nickData.nick());
-                        }
-
-                        if (me.bill.fakePlayerPlugin.config.Config.nameTagSyncNickAsRename()
-                            && nickData.canRename()
-                            && !nickData.plainNick().equalsIgnoreCase(botFp.getName())) {
-                          final me.bill.fakePlayerPlugin.util.NameTagHelper.BotSkin savedSkin =
-                              nickData.skin();
-                          final String targetName = nickData.plainNick();
-                          new me.bill.fakePlayerPlugin.util.BotRenameHelper(plugin, this)
-                              .rename(org.bukkit.Bukkit.getConsoleSender(), botFp, targetName);
-                          if (savedSkin != null) {
-                            final int[] elapsed = {0};
-                            final int[] skinTaskId = {-1};
-                            skinTaskId[0] =
-                                FppScheduler.runSyncRepeatingWithId(
-                                    plugin,
-                                    () -> {
-                                      elapsed[0] += 5;
-                                      if (elapsed[0] > 120) {
-                                        FppScheduler.cancelTask(skinTaskId[0]);
-                                        return;
-                                      }
-                                      FakePlayer newBot = getByName(targetName);
-                                      if (newBot == null) return;
-                                      if (plugin.getSkinManager() != null) {
-                                        plugin
-                                            .getSkinManager()
-                                            .applyNameTagSkin(newBot, savedSkin, targetName);
-                                      }
-                                    },
-                                    20L,
-                                    5L);
-                          }
-                        }
-                      }
-                    },
-                    3L);
-              }
-
               FppScheduler.runSyncLater(
                   plugin,
                   () -> {
@@ -1438,7 +1396,7 @@ public class FakePlayerManager {
                   Config.debugSwap(
                       "[DespawnSnapshot] Restored inventory+XP to '" + restoredFp.getName() + "'.");
                 },
-                10L);
+                5L);
           }
 
           if (botSwapAI != null) {
@@ -1488,6 +1446,18 @@ public class FakePlayerManager {
       UUID spawnedByUuid,
       Location location,
       BotType botType) {
+    spawnRestored(name, uuid, savedDisplayName, spawnedBy, spawnedByUuid, location, botType, null);
+  }
+
+  public void spawnRestored(
+      String name,
+      UUID uuid,
+      String savedDisplayName,
+      String spawnedBy,
+      UUID spawnedByUuid,
+      Location location,
+      BotType botType,
+      SkinProfile restoredSkin) {
 
     if (usedNames.contains(name)) return;
 
@@ -1506,6 +1476,10 @@ public class FakePlayerManager {
     FakePlayer fp = new FakePlayer(restoredUuid, name, profile);
     fp.setBotType(botType);
     fp.setRestoredSpawn(true);
+    if (restoredSkin != null && restoredSkin.isValid()) {
+      fp.setResolvedSkin(restoredSkin);
+      Config.debugSkin("Restored persisted skin for bot '" + name + "'");
+    }
 
     boolean isUserBot = name.startsWith("ubot_");
     if (isUserBot) {
@@ -1638,34 +1612,39 @@ public class FakePlayerManager {
 
     // Snapshot inventory + XP for ALL bots BEFORE clearing maps or removing entities.
     // This ensures /fpp despawn all preserves items just like single-bot despawn does.
-    if (!Config.dropItemsOnDespawn()) {
-      for (FakePlayer fp : toRemove) {
-        if (renamingBotIds.contains(fp.getUuid())) continue;
-        if (isExplicitUuidSpawn(fp)) continue;
-        Player snapBody = fp.getPhysicsEntity();
-        if (snapBody != null && snapBody.isOnline()) {
-          String botName = fp.getName();
-          DespawnSnapshot snap =
-              new DespawnSnapshot(
-                  cloneContents(snapBody.getInventory().getContents()),
-                  cloneContents(snapBody.getInventory().getArmorContents()),
-                  cloneContents(snapBody.getInventory().getExtraContents()),
-                  snapBody.getTotalExperience(),
-                  snapBody.getLevel(),
-                  snapBody.getExp());
-          despawnSnapshots.put(botName.toLowerCase(), snap);
-          persistDespawnSnapshot(botName.toLowerCase(), snap);
-          Config.debugSwap("[DespawnSnapshot] Saved inventory+XP for '" + botName + "' (bulk despawn).");
-        }
+    boolean preserveInventoryOnDespawn = !Config.dropItemsOnDespawn();
+    for (FakePlayer fp : toRemove) {
+      if (renamingBotIds.contains(fp.getUuid())) continue;
+      if (isExplicitUuidSpawn(fp)) continue;
+      if (!preserveInventoryOnDespawn && !hasResolvedSkin(fp)) continue;
+      Player snapBody = fp.getPhysicsEntity();
+      if (snapBody != null && snapBody.isOnline()) {
+        String botName = fp.getName();
+        DespawnSnapshot snap =
+            new DespawnSnapshot(
+                preserveInventoryOnDespawn
+                    ? cloneContents(snapBody.getInventory().getContents())
+                    : new ItemStack[41],
+                preserveInventoryOnDespawn
+                    ? cloneContents(snapBody.getInventory().getArmorContents())
+                    : new ItemStack[4],
+                preserveInventoryOnDespawn
+                    ? cloneContents(snapBody.getInventory().getExtraContents())
+                    : new ItemStack[1],
+                preserveInventoryOnDespawn ? snapBody.getTotalExperience() : 0,
+                preserveInventoryOnDespawn ? snapBody.getLevel() : 0,
+                preserveInventoryOnDespawn ? snapBody.getExp() : 0f,
+                fp.getResolvedSkin() != null ? fp.getResolvedSkin().getValue() : null,
+                fp.getResolvedSkin() != null ? fp.getResolvedSkin().getSignature() : null);
+        despawnSnapshots.put(botName.toLowerCase(), snap);
+        persistDespawnSnapshot(botName.toLowerCase(), snap);
+        Config.debugSwap("[DespawnSnapshot] Saved despawn state for '" + botName + "' (bulk despawn).");
       }
     }
 
-    activePlayers.clear();
-    usedNames.clear();
-    entityIdIndex.clear();
-
-    botHeadRotation.clear();
-    botSpawnRotation.clear();
+    for (FakePlayer fp : toRemove) {
+      unregisterBotState(fp, "DELETED");
+    }
 
     long maxDelay = 0;
 
@@ -1709,8 +1688,6 @@ public class FakePlayerManager {
 
             List<Player> snapshot = new ArrayList<>(Bukkit.getOnlinePlayers());
             for (Player online : snapshot) PacketHelper.sendTabListRemove(online, target);
-
-            if (db != null) db.recordRemoval(target.getUuid(), "DELETED");
 
             var vc2 = plugin.getVelocityChannel();
             if (vc2 != null) vc2.broadcastBotDespawn(target.getUuid());
@@ -1787,6 +1764,26 @@ public class FakePlayerManager {
     bot.setTotalExperience(snap.xpTotal());
   }
 
+  private void applyDespawnSnapshotSkin(FakePlayer fp) {
+    DespawnSnapshot snap = despawnSnapshots.get(fp.getName().toLowerCase());
+    if (snap == null || snap.skinTexture() == null || snap.skinTexture().isBlank()) return;
+
+    fp.setResolvedSkin(new SkinProfile(snap.skinTexture(), snap.skinSignature(), "despawn:" + fp.getName()));
+    Config.debugSkin("Restored despawned skin for bot '" + fp.getName() + "'");
+  }
+
+  private void persistActiveSkin(FakePlayer fp) {
+    if (db == null) return;
+    SkinProfile skin = fp.getResolvedSkin();
+    if (skin == null || !skin.isValid()) return;
+    db.updateBotSkin(fp.getUuid().toString(), skin.getValue(), skin.getSignature());
+  }
+
+  private static boolean hasResolvedSkin(FakePlayer fp) {
+    SkinProfile skin = fp != null ? fp.getResolvedSkin() : null;
+    return skin != null && skin.isValid();
+  }
+
   // ── Despawn snapshot persistence ─────────────────────────────────────────
 
   /**
@@ -1805,7 +1802,13 @@ public class FakePlayerManager {
             db.loadDespawnSnapshotsForServer(me.bill.fakePlayerPlugin.config.Config.serverId());
         for (DatabaseManager.DespawnSnapshotRow row : rows) {
           DespawnSnapshot snap =
-              deserializeSlots(row.inventoryData(), row.xpTotal(), row.xpLevel(), row.xpProgress());
+              deserializeSlots(
+                  row.inventoryData(),
+                  row.xpTotal(),
+                  row.xpLevel(),
+                  row.xpProgress(),
+                  row.skinTexture(),
+                  row.skinSignature());
           if (snap != null) despawnSnapshots.put(row.botName().toLowerCase(), snap);
         }
         if (!rows.isEmpty()) {
@@ -1832,7 +1835,10 @@ public class FakePlayerManager {
         int xpTotal = entry.getInt("xp-total", 0);
         int xpLevel = entry.getInt("xp-level", 0);
         float xpProgress = (float) entry.getDouble("xp-progress", 0.0);
-        DespawnSnapshot snap = deserializeSlots(invData, xpTotal, xpLevel, xpProgress);
+        String skinTexture = entry.getString("skin-texture", null);
+        String skinSignature = entry.getString("skin-signature", null);
+        DespawnSnapshot snap =
+            deserializeSlots(invData, xpTotal, xpLevel, xpProgress, skinTexture, skinSignature);
         if (snap != null) despawnSnapshots.put(key.toLowerCase(), snap);
       }
       if (!sec.getKeys(false).isEmpty()) {
@@ -1851,7 +1857,14 @@ public class FakePlayerManager {
 
     if (db != null) {
       db.saveDespawnSnapshot(
-          botNameLower, serverId, invData, snap.xpTotal(), snap.xpLevel(), snap.xpProgress());
+          botNameLower,
+          serverId,
+          invData,
+          snap.xpTotal(),
+          snap.xpLevel(),
+          snap.xpProgress(),
+          snap.skinTexture(),
+          snap.skinSignature());
       return;
     }
 
@@ -1861,6 +1874,7 @@ public class FakePlayerManager {
     final String invDataFinal = invData;
     final int xpT = snap.xpTotal(), xpL = snap.xpLevel();
     final float xpP = snap.xpProgress();
+    final String skinTex = snap.skinTexture(), skinSig = snap.skinSignature();
     FppScheduler.runAsync(
         plugin,
         () -> {
@@ -1874,6 +1888,8 @@ public class FakePlayerManager {
             yaml.set(path + ".xp-total", xpT);
             yaml.set(path + ".xp-level", xpL);
             yaml.set(path + ".xp-progress", (double) xpP);
+            yaml.set(path + ".skin-texture", skinTex);
+            yaml.set(path + ".skin-signature", skinSig);
             yaml.set(path + ".saved-at", System.currentTimeMillis());
             yaml.save(yamlFile);
           } catch (Exception e) {
@@ -1931,7 +1947,12 @@ public class FakePlayerManager {
    * Returns {@code null} if the data is blank or entirely corrupt.
    */
   private static DespawnSnapshot deserializeSlots(
-      String data, int xpTotal, int xpLevel, float xpProgress) {
+      String data,
+      int xpTotal,
+      int xpLevel,
+      float xpProgress,
+      String skinTexture,
+      String skinSignature) {
     ItemStack[] main = new ItemStack[41];
     if (data != null && !data.isBlank()) {
       for (String token : data.split("\\|")) {
@@ -1948,12 +1969,13 @@ public class FakePlayerManager {
     // Build armor (slots 36-39) and extra (slot 40) sub-arrays for applyDespawnSnapshot
     ItemStack[] armor = new ItemStack[]{main[36], main[37], main[38], main[39]};
     ItemStack[] extra = new ItemStack[]{main[40]};
-    boolean hasContent = xpTotal > 0 || xpLevel > 0 || xpProgress > 0f;
+    boolean hasContent =
+        xpTotal > 0 || xpLevel > 0 || xpProgress > 0f || (skinTexture != null && !skinTexture.isBlank());
     for (ItemStack item : main) {
       if (item != null && item.getType() != Material.AIR) { hasContent = true; break; }
     }
     if (!hasContent) return null;
-    return new DespawnSnapshot(main, armor, extra, xpTotal, xpLevel, xpProgress);
+    return new DespawnSnapshot(main, armor, extra, xpTotal, xpLevel, xpProgress, skinTexture, skinSignature);
   }
 
   public boolean delete(String name) {
@@ -1991,64 +2013,37 @@ public class FakePlayerManager {
     // Must happen synchronously here (not in the delayed task) so bulk operations
     // like /fpp despawn all don't race — by the time the 1-tick delay fires,
     // earlier bots' entities may already be gone and snapBody.isOnline() fails.
+    boolean preserveInventoryOnDespawn = !Config.dropItemsOnDespawn();
     if (!explicitUuidSpawn
-        && !Config.dropItemsOnDespawn()
+        && (preserveInventoryOnDespawn || hasResolvedSkin(target))
         && !renamingBotIds.contains(target.getUuid())
         && !suppressDespawnSnapshotIds.contains(target.getUuid())) {
       Player snapBody = target.getPhysicsEntity();
       if (snapBody != null && snapBody.isOnline()) {
         DespawnSnapshot snap =
             new DespawnSnapshot(
-                cloneContents(snapBody.getInventory().getContents()),
-                cloneContents(snapBody.getInventory().getArmorContents()),
-                cloneContents(snapBody.getInventory().getExtraContents()),
-                snapBody.getTotalExperience(),
-                snapBody.getLevel(),
-                snapBody.getExp());
+                preserveInventoryOnDespawn
+                    ? cloneContents(snapBody.getInventory().getContents())
+                    : new ItemStack[41],
+                preserveInventoryOnDespawn
+                    ? cloneContents(snapBody.getInventory().getArmorContents())
+                    : new ItemStack[4],
+                preserveInventoryOnDespawn
+                    ? cloneContents(snapBody.getInventory().getExtraContents())
+                    : new ItemStack[1],
+                preserveInventoryOnDespawn ? snapBody.getTotalExperience() : 0,
+                preserveInventoryOnDespawn ? snapBody.getLevel() : 0,
+                preserveInventoryOnDespawn ? snapBody.getExp() : 0f,
+                target.getResolvedSkin() != null ? target.getResolvedSkin().getValue() : null,
+                target.getResolvedSkin() != null ? target.getResolvedSkin().getSignature() : null);
         despawnSnapshots.put(botName.toLowerCase(), snap);
         persistDespawnSnapshot(botName.toLowerCase(), snap);
-        Config.debugSwap("[DespawnSnapshot] Saved inventory+XP for '" + botName + "'.");
+        Config.debugSwap("[DespawnSnapshot] Saved despawn state for '" + botName + "'.");
       }
     }
 
-    activePlayers.remove(target.getUuid());
-    suppressDespawnSnapshotIds.remove(target.getUuid());
-    nameIndex.remove(botName.toLowerCase());
-    usedNames.remove(botName);
-
-    if (target.getPhysicsEntity() != null)
-      entityIdIndex.remove(target.getPhysicsEntity().getEntityId());
-
-    if (botSwapAI != null) botSwapAI.cancel(target.getUuid());
-
-    botHeadRotation.remove(target.getUuid());
-    botSpawnRotation.remove(target.getUuid());
-
-    actionLockedBots.remove(target.getUuid());
-
-    navLockedBots.remove(target.getUuid());
-
-    trackedFallDistance.remove(target.getUuid());
-    wasOnGround.remove(target.getUuid());
+    unregisterBotState(target, "DELETED");
     if (!explicitUuidSpawn) target.clearMetadata();
-    var pathfinding = plugin.getPathfindingService();
-    if (pathfinding != null) pathfinding.cancel(target.getUuid());
-
-    var moveCmd = plugin.getMoveCommand();
-    if (moveCmd != null) moveCmd.cleanupBot(target.getUuid());
-    var mineCmd = plugin.getMineCommand();
-    if (mineCmd != null) {
-      mineCmd.cleanupBot(target.getUuid());
-      mineCmd.clearSelection(target.getUuid());
-    }
-    var placeCmd = plugin.getPlaceCommand();
-    if (placeCmd != null) placeCmd.cleanupBot(target.getUuid());
-    var useCmd = plugin.getUseCommand();
-    if (useCmd != null) useCmd.stopUsing(target.getUuid());
-    var followCmd = plugin.getFollowCommand();
-    if (followCmd != null) followCmd.cleanupBot(target.getUuid());
-    var sleepCmd = plugin.getSleepCommand();
-    if (sleepCmd != null) sleepCmd.cleanupBot(target.getUuid());
 
     Runnable doVisualRemove =
         () -> {
@@ -2301,24 +2296,63 @@ public class FakePlayerManager {
   }
 
   public void removeByName(String name) {
-    activePlayers
-        .values()
-        .removeIf(
-            fp -> {
-              if (!fp.getName().equals(name)) return false;
-              nameIndex.remove(fp.getName().toLowerCase());
-              usedNames.remove(fp.getName());
-              botHeadRotation.remove(fp.getUuid());
-              botSpawnRotation.remove(fp.getUuid());
-              actionLockedBots.remove(fp.getUuid());
-              navLockedBots.remove(fp.getUuid());
-              if (db != null) db.recordRemoval(fp.getUuid(), "DIED");
-              Config.debug("Removed from registry: " + name);
-              return true;
-            });
+    FakePlayer fp = getByName(name);
+    if (fp != null) {
+      unregisterBotState(fp, "DIED");
+      restoreExplicitUuidSourceState(fp);
+      fp.clearMetadata();
+      Config.debug("Removed from registry: " + name);
+    }
     if (persistence != null && Config.persistOnRestart()) {
       persistence.saveAsync(activePlayers.values());
     }
+  }
+
+  private void unregisterBotState(FakePlayer fp, String removalReason) {
+    if (fp == null) return;
+
+    UUID uuid = fp.getUuid();
+    String name = fp.getName();
+
+    activePlayers.remove(uuid, fp);
+    nameIndex.remove(name.toLowerCase(), fp);
+    usedNames.remove(name);
+    suppressDespawnSnapshotIds.remove(uuid);
+
+    Player body = fp.getPhysicsEntity();
+    if (body != null) entityIdIndex.remove(body.getEntityId(), fp);
+
+    if (botSwapAI != null) botSwapAI.cancel(uuid);
+
+    botHeadRotation.remove(uuid);
+    botSpawnRotation.remove(uuid);
+    actionLockedBots.remove(uuid);
+    navLockedBots.remove(uuid);
+    trackedFallDistance.remove(uuid);
+    wasOnGround.remove(uuid);
+    bodyTransitionBots.remove(uuid);
+
+    var pathfinding = plugin.getPathfindingService();
+    if (pathfinding != null) pathfinding.cancel(uuid);
+
+    var moveCmd = plugin.getMoveCommand();
+    if (moveCmd != null) moveCmd.cleanupBot(uuid);
+    var mineCmd = plugin.getMineCommand();
+    if (mineCmd != null) {
+      mineCmd.cleanupBot(uuid);
+      mineCmd.clearSelection(uuid);
+    }
+    var placeCmd = plugin.getPlaceCommand();
+    if (placeCmd != null) placeCmd.cleanupBot(uuid);
+    var useCmd = plugin.getUseCommand();
+    if (useCmd != null) useCmd.stopUsing(uuid);
+    var followCmd = plugin.getFollowCommand();
+    if (followCmd != null) followCmd.cleanupBot(uuid);
+    var sleepCmd = plugin.getSleepCommand();
+    if (sleepCmd != null) sleepCmd.cleanupBot(uuid);
+
+    if (chunkLoader != null) chunkLoader.releaseForBot(fp);
+    if (db != null && removalReason != null) db.recordRemoval(uuid, removalReason);
   }
 
   public void syncToPlayer(Player player) {
@@ -2757,30 +2791,18 @@ public class FakePlayerManager {
     boolean tabVisible = Config.tabListEnabled();
 
     fp.clearCachedTabListGameProfile();
+    NmsPlayerSpawner.applySkinToGameProfile(body, fp.getResolvedSkin());
+    NmsPlayerSpawner.refreshPaperPlayer(body);
 
-    List<Player> online = new ArrayList<>(Bukkit.getOnlinePlayers());
-    for (Player p : online) {
-      PacketHelper.despawnFakePlayer(p, fp);
+    for (Player viewer : new ArrayList<>(Bukkit.getOnlinePlayers())) {
+      if (viewer.getUniqueId().equals(body.getUniqueId())) continue;
+      if (activePlayers.containsKey(viewer.getUniqueId())) continue;
+      if (!viewer.canSee(body)) continue;
+
+      viewer.hidePlayer(plugin, body);
+      viewer.showPlayer(plugin, body);
+      if (!tabVisible) PacketHelper.sendTabListUpdateListed(viewer, fp, false);
     }
-
-    FppScheduler.runSyncLater(
-        plugin,
-        () -> {
-          Player b = fp.getPlayer();
-          if (b == null || !b.isValid() || !b.isOnline()) return;
-          Location loc = b.getLocation();
-          for (Player p : new ArrayList<>(Bukkit.getOnlinePlayers()) ) {
-            if (tabVisible) {
-              PacketHelper.sendTabListRefreshEntry(p, fp);
-            } else {
-              PacketHelper.sendTabListUpdateListed(p, fp, false);
-            }
-            PacketHelper.spawnFakePlayer(p, fp, loc);
-            PacketHelper.sendRotation(p, fp, loc.getYaw(), loc.getPitch(), loc.getYaw());
-            PacketHelper.sendPositionSync(p, b, loc);
-          }
-        },
-        1L);
   }
 
   private static final java.util.regex.Pattern PLACEHOLDER_PATTERN =
@@ -2834,7 +2856,17 @@ public class FakePlayerManager {
   }
 
   private boolean shouldSendLaggedVisualUpdate(FakePlayer fp) {
+    if (!Config.pingLatencyEffect()) return true;
     int cadence = visualSyncCadenceTicks(fp);
+    if (cadence <= 1) return true;
+    long tick = visualSyncTickCounter;
+    int offset = Math.floorMod(fp.getUuid().hashCode(), cadence);
+    return Math.floorMod(tick, cadence) == offset;
+  }
+
+  private boolean shouldRunLaggedBehaviorUpdate(FakePlayer fp) {
+    if (!Config.pingLatencyEffect() || !Config.pingBehaviorEffect()) return true;
+    int cadence = behaviorUpdateCadenceTicks(fp);
     if (cadence <= 1) return true;
     long tick = visualSyncTickCounter;
     int offset = Math.floorMod(fp.getUuid().hashCode(), cadence);
@@ -2846,6 +2878,13 @@ public class FakePlayerManager {
     if (eff <= 0) return 1;
     if (eff <= 100) return 1;
     return Math.min(10, (eff + 99) / 100);
+  }
+
+  private int behaviorUpdateCadenceTicks(FakePlayer fp) {
+    int eff = fp.getEffectivePing();
+    if (eff <= 0) return 1;
+    if (eff <= 150) return 1;
+    return Math.min(Config.pingMaxBehaviorSkipTicks(), Math.max(2, (eff + 149) / 150));
   }
 
   private String resolveDespawnDisplayName(FakePlayer fp) {
@@ -3026,6 +3065,7 @@ public class FakePlayerManager {
         fp.isAutoMilkEnabled(),
         fp.isPreventBadOmen(),
         fp.isRespawnOnDeath(),
-        fp.hasCustomPing());
+        fp.hasCustomPing(),
+        fp.getLuckpermsGroup());
   }
 }

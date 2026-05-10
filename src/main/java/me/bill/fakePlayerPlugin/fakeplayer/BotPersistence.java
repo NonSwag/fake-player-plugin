@@ -1101,16 +1101,25 @@ public final class BotPersistence {
 
     Location loc = new Location(world, sb.x, sb.y, sb.z, sb.yaw, sb.pitch);
 
+    SkinProfile restoredSkin =
+        sb.skinTexture != null && !sb.skinTexture.isBlank()
+            ? new SkinProfile(sb.skinTexture, sb.skinSignature, "persisted:" + sb.name)
+            : null;
     manager.spawnRestored(
-        sb.name, sb.uuid, sb.displayName, sb.spawnedBy, sb.spawnedByUuid, loc, sb.botType);
+        sb.name,
+        sb.uuid,
+        sb.displayName,
+        sb.spawnedBy,
+        sb.spawnedByUuid,
+        loc,
+        sb.botType,
+        restoredSkin);
 
     FakePlayer fp = manager.getByName(sb.name);
     if (fp != null) {
 
-      if (sb.skinTexture != null && !sb.skinTexture.isBlank()) {
-        fp.setResolvedSkin(
-            new SkinProfile(sb.skinTexture, sb.skinSignature, "persisted:" + sb.name));
-        Config.debugSkin("Restored persisted skin for bot '" + sb.name + "'");
+      if (restoredSkin != null && restoredSkin.isValid() && plugin.getDatabaseManager() != null) {
+        plugin.getDatabaseManager().updateBotSkin(fp.getUuid().toString(), sb.skinTexture, sb.skinSignature);
       }
       if (sb.luckpermsGroup != null && !sb.luckpermsGroup.isBlank()) {
         fp.setLuckpermsGroup(sb.luckpermsGroup);

@@ -69,6 +69,7 @@ public interface FppApi {
 
   // ── Service registry ────────────────────────────────────────────────────────
   <T> void registerService(@NotNull Class<T> serviceClass, @NotNull T instance);
+  <T> void unregisterService(@NotNull Class<T> serviceClass, @NotNull T instance);
   <T> @Nullable T getService(@NotNull Class<T> serviceClass);
   boolean hasService(@NotNull Class<?> serviceClass);
 

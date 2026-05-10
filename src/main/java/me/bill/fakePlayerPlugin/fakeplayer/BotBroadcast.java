@@ -41,18 +41,6 @@ public final class BotBroadcast {
   }
 
   public static String resolveDisplayName(FakePlayer fp) {
-    me.bill.fakePlayerPlugin.FakePlayerPlugin plugin =
-        me.bill.fakePlayerPlugin.FakePlayerPlugin.getInstance();
-    if (plugin != null && plugin.isNameTagAvailable()) {
-      try {
-        String freshNick = me.bill.fakePlayerPlugin.util.NameTagHelper.getNick(fp.getUuid());
-        if (freshNick != null && !freshNick.isEmpty()) {
-          fp.setNameTagNick(freshNick);
-          return freshNick;
-        }
-      } catch (Throwable ignored) {
-      }
-    }
     if (fp.getNameTagNick() != null && !fp.getNameTagNick().isEmpty()) {
       return fp.getNameTagNick();
     }

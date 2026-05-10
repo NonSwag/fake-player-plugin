@@ -33,6 +33,8 @@ public final class FakePlayerBody {
               loc.getX(),
               loc.getY(),
               loc.getZ(),
+              loc.getYaw(),
+              loc.getPitch(),
               initialPing);
 
       if (player == null) {
@@ -70,6 +72,8 @@ public final class FakePlayerBody {
         loc.getX(),
         loc.getY(),
         loc.getZ(),
+        loc.getYaw(),
+        loc.getPitch(),
         initialPing,
         player -> {
           if (player == null) {
@@ -190,8 +194,26 @@ public final class FakePlayerBody {
       Location loc,
       Runnable onReady,
       @org.jetbrains.annotations.Nullable Runnable onSkinApplied) {
-    onReady.run();
-    if (onSkinApplied != null) onSkinApplied.run();
+    me.bill.fakePlayerPlugin.FakePlayerPlugin fpp =
+        me.bill.fakePlayerPlugin.FakePlayerPlugin.getInstance();
+    SkinManager skinManager = fpp != null ? fpp.getSkinManager() : null;
+    if (skinManager == null) {
+      onReady.run();
+      if (onSkinApplied != null) onSkinApplied.run();
+      return;
+    }
+
+    skinManager.resolveEffectiveSkin(
+        fp,
+        skin ->
+            FppScheduler.runSync(
+                plugin,
+                () -> {
+                  onReady.run();
+                  if (skin != null && skin.isValid() && onSkinApplied != null) {
+                    onSkinApplied.run();
+                  }
+                }));
   }
 
   public static void resolveAndFinish(

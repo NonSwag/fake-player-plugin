@@ -31,6 +31,7 @@ public final class NmsPlayerSpawner {
   private static volatile boolean failed = false;
 
   private static Method craftPlayerGetHandleMethod;
+  private static Method craftPlayerRefreshPlayerMethod;
   private static Method craftServerGetServerMethod;
   private static Method craftWorldGetHandleMethod;
 
@@ -110,6 +111,12 @@ public final class NmsPlayerSpawner {
       craftServerGetServerMethod = craftServerClass.getMethod("getServer");
       craftWorldGetHandleMethod = craftWorldClass.getMethod("getHandle");
       craftPlayerGetHandleMethod = craftPlayerClass.getMethod("getHandle");
+      try {
+        craftPlayerRefreshPlayerMethod = craftPlayerClass.getDeclaredMethod("refreshPlayer");
+        craftPlayerRefreshPlayerMethod.setAccessible(true);
+      } catch (NoSuchMethodException ignored) {
+        craftPlayerRefreshPlayerMethod = null;
+      }
 
       minecraftServerClass = nmsLoader.loadClass("net.minecraft.server.MinecraftServer");
       try {
@@ -385,6 +392,20 @@ public final class NmsPlayerSpawner {
 
   public static Player spawnFakePlayer(
       UUID uuid, String name, SkinProfile skin, World world, double x, double y, double z, int initialPing) {
+    return spawnFakePlayer(uuid, name, skin, world, x, y, z, 0.0f, 0.0f, initialPing);
+  }
+
+  public static Player spawnFakePlayer(
+      UUID uuid,
+      String name,
+      SkinProfile skin,
+      World world,
+      double x,
+      double y,
+      double z,
+      float yaw,
+      float pitch,
+      int initialPing) {
     if (!isAvailable()) {
       FppLogger.warn("NmsPlayerSpawner not available - cannot spawn " + name);
       return null;
@@ -448,6 +469,7 @@ public final class NmsPlayerSpawner {
       Method getBukkitEntity = serverPlayerClass.getMethod("getBukkitEntity");
       Object entity = getBukkitEntity.invoke(serverPlayer);
       if (entity instanceof Player result) {
+        applyRotation(result, yaw, pitch);
         result.setGameMode(org.bukkit.GameMode.SURVIVAL);
         setListed(result, true);
 
@@ -600,6 +622,15 @@ public final class NmsPlayerSpawner {
       }
     } catch (Exception e) {
       FppLogger.debug("NmsPlayerSpawner.setHeadYaw failed: " + e.getMessage());
+    }
+  }
+
+  private static void applyRotation(Player bot, float yaw, float pitch) {
+    try {
+      bot.setRotation(yaw, pitch);
+      setHeadYaw(bot, yaw);
+    } catch (Exception e) {
+      FppLogger.debug("NmsPlayerSpawner.applyRotation failed: " + e.getMessage());
     }
   }
 
@@ -964,14 +995,29 @@ public final class NmsPlayerSpawner {
   }
 
   private static void setPingNms(Object nmsPlayer, int pingMs) {
+    int safePing = Math.max(0, pingMs);
     try {
-      Field latencyField = findFieldByType(nmsPlayer.getClass(), int.class, "latency");
-      if (latencyField != null) {
-        latencyField.setAccessible(true);
-        latencyField.set(nmsPlayer, Math.max(0, pingMs));
+      setLatencyField(nmsPlayer, safePing);
+      if (connectionFieldInPlayer != null) {
+        connectionFieldInPlayer.setAccessible(true);
+        Object listener = connectionFieldInPlayer.get(nmsPlayer);
+        setLatencyField(listener, safePing);
       }
     } catch (Exception e) {
       me.bill.fakePlayerPlugin.config.Config.debugNms("setPing failed: " + e.getMessage());
+    }
+  }
+
+  private static void setLatencyField(Object target, int pingMs) {
+    if (target == null) return;
+    Field latencyField = findLatencyField(target.getClass());
+    if (latencyField == null) return;
+    try {
+      latencyField.setAccessible(true);
+      latencyField.setInt(target, Math.max(0, pingMs));
+    } catch (Exception e) {
+      me.bill.fakePlayerPlugin.config.Config.debugNms(
+          "setLatencyField failed on " + target.getClass().getSimpleName() + ": " + e.getMessage());
     }
   }
 
@@ -1001,6 +1047,19 @@ public final class NmsPlayerSpawner {
                 || f.getName().contains("Ping"))) {
           return f;
         }
+      }
+    }
+    return null;
+  }
+
+  private static Field findLatencyField(Class<?> clazz) {
+    Field direct = findFieldByType(clazz, int.class, "latency");
+    if (direct != null) return direct;
+    for (Class<?> c = clazz; c != null && c != Object.class; c = c.getSuperclass()) {
+      for (Field f : c.getDeclaredFields()) {
+        if (f.getType() != int.class || java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
+        String name = f.getName().toLowerCase(java.util.Locale.ROOT);
+        if (name.equals("ping") || name.equals("latency")) return f;
       }
     }
     return null;
@@ -1103,6 +1162,66 @@ public final class NmsPlayerSpawner {
       FppLogger.debug(
           "NmsPlayerSpawner.forceAllSkinParts failed for " + bot.getName() + ": " + e.getMessage());
     }
+  }
+
+  public static void applySkinToGameProfile(Player player, SkinProfile skin) {
+    if (player == null || !isAvailable() || craftPlayerGetHandleMethod == null) return;
+    try {
+      Object nmsPlayer = craftPlayerGetHandleMethod.invoke(player);
+      Object gameProfile = resolveGameProfile(nmsPlayer);
+      if (gameProfile == null) return;
+      if (skin != null && skin.isValid()) SkinProfileInjector.apply(gameProfile, skin);
+      else SkinProfileInjector.clear(gameProfile);
+      forceAllSkinParts(player);
+    } catch (Exception e) {
+      FppLogger.debug(
+          "NmsPlayerSpawner.applySkinToGameProfile failed for "
+              + player.getName()
+              + ": "
+              + e.getMessage());
+    }
+  }
+
+  public static boolean refreshPaperPlayer(Player player) {
+    if (player == null || craftPlayerRefreshPlayerMethod == null) return false;
+    try {
+      craftPlayerRefreshPlayerMethod.invoke(player);
+      try {
+        Object nmsPlayer = craftPlayerGetHandleMethod.invoke(player);
+        Method triggerHealthUpdate = findMethodByName(nmsPlayer.getClass(), "triggerHealthUpdate", 0);
+        if (triggerHealthUpdate != null) {
+          triggerHealthUpdate.setAccessible(true);
+          triggerHealthUpdate.invoke(nmsPlayer);
+        }
+      } catch (Exception ignored) {
+      }
+      return true;
+    } catch (Exception e) {
+      FppLogger.debug(
+          "NmsPlayerSpawner.refreshPaperPlayer failed for "
+              + player.getName()
+              + ": "
+              + e.getMessage());
+      return false;
+    }
+  }
+
+  private static Object resolveGameProfile(Object nmsPlayer) {
+    if (nmsPlayer == null) return null;
+    for (Method method : nmsPlayer.getClass().getMethods()) {
+      if (method.getParameterCount() != 0) continue;
+      String name = method.getName();
+      if (!name.equals("getGameProfile") && !name.equals("getProfile") && !name.equals("gameProfile")) {
+        continue;
+      }
+      try {
+        method.setAccessible(true);
+        Object profile = method.invoke(nmsPlayer);
+        if (profile != null && profile.getClass().getName().endsWith("GameProfile")) return profile;
+      } catch (Throwable ignored) {
+      }
+    }
+    return null;
   }
 
   private static void injectFakeListener(
@@ -1454,13 +1573,28 @@ public final class NmsPlayerSpawner {
       double z,
       int initialPing,
       java.util.function.Consumer<Player> callback) {
+    spawnFakePlayerAsync(uuid, name, skin, world, x, y, z, 0.0f, 0.0f, initialPing, callback);
+  }
+
+  public static void spawnFakePlayerAsync(
+      UUID uuid,
+      String name,
+      SkinProfile skin,
+      World world,
+      double x,
+      double y,
+      double z,
+      float yaw,
+      float pitch,
+      int initialPing,
+      java.util.function.Consumer<Player> callback) {
     if (!isAvailable()) {
       FppLogger.warn("NmsPlayerSpawner not available - cannot spawn " + name);
       callback.accept(null);
       return;
     }
     if (!isFolia()) {
-      callback.accept(spawnFakePlayer(uuid, name, skin, world, x, y, z, initialPing));
+      callback.accept(spawnFakePlayer(uuid, name, skin, world, x, y, z, yaw, pitch, initialPing));
       return;
     }
 
@@ -1533,6 +1667,7 @@ public final class NmsPlayerSpawner {
                   Method getBukkitEntity = serverPlayerClass.getMethod("getBukkitEntity");
                   Object entity = getBukkitEntity.invoke(fServerPlayer);
                   if (entity instanceof Player result) {
+                    applyRotation(result, yaw, pitch);
                     result.setGameMode(org.bukkit.GameMode.SURVIVAL);
                     setListed(result, true);
                     forceAllSkinParts(result);

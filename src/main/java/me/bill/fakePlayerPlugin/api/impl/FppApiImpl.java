@@ -610,6 +610,11 @@ public final class FppApiImpl implements FppApi {
   }
 
   @Override
+  public <T> void unregisterService(@NotNull Class<T> serviceClass, @NotNull T instance) {
+    services.remove(serviceClass, instance);
+  }
+
+  @Override
   @SuppressWarnings("unchecked")
   public <T> @Nullable T getService(@NotNull Class<T> serviceClass) {
     return (T) services.get(serviceClass);

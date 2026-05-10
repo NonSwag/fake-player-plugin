@@ -167,7 +167,6 @@ public final class FppLogger {
       boolean taskPersistEnabled,
       boolean luckPermsFound,
       boolean worldGuardFound,
-      boolean nameTagFound,
       boolean chunkLoading,
       int maxBots,
       boolean metricsActive,
@@ -198,7 +197,6 @@ public final class FppLogger {
     section("Integrations");
     stateRow(luckPermsFound ? RowState.OK : RowState.OFF, "LuckPerms", onOff(luckPermsFound));
     stateRow(worldGuardFound ? RowState.OK : RowState.OFF, "WorldGuard", onOff(worldGuardFound));
-    stateRow(nameTagFound ? RowState.OK : RowState.OFF, "NameTag", onOff(nameTagFound));
     stateRow(metricsActive ? RowState.OK : RowState.OFF, "Metrics", onOff(metricsActive));
 
     section("Pools & Limits");

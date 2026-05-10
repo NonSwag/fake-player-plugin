@@ -540,19 +540,7 @@ public final class PacketHelper {
         fp.setCachedTabListGameProfile(profile);
       }
 
-      String dispStr = fp.getDisplayName();
-      if (me.bill.fakePlayerPlugin.FakePlayerPlugin.getInstance() != null
-          && me.bill.fakePlayerPlugin.FakePlayerPlugin.getInstance().isNameTagAvailable()) {
-        try {
-          String freshNick = me.bill.fakePlayerPlugin.util.NameTagHelper.getNick(fp.getUuid());
-          if (freshNick != null && !freshNick.equals(fp.getNameTagNick())) {
-            fp.setNameTagNick(freshNick);
-          }
-          dispStr = fp.getNameTagNick() != null ? fp.getNameTagNick() : fp.getDisplayName();
-        } catch (Throwable ignored) {
-          dispStr = fp.getNameTagNick() != null ? fp.getNameTagNick() : fp.getDisplayName();
-        }
-      }
+      String dispStr = fp.getNameTagNick() != null ? fp.getNameTagNick() : fp.getDisplayName();
 
       Object displayName = fp.getCachedNmsDisplayComponent();
       if (displayName == null || !dispStr.equals(fp.getCachedNmsDisplaySource())) {

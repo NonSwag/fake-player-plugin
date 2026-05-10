@@ -88,12 +88,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
     return worldEditAvailable;
   }
 
-  private boolean nameTagAvailable = false;
-
-  public boolean isNameTagAvailable() {
-    return nameTagAvailable;
-  }
-
   private boolean versionUnsupported = false;
 
   private String detectedMcVersion = "unknown";
@@ -414,17 +408,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
       Config.debugStartup("WorldEdit detected - --wesel flag enabled for /fpp mine and /fpp place.");
     }
 
-    nameTagAvailable = Bukkit.getPluginManager().getPlugin("NameTag") != null;
-    if (nameTagAvailable) {
-      Config.debugStartup(
-          "NameTag detected - nick-conflict guard and bot-isolation enabled"
-              + " (block-nick-conflicts="
-              + Config.nameTagBlockNickConflicts()
-              + ", bot-isolation="
-              + Config.nameTagIsolation()
-              + ").");
-    }
-
     UpdateChecker.check(this);
 
     heartbeatSender = new me.bill.fakePlayerPlugin.util.HeartbeatSender(this, fakePlayerManager);
@@ -476,7 +459,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
         effectiveTaskPersist,
         Bukkit.getPluginManager().getPlugin("LuckPerms") != null,
         worldGuardAvailable,
-        nameTagAvailable,
         effectiveChunkLoading,
         Config.maxBots(),
         fppMetrics.isActive(),
@@ -497,9 +479,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
   public void onDisable() {
     Config.debugStartup("onDisable called.");
 
-    if (fppApi != null) fppApi.disableAllAddons();
-    if (extensionLoader != null) extensionLoader.closeClassLoaders();
-
     int botsRemoved = fakePlayerManager != null ? fakePlayerManager.getCount() : 0;
 
     if (chunkLoader != null) chunkLoader.releaseAll();
@@ -515,6 +494,9 @@ public final class FakePlayerPlugin extends JavaPlugin {
         botPersistence.save(fakePlayerManager.getActivePlayers());
       }
     }
+
+    if (fppApi != null) fppApi.disableAllAddons();
+    if (extensionLoader != null) extensionLoader.closeClassLoaders();
 
     if (velocityChannel != null) {
       velocityChannel.broadcastServerOffline();

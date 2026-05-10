@@ -6,8 +6,10 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
@@ -36,6 +38,7 @@ public final class SkinFetcher {
 
   private static final long REQUEST_GAP_MS = 300;
   private static final String USER_AGENT = "FakePlayerPlugin/1.5.0";
+  private static final String MINESKIN_USER_AGENT = "SkinsRestorer/MineSkinAPI";
   private static final long RATE_LIMIT_COOLDOWN_MS = TimeUnit.MINUTES.toMillis(5);
   private static final long RATE_LIMIT_LOG_INTERVAL_MS = TimeUnit.MINUTES.toMillis(1);
   private static long nextSlotMs = 0;
@@ -135,21 +138,40 @@ public final class SkinFetcher {
   private static void doFetchByUrl(String cacheKey, String url) {
     String value = null, signature = null;
     try {
+      if (Config.skinMineSkinUrlUploadEnabled()) {
+        try {
+          String response = postMineSkinUrl(url);
+          String[] texture = extractTexturePayload(parseJsonObject(response));
+          if (texture != null) {
+            value = texture[0];
+            signature = texture[1];
+            FppLogger.debug("SkinFetcher: generated signed texture from MineSkin URL upload.");
+          }
+        } catch (RateLimitException e) {
+          mineskinRateLimitedUntilMs = System.currentTimeMillis() + RATE_LIMIT_COOLDOWN_MS;
+          logRateLimited("MineSkin API", url);
+        } catch (SkipSkinFetchException ignored) {
+        } catch (Exception e) {
+          Config.debugSkin("SkinFetcher MineSkin URL upload failed for '" + url + "': " + e.getMessage());
+        }
+      }
 
-      if (isDirectTextureUrl(url)) {
+      if (value == null && isDirectTextureUrl(url)) {
         String json = "{\"textures\":{\"SKIN\":{\"url\":\"" + url + "\"}}}";
         value = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
 
-        FppLogger.debug("SkinFetcher: built texture payload from CDN URL.");
+        FppLogger.debug("SkinFetcher: built unsigned texture payload from direct URL fallback.");
       } else {
 
-        String response = get(url);
-        JsonObject json = parseJsonObject(response);
-        String[] texture = extractTexturePayload(json);
-        if (texture != null) {
-          value = texture[0];
-          signature = texture[1];
-          FppLogger.debug("SkinFetcher: extracted value+sig from URL response.");
+        if (value == null) {
+          String response = get(url);
+          JsonObject json = parseJsonObject(response);
+          String[] texture = extractTexturePayload(json);
+          if (texture != null) {
+            value = texture[0];
+            signature = texture[1];
+            FppLogger.debug("SkinFetcher: extracted value+sig from URL response.");
+          }
         }
       }
     } catch (Exception e) {
@@ -296,7 +318,7 @@ public final class SkinFetcher {
     conn.setRequestMethod("GET");
     conn.setConnectTimeout(5_000);
     conn.setReadTimeout(5_000);
-    conn.setRequestProperty("User-Agent", USER_AGENT);
+    conn.setRequestProperty("User-Agent", MINESKIN_USER_AGENT);
     int code = conn.getResponseCode();
     if (code == 429) {
       conn.disconnect();
@@ -310,6 +332,105 @@ public final class SkinFetcher {
       throw new RateLimitException(host);
     }
     if (code == 204 || code == 404) return null;
+    try (BufferedReader br =
+        new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+      StringBuilder sb = new StringBuilder();
+      String line;
+      while ((line = br.readLine()) != null) sb.append(line);
+      return sb.toString();
+    } finally {
+      conn.disconnect();
+    }
+  }
+
+  private static String postMineSkinUrl(String url) throws Exception {
+    long now = System.currentTimeMillis();
+    if (now < mineskinRateLimitedUntilMs) {
+      ConfigDebugRateLimit("MineSkin API", url, mineskinRateLimitedUntilMs - now);
+      throw new SkipSkinFetchException();
+    }
+
+    String visibility = Config.skinMineSkinVisibility();
+    if (visibility == null || visibility.isBlank()) visibility = "public";
+    String body =
+        "{\"variant\":\"unknown\",\"name\":null,\"visibility\":\""
+            + jsonEscape(visibility.trim().toLowerCase(java.util.Locale.ROOT))
+            + "\",\"cape\":null,\"url\":\""
+            + jsonEscape(url)
+            + "\"}";
+
+    try {
+      return postJson("https://api.mineskin.org/v2/generate", body);
+    } catch (Exception first) {
+      Config.debugSkin("SkinFetcher: MineSkin v2 URL generate failed: " + first.getMessage());
+      return postForm(
+          "https://api.mineskin.org/generate/url?v2=true",
+          "url="
+              + URLEncoder.encode(url, StandardCharsets.UTF_8)
+              + "&visibility="
+              + URLEncoder.encode(visibility, StandardCharsets.UTF_8));
+    }
+  }
+
+  private static String postJson(String urlStr, String body) throws Exception {
+    HttpURLConnection conn = (HttpURLConnection) URI.create(urlStr).toURL().openConnection();
+    conn.setRequestMethod("POST");
+    conn.setConnectTimeout(10_000);
+    conn.setReadTimeout(90_000);
+    conn.setDoOutput(true);
+    conn.setRequestProperty("User-Agent", MINESKIN_USER_AGENT);
+    conn.setRequestProperty("Content-Type", "application/json");
+    conn.setRequestProperty("Accept", "application/json");
+    String apiKey = Config.skinMineSkinApiKey();
+    if (apiKey != null && !apiKey.isBlank()) {
+      conn.setRequestProperty("Authorization", "Bearer " + apiKey.trim());
+    }
+    return sendRequest(conn, body);
+  }
+
+  private static String postForm(String urlStr, String body) throws Exception {
+    HttpURLConnection conn = (HttpURLConnection) URI.create(urlStr).toURL().openConnection();
+    conn.setRequestMethod("POST");
+    conn.setConnectTimeout(10_000);
+    conn.setReadTimeout(30_000);
+    conn.setDoOutput(true);
+    conn.setRequestProperty("User-Agent", USER_AGENT);
+    conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+    conn.setRequestProperty("Accept", "application/json");
+    String apiKey = Config.skinMineSkinApiKey();
+    if (apiKey != null && !apiKey.isBlank()) {
+      conn.setRequestProperty("Authorization", "Bearer " + apiKey.trim());
+    }
+    return sendRequest(conn, body);
+  }
+
+  private static String sendRequest(HttpURLConnection conn, String body) throws Exception {
+    byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+    conn.setFixedLengthStreamingMode(bytes.length);
+    try (OutputStream out = conn.getOutputStream()) {
+      out.write(bytes);
+    }
+
+    int code = conn.getResponseCode();
+    if (code == 429) {
+      conn.disconnect();
+      throw new RateLimitException("MineSkin API");
+    }
+    if (code < 200 || code >= 300) {
+      String error = "";
+      try (BufferedReader br =
+          new BufferedReader(
+              new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8))) {
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) sb.append(line);
+        error = sb.toString();
+      } catch (Exception ignored) {
+      } finally {
+        conn.disconnect();
+      }
+      throw new IllegalStateException("HTTP " + code + (error.isBlank() ? "" : ": " + error));
+    }
     try (BufferedReader br =
         new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
       StringBuilder sb = new StringBuilder();
@@ -381,6 +502,12 @@ public final class SkinFetcher {
       if (nested != null) return nested;
     }
 
+    JsonObject skin = getObject(json, "skin");
+    if (skin != null) {
+      String[] nested = extractTexturePayload(skin);
+      if (nested != null) return nested;
+    }
+
     JsonObject texture = getObject(json, "texture");
     if (texture != null) {
       String[] nested = extractTexturePayload(texture);
@@ -404,5 +531,9 @@ public final class SkinFetcher {
     if (json == null) return null;
     JsonElement element = json.get(key);
     return element != null && !element.isJsonNull() ? element.getAsString() : null;
+  }
+
+  private static String jsonEscape(String value) {
+    return value.replace("\\", "\\\\").replace("\"", "\\\"");
   }
 }
