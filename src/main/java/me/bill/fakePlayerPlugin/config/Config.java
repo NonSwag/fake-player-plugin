@@ -510,6 +510,18 @@ public final class Config {
     return cfg.getBoolean("combat.hurt-sound", true);
   }
 
+  public static boolean fallDamageEnabled() {
+    return cfg.getBoolean("combat.fall-damage.enabled", true);
+  }
+
+  public static double fallDamageSafeDistance() {
+    return Math.max(0.0, cfg.getDouble("combat.fall-damage.safe-distance", 3.0));
+  }
+
+  public static double fallDamageMultiplier() {
+    return Math.max(0.0, cfg.getDouble("combat.fall-damage.multiplier", 1.0));
+  }
+
   public static boolean respawnOnDeath() {
     return cfg.getBoolean("death.respawn-on-death", false);
   }

@@ -523,34 +523,45 @@ public class FakePlayerManager {
 
   private void tickFallDamage(FakePlayer fp, Player bot, Location before, Location after) {
     UUID uuid = fp.getUuid();
-    if (actionLockedBots.containsKey(uuid) || bot.isDead() || bot.getGameMode() == GameMode.CREATIVE) {
+    if (!Config.fallDamageEnabled()
+        || actionLockedBots.containsKey(uuid)
+        || bot.isDead()
+        || bot.getGameMode() == GameMode.CREATIVE
+        || bot.getGameMode() == GameMode.SPECTATOR) {
       trackedFallDistance.remove(uuid);
       wasOnGround.add(uuid);
       return;
     }
-    boolean onGround = !bot.getLocation().clone().subtract(0, 0.05, 0).getBlock().isPassable();
+
+    boolean onGround = isBotOnGround(bot);
     if (!before.getWorld().equals(after.getWorld())) {
       trackedFallDistance.remove(uuid);
       if (onGround) wasOnGround.add(uuid);
       else wasOnGround.remove(uuid);
       return;
     }
-    if (isFallDamageCancelledByLandingBlock(bot)) {
+
+    if (!onGround && isFallDamageResetByCurrentBlock(bot)) {
       trackedFallDistance.remove(uuid);
-      if (onGround) wasOnGround.add(uuid);
-      else wasOnGround.remove(uuid);
+      wasOnGround.remove(uuid);
       return;
     }
+
     double dy = before.getY() - after.getY();
     if (!onGround && dy > 0.0) {
-      trackedFallDistance.put(
-          uuid,
-          Math.max(trackedFallDistance.getOrDefault(uuid, 0.0), Math.max(dy, bot.getFallDistance())));
+      double distance = trackedFallDistance.getOrDefault(uuid, 0.0) + dy;
+      trackedFallDistance.put(uuid, Math.max(distance, bot.getFallDistance()));
     }
+
     if (onGround) {
-      double distance = trackedFallDistance.getOrDefault(uuid, 0.0);
-      if (!wasOnGround.contains(uuid) && distance > 3.0) {
-        double damage = Math.floor(distance - 3.0);
+      double distance = Math.max(trackedFallDistance.getOrDefault(uuid, 0.0), bot.getFallDistance());
+      double safeDistance = Config.fallDamageSafeDistance();
+      if (!wasOnGround.contains(uuid) && distance > safeDistance) {
+        double damage =
+            Math.floor(
+                (distance - safeDistance)
+                    * Config.fallDamageMultiplier()
+                    * landingFallDamageMultiplier(bot));
         if (damage > 0.0) {
           double beforeHealth = bot.getHealth();
           bot.damage(damage);
@@ -567,15 +578,32 @@ public class FakePlayerManager {
     }
   }
 
-  private boolean isFallDamageCancelledByLandingBlock(Player bot) {
+  private boolean isBotOnGround(Player bot) {
+    return !bot.getLocation().clone().subtract(0, 0.08, 0).getBlock().isPassable();
+  }
+
+  private boolean isFallDamageResetByCurrentBlock(Player bot) {
     if (bot.isInWater() || bot.isInLava()) return true;
     Material feet = bot.getLocation().getBlock().getType();
     Material below = bot.getLocation().clone().subtract(0, 1, 0).getBlock().getType();
-    if (Tag.CLIMBABLE.isTagged(feet) || Tag.CLIMBABLE.isTagged(below)) return true;
-    return feet == Material.BUBBLE_COLUMN
-        || below == Material.BUBBLE_COLUMN
-        || below == Material.HAY_BLOCK
-        || below == Material.SLIME_BLOCK;
+    return isFallDamageResetBlock(feet) || isFallDamageResetBlock(below);
+  }
+
+  private boolean isFallDamageResetBlock(Material material) {
+    if (Tag.CLIMBABLE.isTagged(material)) return true;
+    return material == Material.BUBBLE_COLUMN
+        || material == Material.COBWEB
+        || material == Material.POWDER_SNOW
+        || material == Material.SLIME_BLOCK;
+  }
+
+  private double landingFallDamageMultiplier(Player bot) {
+    if (isFallDamageResetByCurrentBlock(bot)) return 0.0;
+    Material feet = bot.getLocation().getBlock().getType();
+    Material below = bot.getLocation().clone().subtract(0, 1, 0).getBlock().getType();
+    if (feet == Material.HAY_BLOCK || below == Material.HAY_BLOCK) return 0.2;
+    if (feet.name().endsWith("_BED") || below.name().endsWith("_BED")) return 0.5;
+    return 1.0;
   }
 
   public void playHurtFeedback(FakePlayer fp, Player bot) {

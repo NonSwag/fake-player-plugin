@@ -125,6 +125,10 @@ body:
 combat:
   max-health: 20.0   # Bot max HP. 20.0 = standard player (2 HP = 1 heart).
   hurt-sound: true   # Play the hurt sound when a bot takes damage.
+  fall-damage:
+    enabled: true       # true = bots take vanilla-style fall damage when they land
+    safe-distance: 3.0  # Blocks a bot can fall before taking damage
+    multiplier: 1.0     # Damage scale after safe-distance. 1.0 = vanilla player damage
 
 # ── Death & Respawn ───────────────────────────────────────────────────────────
 death:
