@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -486,6 +487,7 @@ public final class FppApiImpl implements FppApi {
     FakePlayer fp = manager.getByUuid(bot.getUuid());
     if (fp == null) return;
     manager.applyPing(fp, Math.max(0, Math.min(9999, pingMs)));
+    manager.persistBotSettings(fp);
   }
 
   @Override
@@ -493,12 +495,37 @@ public final class FppApiImpl implements FppApi {
     FakePlayer fp = manager.getByUuid(bot.getUuid());
     if (fp == null) return;
     manager.applyPing(fp, -1);
+    manager.persistBotSettings(fp);
   }
 
   @Override
   public void persistBotSettings(@NotNull FppBot bot) {
     FakePlayer fp = manager.getByUuid(bot.getUuid());
     if (fp != null) manager.persistBotSettings(fp);
+  }
+
+  @Override
+  public void setBotExtensionData(
+      @NotNull FppBot bot,
+      @NotNull String extensionKey,
+      @NotNull String dataKey,
+      @Nullable String dataValue) {
+    var db = plugin.getDatabaseManager();
+    if (db != null) db.setBotExtensionData(bot.getUuid().toString(), extensionKey, dataKey, dataValue);
+  }
+
+  @Override
+  public void removeBotExtensionData(
+      @NotNull FppBot bot, @NotNull String extensionKey, @NotNull String dataKey) {
+    var db = plugin.getDatabaseManager();
+    if (db != null) db.removeBotExtensionData(bot.getUuid().toString(), extensionKey, dataKey);
+  }
+
+  @Override
+  public @NotNull Map<String, String> getBotExtensionData(
+      @NotNull FppBot bot, @NotNull String extensionKey) {
+    var db = plugin.getDatabaseManager();
+    return db != null ? db.loadBotExtensionData(bot.getUuid().toString(), extensionKey) : Map.of();
   }
 
   // ── Plugin info ───────────────────────────────────────────────────────────

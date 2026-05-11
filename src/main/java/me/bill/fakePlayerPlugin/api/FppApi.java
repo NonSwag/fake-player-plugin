@@ -3,6 +3,7 @@ package me.bill.fakePlayerPlugin.api;
 import java.io.File;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.bukkit.Location;
@@ -53,6 +54,15 @@ public interface FppApi {
   void setBotPing(@NotNull FppBot bot, int pingMs);
   void resetBotPing(@NotNull FppBot bot);
   void persistBotSettings(@NotNull FppBot bot);
+  void setBotExtensionData(
+      @NotNull FppBot bot,
+      @NotNull String extensionKey,
+      @NotNull String dataKey,
+      @Nullable String dataValue);
+  void removeBotExtensionData(
+      @NotNull FppBot bot, @NotNull String extensionKey, @NotNull String dataKey);
+  @NotNull Map<String, String> getBotExtensionData(
+      @NotNull FppBot bot, @NotNull String extensionKey);
   void navigateTo(@NotNull FppBot bot, @NotNull Location destination, @Nullable Runnable onArrive);
   void navigateTo(@NotNull FppBot bot, @NotNull Location destination, @Nullable Runnable onArrive, @Nullable Runnable onFail, @Nullable Runnable onCancel);
   void navigateTo(@NotNull FppBot bot, @NotNull Location destination, @Nullable Runnable onArrive, @Nullable Runnable onFail, @Nullable Runnable onCancel, double arrivalDistance);

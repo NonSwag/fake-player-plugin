@@ -14,9 +14,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.jar.Attributes;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppAddon;
 import me.bill.fakePlayerPlugin.api.FppApi;
@@ -28,6 +30,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class ExtensionLoader {
+
+  private static final String BUNDLE_MANIFEST_ATTRIBUTE = "FPP-Extension-Bundle";
+  private static final String BUNDLE_JARS_MANIFEST_ATTRIBUTE = "FPP-Extension-Jars";
 
   private static final class ExtensionContext {
     final File dataFolder;
@@ -219,6 +224,13 @@ public final class ExtensionLoader {
     return null;
   }
 
+  public boolean isExtensionLoaded(@NotNull String extensionName) {
+    for (ExtensionAddonWrapper wrapper : activeWrappers) {
+      if (wrapper.getName().equalsIgnoreCase(extensionName)) return true;
+    }
+    return false;
+  }
+
   public void saveDefaultExtensionConfig(@NotNull String extensionName) {
     for (var entry : EXTENSIONS.entrySet()) {
       if (entry.getKey().getName().equalsIgnoreCase(extensionName)) {
@@ -260,7 +272,7 @@ public final class ExtensionLoader {
     List<ExtensionAddonWrapper> wrappers = new ArrayList<>();
 
     for (File jar : jars) {
-      int found = loadJar(jar, wrappers);
+      int found = isExtensionBundle(jar) ? loadBundleJar(jar, wrappers) : loadJar(jar, wrappers);
       if (found > 0) {
         FppLogger.info(
             "[Extensions] Scanned " + jar.getName() + " — " + found + " extension(s) found.");
@@ -357,6 +369,94 @@ public final class ExtensionLoader {
     }
 
     return found;
+  }
+
+  private boolean isExtensionBundle(File jar) {
+    try (JarFile jarFile = new JarFile(jar)) {
+      Manifest manifest = jarFile.getManifest();
+      if (manifest == null) {
+        return false;
+      }
+      Attributes attributes = manifest.getMainAttributes();
+      return Boolean.parseBoolean(attributes.getValue(BUNDLE_MANIFEST_ATTRIBUTE));
+    } catch (IOException e) {
+      FppLogger.warn("[Extensions] Failed to inspect " + jar.getName() + ": " + e.getMessage());
+      return false;
+    }
+  }
+
+  private int loadBundleJar(File bundleJar, List<ExtensionAddonWrapper> wrappers) {
+    int found = 0;
+    File cacheDir =
+        new File(
+            plugin.getDataFolder(),
+            "extensions"
+                + File.separator
+                + ".cache"
+                + File.separator
+                + sanitizeFileName(stripJarSuffix(bundleJar.getName())));
+    cacheDir.mkdirs();
+
+    try (JarFile jarFile = new JarFile(bundleJar)) {
+      List<JarEntry> nestedJars = getBundledExtensionEntries(jarFile);
+      if (nestedJars.isEmpty()) {
+        FppLogger.warn("[Extensions] Bundle " + bundleJar.getName() + " contains no nested jars.");
+        return 0;
+      }
+
+      for (JarEntry nestedJar : nestedJars) {
+        File extractedJar = new File(cacheDir, sanitizeFileName(new File(nestedJar.getName()).getName()));
+        try (InputStream in = jarFile.getInputStream(nestedJar)) {
+          Files.copy(in, extractedJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+        found += loadJar(extractedJar, wrappers);
+      }
+    } catch (IOException e) {
+      FppLogger.warn(
+          "[Extensions] Failed to load extension bundle "
+              + bundleJar.getName()
+              + ": "
+              + e.getMessage());
+    }
+
+    return found;
+  }
+
+  private List<JarEntry> getBundledExtensionEntries(JarFile jarFile) throws IOException {
+    List<JarEntry> entries = new ArrayList<>();
+    Manifest manifest = jarFile.getManifest();
+    if (manifest != null) {
+      String listedJars = manifest.getMainAttributes().getValue(BUNDLE_JARS_MANIFEST_ATTRIBUTE);
+      if (listedJars != null && !listedJars.isBlank()) {
+        for (String path : listedJars.split(",")) {
+          JarEntry entry = jarFile.getJarEntry(path.trim());
+          if (entry != null && !entry.isDirectory() && entry.getName().endsWith(".jar")) {
+            entries.add(entry);
+          }
+        }
+        return entries;
+      }
+    }
+
+    Enumeration<JarEntry> jarEntries = jarFile.entries();
+    while (jarEntries.hasMoreElements()) {
+      JarEntry entry = jarEntries.nextElement();
+      if (!entry.isDirectory()
+          && entry.getName().startsWith("extensions/")
+          && entry.getName().endsWith(".jar")) {
+        entries.add(entry);
+      }
+    }
+    entries.sort(Comparator.comparing(JarEntry::getName));
+    return entries;
+  }
+
+  private static String stripJarSuffix(String name) {
+    return name.endsWith(".jar") ? name.substring(0, name.length() - 4) : name;
+  }
+
+  private static String sanitizeFileName(String name) {
+    return name.replaceAll("[^a-zA-Z0-9_.-]", "_");
   }
 
   public void closeClassLoaders() {

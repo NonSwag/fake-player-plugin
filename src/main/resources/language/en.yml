@@ -215,7 +215,7 @@ rank-usage:           "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp rank <bo
 rank-bot-not-found:   "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red>."
 rank-group-not-found: "{prefix}<red>ʟᴜᴄᴋᴘᴇʀᴍꜱ ɢʀᴏᴜᴘ <white>{group}<red> ᴅᴏᴇꜱ ɴᴏᴛ ᴇxɪꜱᴛ."
 
-skin-usage:           "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp skin <bot> <username|url|reset></#0079FF><gray>."
+skin-usage:           "{prefix}<red>ᴜꜱᴀɢᴇ<gray>: <#0079FF>/fpp skin <bot> <username|reset|--url <url>></#0079FF><gray>."
 skin-bot-not-found:   "{prefix}<red>ɴᴏ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀᴍᴇᴅ <white>{name}<red>."
 skin-invalid-url:     "{prefix}<red>ɪɴᴠᴀʟɪᴅ ꜱᴋɪɴ ᴜʀʟ<red>. <gray>ᴜꜱᴇ ᴀɴ <white>http(s)</white> <gray>ᴏʀ <white>data:image</white> ᴜʀʟ."
 skin-applying:        "{prefix}<gray>ᴀᴘᴘʟʏɪɴɢ ᴀ ᴄᴜꜱᴛᴏᴍ ꜱᴋɪɴ ᴛᴏ <#0079FF>{name}</#0079FF><gray>…"

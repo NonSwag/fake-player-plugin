@@ -789,6 +789,13 @@ public final class BotPersistence {
 
     loadTasksFile();
 
+    boolean skinExtensionLoaded = isExtensionLoaded("FPP-Skin");
+    boolean luckPermsExtensionLoaded = isExtensionLoaded("FPP-LuckPerms");
+    boolean chatExtensionLoaded = isExtensionLoaded("FPP-Chat");
+    boolean aiChatExtensionLoaded = isExtensionLoaded("FPP-AIChat");
+    boolean commandExtensionLoaded = isExtensionLoaded("FPP-Command");
+    boolean pingExtensionLoaded = isExtensionLoaded("FPP-Ping");
+
     me.bill.fakePlayerPlugin.database.DatabaseManager db = plugin.getDatabaseManager();
     if (db != null) {
 
@@ -826,12 +833,12 @@ public final class BotPersistence {
                     row.z(),
                     row.yaw(),
                     row.pitch(),
-                    row.luckpermsGroup(),
+                    luckPermsExtensionLoaded ? row.luckpermsGroup() : null,
                     BotType.AFK,
-                    row.chatEnabled(),
+                    chatExtensionLoaded && row.chatEnabled(),
                     row.respawnOnDeath(),
-                    row.chatTier(),
-                    row.aiPersonality(),
+                    chatExtensionLoaded ? row.chatTier() : null,
+                    aiChatExtensionLoaded ? row.aiPersonality() : null,
                     row.headAiEnabled(),
                     row.pickUpItems(),
                     row.pickUpXp(),
@@ -845,21 +852,21 @@ public final class BotPersistence {
                     row.navAvoidWater(),
                     row.navAvoidLava(),
                     row.swimAiEnabled(),
-                    row.ping(),
-                    row.rightClickCmd(),
+                    pingExtensionLoaded ? row.ping() : -1,
+                    commandExtensionLoaded ? row.rightClickCmd() : null,
                     row.pveEnabled(),
                     row.pveSmartAttackMode(),
                     row.pveRange(),
                     row.pvePriority(),
                     row.pveMobType(),
-                    row.skinTexture(),
-                    row.skinSignature(),
+                    skinExtensionLoaded ? row.skinTexture() : null,
+                    skinExtensionLoaded ? row.skinSignature() : null,
                     Set.of(),
                     Config.autoEatEnabled(),
                     Config.autoPlaceBedEnabled(),
                     row.autoMilkEnabled(),
                     row.preventBadOmen(),
-                    row.pingUserSet()));
+                    pingExtensionLoaded && row.pingUserSet()));
           } catch (Exception e) {
             FppLogger.warn("Skipping malformed DB active-bot row: " + e.getMessage());
           }
@@ -976,7 +983,7 @@ public final class BotPersistence {
         Object pingUserSetRaw = map.get("ping-user-set");
         boolean pingUserSet = pingUserSetRaw instanceof Boolean pus ? pus : (ping >= 0);
         Object rccRaw = map.get("right-click-command");
-        String rightClickCommand = rccRaw instanceof String rcc ? rcc : null;
+        String rightClickCommand = commandExtensionLoaded && rccRaw instanceof String rcc ? rcc : null;
         Object xpTotalRaw = map.get("xp-total");
         int xpTotal = xpTotalRaw instanceof Number n1 ? n1.intValue() : 0;
         Object xpLevelRaw = map.get("xp-level");
@@ -984,11 +991,11 @@ public final class BotPersistence {
         Object xpProgressRaw = map.get("xp-progress");
         float xpProgress = xpProgressRaw instanceof Number n3 ? n3.floatValue() : 0f;
         Object ctRaw = map.get("chat-tier");
-        String chatTier = ctRaw instanceof String s2 ? s2 : null;
+        String chatTier = chatExtensionLoaded && ctRaw instanceof String s2 ? s2 : null;
         Object apRaw = map.get("ai-personality");
-        String aiPersonality = apRaw instanceof String s3 ? s3 : null;
+        String aiPersonality = aiChatExtensionLoaded && apRaw instanceof String s3 ? s3 : null;
         Object lpRaw = map.get("luckperms-group");
-        String luckpermsGroup = lpRaw instanceof String s4 ? s4 : null;
+        String luckpermsGroup = luckPermsExtensionLoaded && lpRaw instanceof String s4 ? s4 : null;
         Object pveEnRaw = map.get("pve-enabled");
         boolean pveEnabled = pveEnRaw instanceof Boolean pve && pve;
         Object pveModeRaw = map.get("pve-smart-attack-mode");
@@ -1006,9 +1013,9 @@ public final class BotPersistence {
         Object pveMtRaw = map.get("pve-mob-type");
         String pveMobType = pveMtRaw instanceof String pmt ? pmt : null;
         Object skinTexRaw = map.get("skin-texture");
-        String skinTexture = skinTexRaw instanceof String st ? st : null;
+        String skinTexture = skinExtensionLoaded && skinTexRaw instanceof String st ? st : null;
         Object skinSigRaw = map.get("skin-signature");
-        String skinSignature = skinSigRaw instanceof String ss ? ss : null;
+        String skinSignature = skinExtensionLoaded && skinSigRaw instanceof String ss ? ss : null;
         if (name == null || worldName == null) continue;
         saved.add(
             new SavedBot(
@@ -1042,7 +1049,7 @@ public final class BotPersistence {
                 navAvoidWater,
                 navAvoidLava,
                 swimAiEnabled,
-                ping,
+                pingExtensionLoaded ? ping : -1,
                 rightClickCommand,
                 pveEnabled,
                 pveSmartAttackMode,
@@ -1056,7 +1063,7 @@ public final class BotPersistence {
                 autoPlaceBedEnabled,
                 autoMilkEnabled,
                 preventBadOmen,
-                pingUserSet));
+                pingExtensionLoaded && pingUserSet));
       } catch (Exception e) {
         FppLogger.warn("Skipping malformed bot entry in " + FILE_NAME + ": " + e.getMessage());
       }
@@ -1117,6 +1124,7 @@ public final class BotPersistence {
 
     FakePlayer fp = manager.getByName(sb.name);
     if (fp != null) {
+      restoreExtensionMetadata(fp);
 
       if (restoredSkin != null && restoredSkin.isValid() && plugin.getDatabaseManager() != null) {
         plugin.getDatabaseManager().updateBotSkin(fp.getUuid().toString(), sb.skinTexture, sb.skinSignature);
@@ -1441,6 +1449,37 @@ public final class BotPersistence {
     }
 
     FppScheduler.runSyncLater(plugin, () -> restoreChain(manager, saved, index + 1), delayTicks);
+  }
+
+  private void restoreExtensionMetadata(FakePlayer fp) {
+    if (fp == null || plugin.getDatabaseManager() == null) return;
+    Map<String, Map<String, String>> data =
+        plugin.getDatabaseManager().loadAllBotExtensionData(fp.getUuid().toString());
+    for (Map<String, String> values : data.values()) {
+      for (Map.Entry<String, String> entry : values.entrySet()) {
+        fp.setMetadata(entry.getKey(), parseStoredMetadataValue(entry.getValue()));
+      }
+    }
+  }
+
+  private Object parseStoredMetadataValue(String raw) {
+    if (raw == null) return null;
+    if (raw.equalsIgnoreCase("true")) return true;
+    if (raw.equalsIgnoreCase("false")) return false;
+    try {
+      if (!raw.contains(".") && !raw.contains("e") && !raw.contains("E")) return Integer.parseInt(raw);
+    } catch (NumberFormatException ignored) {
+    }
+    try {
+      return Float.parseFloat(raw);
+    } catch (NumberFormatException ignored) {
+    }
+    return raw;
+  }
+
+  private boolean isExtensionLoaded(String extensionName) {
+    return plugin.getExtensionLoader() != null
+        && plugin.getExtensionLoader().isExtensionLoaded(extensionName);
   }
 
   private void loadInventoryFile() {

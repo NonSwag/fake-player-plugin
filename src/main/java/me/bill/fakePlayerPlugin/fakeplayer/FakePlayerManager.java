@@ -785,7 +785,7 @@ public class FakePlayerManager {
       FakePlayer fp = new FakePlayer(uuid, ubn.internalName(), profile);
       fp.setBotType(botType);
 
-      fp.setSkinName(pickRandomSkinName());
+      fp.setSkinName(spawnerName);
       applyDespawnSnapshotSkin(fp);
 
       String cleanBotName = "bot" + (alreadyOwned + i + 1);
@@ -1483,7 +1483,10 @@ public class FakePlayerManager {
 
     boolean isUserBot = name.startsWith("ubot_");
     if (isUserBot) {
-      fp.setSkinName(pickRandomSkinName());
+      fp.setSkinName(
+          spawnedBy != null && !spawnedBy.isBlank()
+              ? spawnedBy
+              : name);
     } else {
       fp.setSkinName(name);
     }

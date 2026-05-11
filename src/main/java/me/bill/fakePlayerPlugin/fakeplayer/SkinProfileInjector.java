@@ -119,6 +119,7 @@ public final class SkinProfileInjector {
 
     clearExistingTextures(candidate);
     if (invokePut(candidate, property)) return true;
+    if (replaceBackingProperties(candidate, property)) return true;
 
     for (Field field : getAllFields(candidate.getClass())) {
       if (Modifier.isStatic(field.getModifiers()) || field.isSynthetic()) continue;
@@ -128,10 +129,60 @@ public final class SkinProfileInjector {
         if (nested == null || nested == candidate) continue;
         clearExistingTextures(nested);
         if (invokePut(nested, property)) return true;
+        if (replaceBackingProperties(nested, property)) return true;
       } catch (Exception ignored) {
       }
     }
     return false;
+  }
+
+  private static boolean replaceBackingProperties(Object propertyMap, Object property) {
+    Field backingField = null;
+    for (Field field : getAllFields(propertyMap.getClass())) {
+      if (Modifier.isStatic(field.getModifiers()) || field.isSynthetic()) continue;
+      if ("properties".equals(field.getName())) {
+        backingField = field;
+        break;
+      }
+    }
+    if (backingField == null) return false;
+
+    try {
+      Method entriesMethod = findNoArgMethod(propertyMap.getClass(), "entries");
+      if (entriesMethod == null) return false;
+      entriesMethod.setAccessible(true);
+      Object entries = entriesMethod.invoke(propertyMap);
+      if (!(entries instanceof Iterable<?> iterable)) return false;
+
+      ClassLoader cl = property.getClass().getClassLoader();
+      Class<?> builderClass = cl.loadClass("com.google.common.collect.ImmutableMultimap$Builder");
+      Object builder = cl.loadClass("com.google.common.collect.ImmutableMultimap")
+          .getMethod("builder")
+          .invoke(null);
+      Method builderPut = builderClass.getMethod("put", Object.class, Object.class);
+      Method build = builderClass.getMethod("build");
+
+      for (Object entry : iterable) {
+        Object key = invokeNoArg(entry, "getKey");
+        if (TEXTURES_KEY.equals(key)) continue;
+        Object value = invokeNoArg(entry, "getValue");
+        builderPut.invoke(builder, key, value);
+      }
+
+      builderPut.invoke(builder, TEXTURES_KEY, property);
+      backingField.setAccessible(true);
+      backingField.set(propertyMap, build.invoke(builder));
+      return true;
+    } catch (Exception ignored) {
+      return false;
+    }
+  }
+
+  private static Method findNoArgMethod(Class<?> type, String methodName) {
+    for (Method method : getAllMethods(type)) {
+      if (method.getName().equals(methodName) && method.getParameterCount() == 0) return method;
+    }
+    return null;
   }
 
   private static boolean invokePut(Object propertyMap, Object property) {

@@ -1,10 +1,19 @@
 package me.bill.fakePlayerPlugin.util;
 
-import java.io.*;
-import java.nio.file.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 
 public final class BackupManager {
@@ -17,29 +26,16 @@ public final class BackupManager {
   private BackupManager() {}
 
   public static File createConfigFilesBackup(FakePlayerPlugin plugin, String reason) {
-    String safeReason = reason.replaceAll("[^a-zA-Z0-9_\\-]", "_");
-    String timestamp = LocalDateTime.now().format(DATE_FMT);
-    File backupDir = new File(plugin.getDataFolder(), "backups/" + timestamp + "_" + safeReason);
-    backupDir.mkdirs();
-
+    File backupDir = createBackupDir(plugin, reason);
     File dataFolder = plugin.getDataFolder();
 
     copyFile(new File(dataFolder, "config.yml"), new File(backupDir, "config.yml"));
     copyFile(new File(dataFolder, "bot-names.yml"), new File(backupDir, "bot-names.yml"));
-
-    File langDir = new File(dataFolder, "language");
-    if (langDir.isDirectory()) {
-      File langBackup = new File(backupDir, "language");
-      langBackup.mkdirs();
-      File[] langFiles = langDir.listFiles((d, n) -> n.endsWith(".yml"));
-      if (langFiles != null) {
-        for (File lf : langFiles) copyFile(lf, new File(langBackup, lf.getName()));
-      }
-    }
+    copyLanguageFiles(dataFolder, backupDir);
 
     writeManifest(backupDir, plugin, reason);
-    pruneOldBackups(new File(dataFolder, "backups"));
-    FppLogger.success("Config-files backup created → backups/" + backupDir.getName() + "/");
+    pruneOldBackups(backupDir.getParentFile());
+    FppLogger.success("Config-files backup created -> " + relativeBackupPath(plugin, backupDir) + "/");
     return backupDir;
   }
 
@@ -48,64 +44,82 @@ public final class BackupManager {
   }
 
   public static File createFullBackup(FakePlayerPlugin plugin, String reason, boolean announce) {
-    String safeReason = reason.replaceAll("[^a-zA-Z0-9_\\-]", "_");
-    String timestamp = LocalDateTime.now().format(DATE_FMT);
-    File backupDir = new File(plugin.getDataFolder(), "backups/" + timestamp + "_" + safeReason);
-    backupDir.mkdirs();
-
+    File backupDir = createBackupDir(plugin, reason);
     File dataFolder = plugin.getDataFolder();
 
     copyFile(new File(dataFolder, "config.yml"), new File(backupDir, "config.yml"));
     copyFile(new File(dataFolder, "bot-names.yml"), new File(backupDir, "bot-names.yml"));
+    copyLanguageFiles(dataFolder, backupDir);
 
-    File langDir = new File(dataFolder, "language");
-    if (langDir.isDirectory()) {
-      File langBackup = new File(backupDir, "language");
-      langBackup.mkdirs();
-      File[] langFiles = langDir.listFiles((d, n) -> n.endsWith(".yml"));
-      if (langFiles != null) {
-        for (File lf : langFiles) copyFile(lf, new File(langBackup, lf.getName()));
-      }
-    }
-
-    copyFile(new File(dataFolder, "data/active-bots.yml"), new File(backupDir, "active-bots.yml"));
-
-    File dbFile = new File(dataFolder, "data/fpp.db");
-    if (dbFile.exists()) {
-      copyFile(dbFile, new File(backupDir, "fpp.db"));
-
-      copyFile(new File(dataFolder, "data/fpp.db-wal"), new File(backupDir, "fpp.db-wal"));
-      copyFile(new File(dataFolder, "data/fpp.db-shm"), new File(backupDir, "fpp.db-shm"));
-    }
+    copyFile(new File(dataFolder, "data/active-bots.yml"), new File(backupDir, "data/active-bots.yml"));
+    copyFile(new File(dataFolder, "data/fpp.db"), new File(backupDir, "data/fpp.db"));
+    copyFile(new File(dataFolder, "data/fpp.db-wal"), new File(backupDir, "data/fpp.db-wal"));
+    copyFile(new File(dataFolder, "data/fpp.db-shm"), new File(backupDir, "data/fpp.db-shm"));
 
     writeManifest(backupDir, plugin, reason);
+    pruneOldBackups(backupDir.getParentFile());
 
-    pruneOldBackups(new File(dataFolder, "backups"));
+    String path = relativeBackupPath(plugin, backupDir) + "/";
+    if (announce) FppLogger.success("Backup created -> " + path);
+    else FppLogger.debug("Backup created -> " + path);
+    return backupDir;
+  }
 
-    if (announce) {
-      FppLogger.success("Backup created → backups/" + backupDir.getName() + "/");
-    } else {
-      FppLogger.debug("Backup created → backups/" + backupDir.getName() + "/");
-    }
+  public static File createDatabaseBackup(FakePlayerPlugin plugin, String reason) {
+    File backupDir = createBackupDir(plugin, reason);
+    File dataFolder = plugin.getDataFolder();
+
+    copyFile(new File(dataFolder, "data/fpp.db"), new File(backupDir, "data/fpp.db"));
+    copyFile(new File(dataFolder, "data/fpp.db-wal"), new File(backupDir, "data/fpp.db-wal"));
+    copyFile(new File(dataFolder, "data/fpp.db-shm"), new File(backupDir, "data/fpp.db-shm"));
+
+    writeManifest(backupDir, plugin, reason);
+    pruneOldBackups(backupDir.getParentFile());
+    FppLogger.success("Database backup created -> " + relativeBackupPath(plugin, backupDir) + "/");
     return backupDir;
   }
 
   public static List<String> listBackups(FakePlayerPlugin plugin) {
-    File backupsDir = new File(plugin.getDataFolder(), "backups");
+    File backupsDir = new File(plugin.getDataFolder(), "backup");
     if (!backupsDir.isDirectory()) return List.of();
 
-    File[] dirs = backupsDir.listFiles(File::isDirectory);
-    if (dirs == null || dirs.length == 0) return List.of();
+    List<File> dirs = new ArrayList<>();
+    collectBackupDirs(backupsDir, dirs);
+    if (dirs.isEmpty()) return List.of();
 
-    Arrays.sort(dirs, Comparator.comparing(File::getName).reversed());
-    List<String> names = new ArrayList<>(dirs.length);
-    for (File d : dirs) names.add(d.getName());
+    dirs.sort(Comparator.comparing(File::getPath).reversed());
+    Path root = backupsDir.toPath();
+    List<String> names = new ArrayList<>(dirs.size());
+    for (File d : dirs) names.add(root.relativize(d.toPath()).toString().replace('\\', '/'));
     return Collections.unmodifiableList(names);
   }
 
   public static long totalBackupSizeBytes(FakePlayerPlugin plugin) {
-    File backupsDir = new File(plugin.getDataFolder(), "backups");
-    return dirSize(backupsDir);
+    return dirSize(new File(plugin.getDataFolder(), "backup"));
+  }
+
+  private static File createBackupDir(FakePlayerPlugin plugin, String reason) {
+    String safeReason = reason.replaceAll("[^a-zA-Z0-9_-]", "_");
+    String version = plugin.getPluginMeta().getVersion().replaceAll("[^a-zA-Z0-9_.-]", "_");
+    String timestamp = LocalDateTime.now().format(DATE_FMT);
+    File backupDir = new File(plugin.getDataFolder(), "backup/" + version + "/" + timestamp + "_" + safeReason);
+    backupDir.mkdirs();
+    return backupDir;
+  }
+
+  private static String relativeBackupPath(FakePlayerPlugin plugin, File backupDir) {
+    return plugin.getDataFolder().toPath().relativize(backupDir.toPath()).toString().replace('\\', '/');
+  }
+
+  private static void copyLanguageFiles(File dataFolder, File backupDir) {
+    File langDir = new File(dataFolder, "language");
+    if (!langDir.isDirectory()) return;
+    File langBackup = new File(backupDir, "language");
+    langBackup.mkdirs();
+    File[] langFiles = langDir.listFiles((d, n) -> n.endsWith(".yml"));
+    if (langFiles != null) {
+      for (File lf : langFiles) copyFile(lf, new File(langBackup, lf.getName()));
+    }
   }
 
   private static void copyFile(File src, File dst) {
@@ -132,9 +146,18 @@ public final class BackupManager {
     }
   }
 
-  private static void pruneOldBackups(File backupsDir) {
-    if (!backupsDir.isDirectory()) return;
-    File[] dirs = backupsDir.listFiles(File::isDirectory);
+  private static void collectBackupDirs(File dir, List<File> out) {
+    File[] dirs = dir.listFiles(File::isDirectory);
+    if (dirs == null) return;
+    for (File child : dirs) {
+      if (new File(child, "MANIFEST.txt").isFile()) out.add(child);
+      else collectBackupDirs(child, out);
+    }
+  }
+
+  private static void pruneOldBackups(File versionDir) {
+    if (versionDir == null || !versionDir.isDirectory()) return;
+    File[] dirs = versionDir.listFiles(File::isDirectory);
     if (dirs == null || dirs.length <= MAX_BACKUPS) return;
 
     Arrays.sort(dirs, Comparator.comparing(File::getName));
@@ -161,9 +184,7 @@ public final class BackupManager {
     long size = 0L;
     File[] files = dir.listFiles();
     if (files != null) {
-      for (File f : files) {
-        size += f.isDirectory() ? dirSize(f) : f.length();
-      }
+      for (File f : files) size += f.isDirectory() ? dirSize(f) : f.length();
     }
     return size;
   }

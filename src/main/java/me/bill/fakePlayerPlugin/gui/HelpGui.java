@@ -124,6 +124,7 @@ public final class HelpGui implements Listener {
       String description,
       String permission,
       boolean addon,
+      Material icon,
       List<FppCommandExtension> modifiers) {}
 
   private final Plugin plugin;
@@ -267,12 +268,14 @@ public final class HelpGui implements Listener {
                     cmd.getDescription(),
                     cmd.getPermission(),
                     false,
+                    iconFor(cmd.getName()),
                     commandManager.getCommandExtensions(cmd.getName()).stream()
                         .filter(extension -> extension.canUse(player))
                         .toList()))
         .forEach(entries::add);
     commandManager.getAddonCommands().stream()
         .filter(cmd -> cmd.canUse(player))
+        .filter(cmd -> cat == Category.ADDONS)
         .map(
             cmd ->
                 new HelpEntry(
@@ -282,6 +285,7 @@ public final class HelpGui implements Listener {
                     cmd.getDescription(),
                     cmd.getPermission(),
                     true,
+                    cmd.getIcon(),
                     List.of()))
         .forEach(entries::add);
     return entries.stream()
@@ -325,7 +329,7 @@ public final class HelpGui implements Listener {
     String name = cmd.name();
     String prefix = "/" + alias + " ";
 
-    ItemStack item = new ItemStack(iconFor(name));
+    ItemStack item = new ItemStack(cmd.icon());
     ItemMeta meta = item.getItemMeta();
 
     meta.displayName(
@@ -573,7 +577,7 @@ public final class HelpGui implements Listener {
       case "bots", "mybots", "botmenu" -> Material.PLAYER_HEAD;
       case "setowner" -> Material.NAME_TAG;
       case "skin" -> Material.PLAYER_HEAD;
-      default -> Material.PAPER;
+      default -> Material.COMMAND_BLOCK;
     };
   }
 

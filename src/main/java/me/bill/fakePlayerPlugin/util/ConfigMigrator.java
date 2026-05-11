@@ -2,12 +2,15 @@ package me.bill.fakePlayerPlugin.util;
 
 import java.io.*;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 public final class ConfigMigrator {
 
-  public static final int CURRENT_VERSION = 70;
+  public static final int CURRENT_VERSION = 71;
 
   private static boolean rawDebug = false;
 
@@ -131,6 +134,8 @@ public final class ConfigMigrator {
     if (stored < 68) anyChange |= v67to68(cfg);
     if (stored < 69) anyChange |= v68to69(cfg);
     if (stored < 70) anyChange |= v69to70(cfg);
+    if (stored < 71) anyChange |= v70to71(cfg);
+    if (stored < 72) anyChange |= v71to72(plugin, cfg);
 
     fillDefaults(plugin, cfg);
 
@@ -994,6 +999,76 @@ public final class ConfigMigrator {
   private static boolean v69to70(YamlConfiguration cfg) {
     log("v69→v70", "ping config now belongs to the fpp-ping extension");
     return false;
+  }
+
+  private static boolean v70to71(YamlConfiguration cfg) {
+    boolean changed = false;
+    for (String key :
+        new String[] {
+          "luckperms",
+          "fake-chat",
+          "chat",
+          "bot-chat",
+          "bot-messages",
+          "skin",
+          "ping",
+          "peak-hours",
+          "peaks",
+          "swap",
+          "groups",
+          "bot-groups",
+          "waypoints",
+          "waypoint",
+          "command",
+          "right-click-command",
+          "bots-menu",
+          "pathfinder"
+        }) {
+      if (cfg.isSet(key)) {
+        cfg.set(key, null);
+        changed = true;
+      }
+    }
+    if (changed) {
+      log("v70→v71", "removed extension-owned sections from core config");
+    }
+    return changed;
+  }
+
+  private static boolean v71to72(FakePlayerPlugin plugin, YamlConfiguration cfg) {
+    try (InputStream stream = plugin.getResource("config.yml")) {
+      if (stream == null) return false;
+      YamlConfiguration defaults = YamlConfiguration.loadConfiguration(new InputStreamReader(stream));
+      boolean changed = pruneUnknownKeys(cfg, defaults, "");
+      if (changed) {
+        log("v71→v72", "removed config keys no longer used by the core plugin");
+      }
+      return changed;
+    } catch (IOException e) {
+      FppLogger.warn("ConfigMigrator v71→v72: " + e.getMessage());
+      return false;
+    }
+  }
+
+  private static boolean pruneUnknownKeys(
+      ConfigurationSection target, ConfigurationSection defaults, String prefix) {
+    boolean changed = false;
+    Set<String> keys = new LinkedHashSet<>(target.getKeys(false));
+    for (String key : keys) {
+      String path = prefix.isBlank() ? key : prefix + "." + key;
+      if (path.equals("config-version")) continue;
+      if (!defaults.isSet(key)) {
+        target.set(key, null);
+        changed = true;
+        continue;
+      }
+      ConfigurationSection targetChild = target.getConfigurationSection(key);
+      ConfigurationSection defaultChild = defaults.getConfigurationSection(key);
+      if (targetChild != null && defaultChild != null) {
+        changed |= pruneUnknownKeys(targetChild, defaultChild, path);
+      }
+    }
+    return changed;
   }
 
   private static boolean setIfMissing(YamlConfiguration cfg, String path, Object value) {

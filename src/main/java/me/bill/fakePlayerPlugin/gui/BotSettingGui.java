@@ -252,7 +252,8 @@ public final class BotSettingGui implements Listener {
             item.getDescription(),
             item.getIcon(),
             BotEntryType.ACTION,
-            false));
+            false,
+            item.getValue()));
         idx++;
       }
       all.add(new BotCategory(
@@ -669,6 +670,8 @@ public final class BotSettingGui implements Listener {
                 List<FppSettingsItem> items = getExtensionItems(tab, player, bot);
                 if (itemIdx >= 0 && itemIdx < items.size()) {
                   items.get(itemIdx).onClick(player);
+                  playUiClick(player, 1.0f);
+                  build(player);
                 }
                 break;
               }
@@ -1659,6 +1662,7 @@ public final class BotSettingGui implements Listener {
   }
 
   private String valueString(BotEntry entry, FakePlayer bot) {
+    if (entry.valueOverride() != null) return entry.valueOverride();
     return switch (entry.id()) {
       case "frozen" -> bot.isFrozen() ? "✔ ᴇɴᴀʙʟᴇᴅ" : "✘ ᴅɪꜱᴀʙʟᴇᴅ";
       case "respawn_on_death" -> bot.isRespawnOnDeath() ? "✔ ʀᴇꜱᴘᴀᴡɴ" : "✘ ᴅᴇꜱᴘᴀᴡɴ";
@@ -2193,7 +2197,12 @@ public final class BotSettingGui implements Listener {
       String description,
       Material icon,
       BotEntryType type,
-      boolean opOnly) {
+      boolean opOnly,
+      String valueOverride) {
+    BotEntry(String id, String label, String description, Material icon, BotEntryType type, boolean opOnly) {
+      this(id, label, description, icon, type, opOnly, null);
+    }
+
     static BotEntry toggle(String id, String label, String desc, Material icon, boolean opOnly) {
       return new BotEntry(id, label, desc, icon, BotEntryType.TOGGLE, opOnly);
     }

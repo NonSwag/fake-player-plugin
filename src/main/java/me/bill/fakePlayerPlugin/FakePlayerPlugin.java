@@ -152,7 +152,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
     boolean dbOk = false;
     if (Config.databaseEnabled()) {
       databaseManager = new DatabaseManager();
-      dbOk = databaseManager.init(getDataFolder());
+      dbOk = databaseManager.init(this);
       if (!dbOk) {
         FppLogger.warn("Database could not be initialised - session tracking disabled.");
         databaseManager = null;

@@ -1161,6 +1161,12 @@ public final class SkinManager {
             return;
           }
 
+          SkinProfile existingSkin = fp.getResolvedSkin();
+          if (existingSkin != null && existingSkin.isValid()) {
+            deliver(callback, existingSkin);
+            return;
+          }
+
           if (value != null && !value.isBlank()) {
             SkinProfile skin = new SkinProfile(value, signature, "player:" + skinName);
             fp.setResolvedSkin(skin);
@@ -1182,17 +1188,15 @@ public final class SkinManager {
             return;
           }
 
-          if (fallbackCount < MAX_FALLBACK_ATTEMPTS) {
+          if (Config.skinGuaranteed() && fallbackCount < MAX_FALLBACK_ATTEMPTS) {
             String fallbackName = pickRandomFallbackAccountName(triedNames);
             if (fallbackName != null) {
               Config.debugSkin(
-                  "SkinManager: no skin for '"
+                  "SkinManager: no existing skin for '"
                       + skinName
-                      + "'"
-                      + (fallbackCount == 0
-                          ? " (name not a real Minecraft account?)"
-                          : " (fallback also failed)")
-                      + " — picking random fallback account '"
+                      + "' on bot '"
+                      + fp.getName()
+                      + "' — picking random fallback account '"
                       + fallbackName
                       + "' (attempt #"
                       + (fallbackCount + 1)
@@ -1203,10 +1207,13 @@ public final class SkinManager {
           }
 
           Config.debugSkin(
-              "SkinManager: all fallback attempts exhausted for bot '"
+              "SkinManager: no skin found for '"
+                  + skinName
+                  + "' on bot '"
                   + fp.getName()
-                  + "' — using guaranteed/default skin path.");
-          tryFallback(fp, callback);
+                  + "' — using default skin.");
+          fp.setResolvedSkin(null);
+          deliver(callback, null);
         });
   }
 
@@ -1288,24 +1295,12 @@ public final class SkinManager {
       return;
     }
 
-    String pick = pickRandomPoolName();
-    SkinRepository.get()
-        .resolve(
-            pick,
-            skin -> {
-              if (skin != null && skin.isValid()) {
-                fp.setResolvedSkin(skin);
-                persistSkinToDb(fp, skin);
-                deliver(callback, skin);
-              } else {
-                Config.debugSkin(
-                    "SkinManager: all skin attempts failed for bot '"
-                        + fp.getName()
-                        + "' — using default skin (Steve/Alex).");
-                fp.setResolvedSkin(null);
-                deliver(callback, null);
-              }
-            });
+    Config.debugSkin(
+        "SkinManager: no configured fallback skin for bot '"
+            + fp.getName()
+            + "' — using default skin (Steve/Alex).");
+    fp.setResolvedSkin(null);
+    deliver(callback, null);
   }
 
   private void persistSkinToDb(@NotNull FakePlayer fp, @Nullable SkinProfile skin) {
