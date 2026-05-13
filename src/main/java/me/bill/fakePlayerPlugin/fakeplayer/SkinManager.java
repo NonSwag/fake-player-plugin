@@ -1151,7 +1151,7 @@ public final class SkinManager {
             + fp.getName()
             + "'");
 
-    SkinFetcher.fetchAsync(
+    plugin.getSkinFetchService().fetchAsync(
         skinName,
         (value, signature) -> {
           SkinProfile nameTagSkin = getPreferredSkin(fp);
@@ -1265,7 +1265,7 @@ public final class SkinManager {
     }
 
     String skinName = fp.getSkinName();
-    String[] cached = SkinFetcher.getCached(skinName);
+    String[] cached = plugin.getSkinFetchService().getCached(skinName);
     if (cached != null && cached[0] != null && !cached[0].isBlank()) {
       return new SkinProfile(cached[0], cached[1], "player:" + skinName);
     }
@@ -1334,9 +1334,7 @@ public final class SkinManager {
       return applySkinFromPlayer(bot, onlineTarget);
     }
 
-    @SuppressWarnings("deprecation")
-    OfflinePlayer offlineTarget = Bukkit.getOfflinePlayer(targetPlayerName);
-    return applySkinFromOfflinePlayer(bot, offlineTarget);
+    return applySkinByUsername(bot, targetPlayerName);
   }
 
   public @NotNull CompletableFuture<Boolean> applySkinByUsername(
@@ -1365,7 +1363,7 @@ public final class SkinManager {
 
     SkinProfile memCached = getCachedSkinForBot(bot);
     if (memCached == null || !memCached.isValid()) {
-      String[] fetchCached = SkinFetcher.getCached(username);
+      String[] fetchCached = plugin.getSkinFetchService().getCached(username);
       if (fetchCached != null && fetchCached[0] != null && !fetchCached[0].isBlank()) {
         SkinProfile skin = new SkinProfile(fetchCached[0], fetchCached[1], "player:" + username);
         return runOnMainThread(() -> applySkinFromProfile(bot, skin));
@@ -1374,7 +1372,7 @@ public final class SkinManager {
 
     CompletableFuture<Boolean> future = new CompletableFuture<>();
     String trimmedName = username.trim();
-    SkinFetcher.fetchAsync(
+    plugin.getSkinFetchService().fetchAsync(
         trimmedName,
         (value, signature) -> {
           if (value == null || value.isBlank()) {
@@ -1382,6 +1380,9 @@ public final class SkinManager {
             return;
           }
           SkinProfile skin = new SkinProfile(value, signature, "player:" + trimmedName);
+          if (plugin.getDatabaseManager() != null) {
+            plugin.getDatabaseManager().cacheSkin(trimmedName, value, signature, "mojang:" + trimmedName);
+          }
           runOnMainThread(() -> applySkinFromProfile(bot, skin))
               .whenComplete((applied, throwable) -> future.complete(Boolean.TRUE.equals(applied)));
         });
@@ -1399,7 +1400,7 @@ public final class SkinManager {
 
     CompletableFuture<Boolean> future = new CompletableFuture<>();
     String trimmedUrl = url.trim();
-    SkinFetcher.fetchByUrl(
+    plugin.getSkinFetchService().fetchByUrl(
         trimmedUrl,
         (value, signature) -> {
           if (value == null || value.isBlank()) {
@@ -1664,6 +1665,7 @@ public final class SkinManager {
 
   public void clearCache() {
     profileCache.invalidateAll();
+    plugin.getSkinFetchService().clearCache();
   }
 
   public long getCacheSize() {

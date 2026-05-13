@@ -69,6 +69,8 @@ public final class FakePlayerPlugin extends JavaPlugin {
   private me.bill.fakePlayerPlugin.command.StorageStore storageStore;
   private me.bill.fakePlayerPlugin.command.InventoryCommand inventoryCommand;
   private me.bill.fakePlayerPlugin.fakeplayer.SkinManager skinManager;
+  private me.bill.fakePlayerPlugin.fakeplayer.SkinFetchService skinFetchService =
+      me.bill.fakePlayerPlugin.fakeplayer.SkinFetchService.NOOP;
   private me.bill.fakePlayerPlugin.util.HeartbeatSender heartbeatSender;
 
   private me.bill.fakePlayerPlugin.api.impl.FppApiImpl fppApi;
@@ -636,6 +638,20 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
   public void setSkinManager(me.bill.fakePlayerPlugin.fakeplayer.SkinManager skinManager) {
     this.skinManager = skinManager;
+  }
+
+  public me.bill.fakePlayerPlugin.fakeplayer.SkinFetchService getSkinFetchService() {
+    return skinFetchService != null
+        ? skinFetchService
+        : me.bill.fakePlayerPlugin.fakeplayer.SkinFetchService.NOOP;
+  }
+
+  public void setSkinFetchService(
+      me.bill.fakePlayerPlugin.fakeplayer.SkinFetchService skinFetchService) {
+    this.skinFetchService =
+        skinFetchService != null
+            ? skinFetchService
+            : me.bill.fakePlayerPlugin.fakeplayer.SkinFetchService.NOOP;
   }
 
   public me.bill.fakePlayerPlugin.extension.ExtensionLoader getExtensionLoader() {

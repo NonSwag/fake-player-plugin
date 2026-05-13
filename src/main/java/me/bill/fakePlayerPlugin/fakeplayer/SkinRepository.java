@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
@@ -47,7 +48,7 @@ public final class SkinRepository {
     sessionCache.clear();
 
     if (Config.skinClearCacheOnReload()) {
-      SkinFetcher.clearCache();
+      fetchService().clearCache();
     }
 
     String mode = normalizeMode(Config.skinMode());
@@ -120,7 +121,7 @@ public final class SkinRepository {
   private void resolveAuto(String botName, Consumer<SkinProfile> callback) {
     FppLogger.debug(
         "SkinRepository: auto-resolving signed skin for '" + botName + "' via mineskin.eu.");
-    SkinFetcher.fetchAsync(
+    fetchService().fetchAsync(
         botName,
         (value, sig) -> {
           if (value != null && !value.isBlank()) {
@@ -172,7 +173,7 @@ public final class SkinRepository {
     }
 
     FppLogger.debug("SkinRepository: falling back to skin API fetch for '" + botName + "'.");
-    SkinFetcher.fetchAsync(
+    fetchService().fetchAsync(
         botName,
         (value, sig) -> {
           if (value != null) {
@@ -287,7 +288,7 @@ public final class SkinRepository {
   }
 
   private void loadFromName(String playerName, String forBotName) {
-    SkinFetcher.fetchAsync(
+    fetchService().fetchAsync(
         playerName,
         (value, sig) -> {
           if (value == null) {
@@ -307,7 +308,7 @@ public final class SkinRepository {
   }
 
   private void loadFromUrl(String url) {
-    SkinFetcher.fetchByUrl(
+    fetchService().fetchByUrl(
         url,
         (value, sig) -> {
           if (value == null) {
@@ -321,7 +322,7 @@ public final class SkinRepository {
   }
 
   private void loadFromUrlForName(String botName, String url) {
-    SkinFetcher.fetchByUrl(
+    fetchService().fetchByUrl(
         url,
         (value, sig) -> {
           if (value == null) {
@@ -373,7 +374,7 @@ public final class SkinRepository {
             + "/"
             + maxAttempts
             + ").");
-    SkinFetcher.fetchAsync(
+    fetchService().fetchAsync(
         randomName,
         (value, sig) -> {
           if (value != null && !value.isBlank()) {
@@ -422,6 +423,11 @@ public final class SkinRepository {
 
   private String buildCacheKey(String mode, String botName) {
     return mode.toLowerCase(Locale.ROOT) + ":" + botName.toLowerCase(Locale.ROOT);
+  }
+
+  private SkinFetchService fetchService() {
+    FakePlayerPlugin fpp = FakePlayerPlugin.getInstance();
+    return fpp != null ? fpp.getSkinFetchService() : SkinFetchService.NOOP;
   }
 
   private static String normalizeMode(String mode) {
