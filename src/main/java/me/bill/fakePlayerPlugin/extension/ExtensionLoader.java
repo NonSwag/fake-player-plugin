@@ -33,7 +33,6 @@ public final class ExtensionLoader {
 
   private static final String BUNDLE_MANIFEST_ATTRIBUTE = "FPP-Extension-Bundle";
   private static final String BUNDLE_JARS_MANIFEST_ATTRIBUTE = "FPP-Extension-Jars";
-
   private static final class ExtensionContext {
     final File dataFolder;
     final URLClassLoader classLoader;
@@ -314,6 +313,11 @@ public final class ExtensionLoader {
   }
 
   private int loadJar(File jar, List<ExtensionAddonWrapper> wrappers) {
+    return loadJar(jar, wrappers, null);
+  }
+
+  private int loadJar(
+      File jar, List<ExtensionAddonWrapper> wrappers, @Nullable File bundledDataRoot) {
     URLClassLoader classLoader = null;
     int found = 0;
 
@@ -337,7 +341,7 @@ public final class ExtensionLoader {
                 && !clazz.isInterface()
                 && !Modifier.isAbstract(clazz.getModifiers())) {
               FppExtension ext = (FppExtension) clazz.getDeclaredConstructor().newInstance();
-              registerContext(ext, jar, classLoader);
+              registerContext(ext, jar, classLoader, bundledDataRoot);
               wrappers.add(new ExtensionAddonWrapper(plugin, ext));
               found++;
             }
@@ -409,7 +413,13 @@ public final class ExtensionLoader {
         try (InputStream in = jarFile.getInputStream(nestedJar)) {
           Files.copy(in, extractedJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
-        found += loadJar(extractedJar, wrappers);
+        File bundledDataRoot =
+            new File(
+                plugin.getDataFolder(),
+                "extensions"
+                    + File.separator
+                    + sanitizeFileName(stripJarSuffix(bundleJar.getName())));
+        found += loadJar(extractedJar, wrappers, bundledDataRoot);
       }
     } catch (IOException e) {
       FppLogger.warn(
@@ -472,8 +482,16 @@ public final class ExtensionLoader {
   // ── Private helpers ────────────────────────────────────────────────────────
 
   private void registerContext(FppExtension ext, File jar, URLClassLoader cl) {
+    registerContext(ext, jar, cl, null);
+  }
+
+  private void registerContext(
+      FppExtension ext, File jar, URLClassLoader cl, @Nullable File bundledDataRoot) {
     String sanitizedName = ext.getName().replaceAll("[^a-zA-Z0-9_\\-.]", "_");
-    File dataFolder = new File(plugin.getDataFolder(), "extensions" + File.separator + sanitizedName);
+    File dataFolder =
+        bundledDataRoot != null
+            ? new File(bundledDataRoot, sanitizedName)
+            : new File(plugin.getDataFolder(), "extensions" + File.separator + sanitizedName);
     dataFolder.mkdirs();
     EXTENSIONS.put(ext, new ExtensionContext(dataFolder, cl));
     FppLogger.info(
