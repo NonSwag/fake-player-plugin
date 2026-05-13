@@ -255,22 +255,6 @@ Requires **PlaceholderAPI**. All prefixed with `%fpp_`.
 
 ---
 
-## 🏗️ Building
-
-Requires **JDK 21** and **Maven**.
-
-```bash
-mvn clean package
-```
-
-- **Output:** `build/fpp.jar`
-- **Deploy target:** `~/Desktop/dmc/plugins/fpp.jar` (override with `-Ddeploy.dir=…`)
-- **Optional companion plugins:** add `-Pbuild-velocity-companion` and/or `-Pbuild-bungee-companion`
-
-The build uses a **system-scoped** Mojang-mapped Paper server JAR at `libs/paper-1.21.11-mojang-mapped.jar`. Do not remove or rename this file.
-
----
-
 ## 🗂️ Configuration
 
 Main file: `plugins/FakePlayerPlugin/config.yml`
