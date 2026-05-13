@@ -1,271 +1,68 @@
-# 🌐 Proxy Support (Velocity & BungeeCord)
+# Proxy Support
 
-FPP supports multi-server proxy setups through **`database.mode: "NETWORK"`** and a shared MySQL database.
+FPP supports **Velocity** and **BungeeCord** proxy networks via optional companion plugins.
 
-> **Current version line:** v1.6.6.8  
-> **Requirements:** `database.mode: "NETWORK"` + `database.mysql-enabled: true`
+## What You Get
 
----
+- Cross-server bot visibility in tab lists and player counts
+- Remote bot caching across backends
+- Config sync across backend servers via shared MySQL
 
-## Proxy Companion Plugins
+## Companion Plugins
 
-FPP ships two optional **proxy companion plugins** that inflate the server-list player count to include FPP bots.  
-Drop the matching JAR into your proxy's `plugins/` folder — no configuration needed.
+The main `fpp.jar` handles backend server logic. For the proxy layer:
 
-### Downloads
+- **Velocity companion** — build with `-Pbuild-velocity-companion`
+- **BungeeCord companion** — build with `-Pbuild-bungee-companion`
 
-| JAR | Proxy | Download |
-|-----|-------|----------|
-| `fpp-velocity.jar` | Velocity 3.3.0+ | [Modrinth](https://cdn.modrinth.com/data/oioBwOz4/versions/PP9IHyaU/fpp-velocity.jar) · [Discord CDN](https://cdn.discordapp.com/attachments/1495863409223405720/1495863495974195392/fpp-velocity.jar?ex=69f6f431&is=69f5a2b1&hm=908926c9081199b88cc6a153fba8479a07bc1162fd372cba8fa9a7286b41a6f4&) |
-| `fpp-bungee.jar` | BungeeCord / Waterfall | [Modrinth](https://cdn.modrinth.com/data/oioBwOz4/versions/PP9IHyaU/fpp-bungee.jar) · [Discord CDN](https://cdn.discordapp.com/attachments/1495900443165855898/1495900547658678282/fpp-bungee.jar?ex=69f716b3&is=69f5c533&hm=1f76adc48ecaeb10664ffaeeada19b2d3c3d403fa7fd5ca2d0de4b8e5d00b237&) |
+These are **.gitignored** directories (`velocity-companion/` and `bungee-companion/`) that are not in this repository. You need the companion source separately, or build it if available.
 
-Both companions:
-- Register the `fpp:proxy` plugin-messaging channel
-- Listen for `BOT_SPAWN`, `BOT_DESPAWN`, and `SERVER_OFFLINE` sub-messages from FPP backends
-- Maintain a live bot registry (UUID → display name + server ID)
-- Intercept `ProxyPingEvent` — inflates the displayed player count and adds bot names to the hover sample list (up to 12 entries)
-- Print an anti-scam warning on startup reminding admins that FPP is 100% free and open-source
+## Setup
 
-> **Note:** These companions are optional. Without them the backend servers still work perfectly in `NETWORK` mode — bots just won't appear in the proxy-level server-list count.
+### 1. Enable Network Mode
 
----
-
-## Features
-
-| Feature | Description |
-|---------|-------------|
-| Shared database | All servers write to the same MySQL backend |
-| Per-server isolation | Each backend only restores and manages its own bots |
-| Remote bot cache | Remote bots from other servers appear in network-aware lists/placeholders |
-| Cross-server chat | Proxy broadcasts bot chat across backends |
-| Global alerts | `/fpp alert` sends network-wide admin messages |
-| Display-name sync | Remote bot display-name changes propagate via plugin messaging |
-| Config sync | Shared config push/pull through MySQL-backed sync modes |
-
----
-
-## Quick Setup
-
-### 1) Configure each backend
+On **every backend server**, set:
 
 ```yaml
 database:
   enabled: true
   mode: "NETWORK"
-  server-id: "survival"
+  server-id: "unique-name"
   mysql-enabled: true
   mysql:
-    host: "mysql.example.com"
+    host: "..."
     port: 3306
-    database: "fpp_network"
-    username: "fpp_user"
-    password: "your_password"
+    database: "fpp"
+    username: "..."
+    password: "..."
 ```
 
-Rules:
-- every backend must use the **same MySQL database**
-- every backend must have a **different** `database.server-id`
+Each server must have a **unique `server-id`**.
 
-### 2) Configure proxy
+### 2. Install Companion Plugin
 
-#### Velocity
+- **Velocity:** Place the velocity companion JAR in `plugins/`
+  - Set `bungeecord-compat-mode: true` in `velocity.toml`
+- **BungeeCord:** Place the Bungee companion JAR in `plugins/`
 
-Enable plugin messaging compatibility in your Velocity setup if needed by the network.
+### 3. Reload
 
-#### BungeeCord
+Run `/fpp reload` on every backend server after making changes.
 
-Normal backend registration is sufficient; FPP uses the proxy messaging channel to fan out its payloads.
+## How It Works
 
-### 3) Reload / restart and verify
+- Backends register bots in the shared MySQL database tagged with their `server-id`
+- Other backends query the DB and cache remote bot entries
+- Plugin messaging channels (`BungeeCord`, custom Velocity channels) sync state changes
+- Remote bots appear in tab lists and placeholders but are not physically spawned on the local server
 
-Look for startup info showing:
-- database mode = `NETWORK`
-- correct `server-id`
-- successful MySQL connection
+## Notes
 
----
+- Cross-server bot **TP** and **task control** are not supported
+- Remote bots are visual only (tab list + placeholders) on other backends
+- The main FPP JAR handles all backend logic; the companion just bridges proxy messaging
 
-## Important Key Names
+## See Also
 
-Use:
-
-```yaml
-database:
-  server-id: "survival"
-```
-
-Do **not** use the old `server.id` path.
-
----
-
-## How `NETWORK` Mode Works
-
-### Shared DB + local ownership
-
-Every backend writes rows tagged with its own `server-id`, but only restores bots belonging to itself.
-
-This keeps:
-- persistence local to the owning backend
-- global visibility available for placeholders and `/fpp list`
-
-### Remote bot cache
-
-FPP keeps a `RemoteBotCache` containing bots physically running on other backend servers.
-
-This powers:
-- remote sections in `/fpp list`
-- proxy-aware placeholders like `%fpp_network_count%`
-- display-name visibility across the network
-
----
-
-## Plugin Messaging
-
-FPP uses the `fpp:main` messaging channel.
-
-### Current subchannels
-
-| Subchannel | Purpose |
-|------------|---------|
-| `BOT_SPAWN` | Remote bot came online |
-| `BOT_DESPAWN` | Remote bot went offline |
-| `BOT_UPDATE` | Remote bot display-name update |
-| `CHAT` | Cross-server bot chat relay |
-| `ALERT` | Admin alert broadcast |
-| `JOIN` | Network join broadcast |
-| `LEAVE` | Network leave broadcast |
-| `SYNC` | Config sync payloads |
-
-### Display-name sync
-
-`BOT_UPDATE` is used when a bot's display name changes, for example after a LuckPerms prefix/suffix refresh.
-
----
-
-## Cross-Server Chat
-
-When a bot chats on one backend:
-1. the local backend emits the chat normally
-2. a proxy message is sent on `CHAT`
-3. the proxy fans it out to other backends
-4. receivers broadcast the remote-formatted message locally
-
-Related config:
-
-```yaml
-fake-chat:
-  remote-format: "<yellow>{name}<dark_gray>: <white>{message}"
-```
-
-Remote/bodyless messages use `remote-format`; local in-world bots use the server's regular chat pipeline.
-
----
-
-## Global Alerts
-
-Command:
-
-```text
-/fpp alert <message>
-```
-
-Permission:
-
-```text
-fpp.alert
-```
-
-This is the correct current node — not the old `fpp.all` wording some older docs used.
-
----
-
-## Config Sync
-
-FPP can sync config files across the network.
-
-```yaml
-config-sync:
-  mode: "DISABLED"
-```
-
-Modes:
-- `DISABLED`
-- `MANUAL`
-- `AUTO_PULL`
-- `AUTO_PUSH`
-
-### Synced files
-- `config.yml`
-- `bot-names.yml`
-- `bot-messages.yml`
-- `language/en.yml`
-
-### Never synced
-- `database.server-id`
-- `database.mysql.*`
-- `debug`
-
----
-
-## Placeholders in `NETWORK` Mode
-
-Useful network-aware placeholders:
-
-- `%fpp_count%`
-- `%fpp_local_count%`
-- `%fpp_network_count%`
-- `%fpp_names%`
-- `%fpp_network_names%`
-- `%fpp_network%`
-- `%fpp_server_id%`
-
-See [Placeholders](Placeholders).
-
----
-
-## Troubleshooting
-
-### Remote bots do not appear
-
-Check:
-- all servers use the same MySQL DB
-- each server has a unique `database.server-id`
-- all are running in `NETWORK` mode
-- the proxy messaging channel is available
-
-### Chat does not cross servers
-
-Check:
-- `fake-chat.enabled: true`
-- at least one player is online to carry plugin messages if required by the server/proxy path
-- network debug logging if needed:
-
-```yaml
-logging:
-  debug:
-    network: true
-```
-
-### Wrong server ID in lists / placeholders
-
-Check:
-- you changed `database.server-id`, not `server.id`
-- you reloaded/restarted after changing it
-
----
-
-## Best Practices
-
-- use MySQL for all proxy deployments
-- choose unique backend names like `hub`, `survival`, `skyblock`
-- keep config sync in `MANUAL` or `AUTO_PULL/AUTO_PUSH` only if you actually want shared configs
-- back up the shared DB regularly
-
----
-
-## Related Pages
-
-- [Database](Database)
-- [Configuration](Configuration)
-- [Placeholders](Placeholders)
-- [Migration](Migration)
+- [Database](Database) — MySQL setup details
+- [Config Sync](Config-Sync) — Push/pull configs across backends

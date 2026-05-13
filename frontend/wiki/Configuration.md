@@ -1,837 +1,190 @@
-# ⚙️ Configuration
+# Configuration
 
-FPP is configured through `plugins/FakePlayerPlugin/config.yml`.
+Main file: `plugins/FakePlayerPlugin/config.yml`
 
-Most changes apply after running `/fpp reload` — no full restart needed.
+Run `/fpp reload` to apply most changes without restarting.
 
-> **Bundled config stamp:** `70`  
-> **Current migration target:** `70`  
-> The bundled file in the jar and the runtime migrator target are now in sync.
+## Structure
 
----
+### `config-version`
+Managed automatically by the built-in migrator. **Do not edit.**
 
-## Sections at a Glance
-
-| Section | Purpose |
-|---------|---------|
-| `language` | Active language file |
-| `limits` | Global cap, default user limit, spawn presets |
-| `spawn-cooldown` | Seconds between player spawn uses |
-| `persistence` | Save/restore bots across restarts |
-| `join-delay` / `leave-delay` | Staggered joins/leaves |
-| `bot-name` | Display name format templates |
-| `skin` | Skin mode, pool, overrides, folder scanning |
-| `tab-list` | Bot tab visibility |
-| `luckperms` | Default LP group for new bots |
-| `badword-filter` | Name profanity filtering |
-| `bot-interaction` | Right-click / shift-right-click behavior |
-| `messages` | Join/leave/kill/admin-warning toggles |
-| `body` | Physical body behavior |
-| `combat` | Health and hurt sound |
-| `death` | Death/respawn behavior |
-| `chunk-loading` | Keep chunks loaded around bots |
-| `head-ai` | Head tracking |
-| `swim-ai` | Auto swim behavior |
-| `collision` | Push / separation physics |
-| `pathfinding` | Shared nav tuning for move/mine/place/use/patrol; includes `max-fall` |
-| `pvp-ai` | Future / internal PvP AI tuning |
-| `attack-mob` | Per-bot PvE attack settings (range, priority, rotation speed, retarget interval, line-of-sight) |
-| `fake-chat` | Bot chat, event triggers, player reactions |
-| `ai-conversations` | DM AI replies, personalities, typing delay |
-| `swap` | Session rotation |
-| `peak-hours` | Time-window bot pool scheduler |
-| `database` | SQLite / MySQL / NETWORK mode |
-| `config-sync` | Cross-server config sync |
-| `server-list` | Server-list player count settings (`count-bots`, `include-remote-bots`) |
-| `performance` | Position packet culling |
-| `nametag-integration` | NameTag plugin soft-dependency settings |
-| `automation` | `auto-eat`, `auto-place-bed`, `auto-milk`, `prevent-bad-omen` — realistic bot survival defaults |
-| `ping` | Tab-list ping simulation (enabled, latency range, spikes, join ramp) |
-| `attack-mob` | PvE auto-targeting defaults (`default-range`, `default-priority`, etc.) |
-| `debug` / `logging.debug.*` | Debug logging |
-| `update-checker` | Update notifications |
-| `metrics` | FastStats telemetry opt-in/out |
+### `language`
+Default: `en`. Points to `plugins/FakePlayerPlugin/language/<lang>.yml`.
 
 ---
 
-## `language`
+## 1. Spawning
 
-```yaml
-language: en
-```
+### `limits`
+- `max-bots: 1000` — global cap (`0` = unlimited)
+- `user-bot-limit: 1` — default personal limit for `fpp.use` players
+- `spawn-presets: [1, 5, 10, 15, 20]` — tab-complete suggestions for `/fpp spawn`
 
-Selects the file from `plugins/FakePlayerPlugin/language/`.
+### `spawn-cooldown`
+Seconds between `/fpp spawn` uses. `0` = disabled.
 
-Example:
-- `en` → `language/en.yml`
+### `persistence`
+- `enabled: true` — bots save position on shutdown and rejoin on restart
 
----
-
-## `limits`
-
-```yaml
-limits:
-  max-bots: 1000
-  user-bot-limit: 1
-  spawn-presets: [1, 5, 10, 15, 20]
-```
-
-| Key | Description |
-|-----|-------------|
-| `max-bots` | Global bot cap. `0` = unlimited |
-| `user-bot-limit` | Fallback user-tier limit when no `fpp.spawn.limit.<N>` is granted |
-| `spawn-presets` | Spawn-count tab-complete suggestions |
-
-Related permissions:
-- `fpp.bypass.maxbots`
-- `fpp.spawn.limit.<N>`
+### `join-delay` / `leave-delay`
+Stagger spawns/despawns in **ticks** (20 ticks = 1 second).
 
 ---
 
-## `spawn-cooldown`
+## 2. Appearance
 
-```yaml
-spawn-cooldown: 0
-```
+### `bot-name`
+- `mode: random` — `random` (generate username) or `pool` (pick from `bot-names.yml`)
+- `admin-format: '{bot_name}'` — display name for admin spawns
+- `user-format: 'bot-{spawner}-{num}'` — display name for user spawns
 
-Cooldown in **seconds** between `/fpp spawn` uses.
+### `badword-filter`
+- `enabled: true` — block/rename bad names
+- `use-global-list: false` — fetch remote profanity list
+- `global-list-url: "..."` — remote word list URL
+- `global-list-timeout-ms: 5000` — fetch timeout
+- `words: []` — inline word list (merged with `bad-words.yml`)
+- `whitelist: []` — allowed names even if they match bad words
+- `auto-rename: true` — silently rename bad names instead of blocking
+- `auto-detection`
+  - `enabled: true`
+  - `mode: normal` — `off` / `normal` / `strict`
 
-- `0` = disabled
-- bypassed by `fpp.bypass.cooldown`
+### `bot-interaction`
+- `right-click-enabled: true` — right-click opens inventory/executes command
+- `shift-right-click-settings: true` — shift+right-click opens bot settings GUI
 
----
-
-## `persistence`
-
-```yaml
-persistence:
-  enabled: true
-```
-
-When enabled, bots are restored after restart.
-
-Also interacts with task persistence:
-- mine tasks
-- use tasks
-- place tasks
-- patrol / waypoint tasks
-
----
-
-## `join-delay` / `leave-delay`
-
-```yaml
-join-delay:
-  min: 0
-  max: 1
-
-leave-delay:
-  min: 0
-  max: 1
-```
-
-Values are in **ticks**.
-
-Quick reference:
-- `20` = 1 second
-- `40` = 2 seconds
-- `100` = 5 seconds
-
-Used to stagger mass spawn / mass despawn actions so they look more natural.
+### `messages`
+- `join-message: true` — broadcast join message
+- `leave-message: true` — broadcast leave message
+- `death-message: true` — broadcast vanilla death message
+- `kill-message: false` — broadcast when a real player kills a bot
+- `notify-admins-on-join: true` — send compatibility warnings to admins on join
 
 ---
 
-## `bot-name`
+## 3. Body & Combat
 
-```yaml
-bot-name:
-  mode: random
-  admin-format: '{bot_name}'
-  user-format: 'bot-{spawner}-{num}'
-```
+### `body`
+- `enabled: true` — physical entity in the world
+- `pushable: true` — players/explosions can push bots
+- `damageable: true` — take all damage (if `false`, still takes environmental)
+- `pick-up-items: true`
+- `pick-up-xp: true`
+- `drop-items-on-despawn: false` — `false` = remember inventory on despawn
 
-| Key | Description |
-|-----|-------------|
-| `mode` | Name source: `random` (generate realistic usernames on the fly) or `pool` (pick from `bot-names.yml`) |
-| `admin-format` | Name format for admin-spawned bots |
-| `user-format` | Name format for user-tier bots |
+### `combat`
+- `max-health: 20.0` — standard player HP
+- `hurt-sound: true`
+- `fall-damage`
+  - `enabled: true`
+  - `safe-distance: 3.0` — blocks before damage starts
+  - `multiplier: 1.0` — damage scale
 
-Placeholders:
-- `{bot_name}`
-- `{spawner}`
-- `{num}`
+### `death`
+- `respawn-on-death: false` — respawn at spawn location after death
+- `respawn-delay: 15` — ticks before respawn
+- `suppress-drops: false` — `true` = suppress all drops
 
----
+### `chunk-loading`
+- `enabled: true` — keep chunks loaded around bots
+- `radius: "auto"` — `"auto"`, `0` = disabled, or fixed number
+- `update-interval: 20` — ticks between position checks
+- `mass-disable-threshold: 100` — release chunk tickets when active bots exceed this (`0` = never)
 
-## `skin`
-
-```yaml
-skin:
-  mode: player
-  guaranteed-skin: true
-  clear-cache-on-reload: true
-  overrides: {}
-  pool: []
-  use-skin-folder: true
-```
-
-Modes:
-
-| Mode | Behavior |
-|------|----------|
-| `player` | Mojang skin matching the bot name, with 1000-player fallback pool and DB caching (legacy alias: `auto`) |
-| `random` | Uses overrides / pool / skin folder pipeline (legacy alias: `custom`) |
-| `none` | Default Steve/Alex only (legacy alias: `off`) |
-
-Important notes:
-- `guaranteed-skin: true` is the default — every bot always gets a real-looking skin
-- `overrides` maps `bot-name -> minecraft-username` (random mode only)
-- `pool` is a list of usernames used as random fallbacks (random mode only)
-- `use-skin-folder: true` scans `plugins/FakePlayerPlugin/skins/` (random mode only)
-- a `skins/README.txt` file is generated on first run
-- resolved skins are cached in the `fpp_skin_cache` DB table (7-day TTL)
-- when the [NameTag](https://lode.gg) plugin is installed, NameTag-assigned skins take priority over all other modes
-
-See [Skin-System](Skin-System).
+### `automation`
+Defaults copied to newly spawned bots:
+- `auto-eat: true`
+- `auto-place-bed: true`
+- `auto-milk: true`
+- `prevent-bad-omen: true`
 
 ---
 
-## `tab-list`
+## 4. AI & Navigation
 
-```yaml
-tab-list:
-  enabled: true
-```
+### `head-ai`
+- `enabled: true` — smooth head rotation toward nearest player
+- `look-range: 8.0` — detection radius
+- `turn-speed: 0.3` — smoothing (0.0 = frozen, 1.0 = instant)
+- `tick-rate: 3` — scan every N ticks
 
-- `true` = bots appear in the in-game tab list
-- `false` = bots are hidden from the tab list but still count toward server player totals
+### `swim-ai`
+- `enabled: true` — automatic upward swimming
 
----
-
-## `luckperms`
-
-```yaml
-luckperms:
-  default-group: ""
-```
-
-Default LP group assigned to newly spawned bots.
-
-- blank = LuckPerms `default`
-- individual bots can later be changed with `/fpp rank`
+### `collision`
+- `walk-radius: 0.85` — push radius when walking into a bot
+- `walk-strength: 0.22`
+- `hit-strength: 0.45`
+- `hit-max-horizontal-speed: 0.80`
+- `bot-radius: 0.90` — bot-vs-bot separation radius
+- `bot-strength: 0.14`
+- `max-horizontal-speed: 0.30`
 
 ---
 
-## `badword-filter`
+## 5. Database & Network
 
-```yaml
-badword-filter:
-  enabled: true
-  use-global-list: true
-  global-list-url: "https://www.cs.cmu.edu/~biglou/resources/bad-words.txt"
-  global-list-timeout-ms: 5000
-  words: []
-  whitelist: []
-  auto-rename: true
-  auto-detection:
-    enabled: true
-    mode: strict
-```
+### `database`
+- `enabled: true` — `false` = file-only persistence
+- `mode: "LOCAL"` — `"LOCAL"` or `"NETWORK"`
+- `server-id: "default"` — unique name per backend (NETWORK mode only)
+- `mysql-enabled: false`
+- `mysql` — host, port, database, username, password, use-ssl, pool-size, connection-timeout
+- `location-flush-interval: 30` — seconds between position DB writes
+- `session-history.max-rows: 20` — max rows per `/fpp info` query
 
-Used to block or auto-rename bad bot names.
-
-| Key | Description |
-|-----|-------------|
-| `enabled` | Master switch |
-| `use-global-list` | Download and merge a remote profanity list |
-| `words` | Inline extra words |
-| `whitelist` | Allowed names that would otherwise match |
-| `auto-rename` | Replace bad names with a clean generated name instead of hard-blocking |
-| `auto-detection.mode` | `off`, `normal`, or `strict` detection |
-
-Detection includes leet-speak normalization and optional stricter anti-evasion matching.
+### `config-sync`
+- `mode: "DISABLED"` — `"DISABLED"`, `"MANUAL"`, `"AUTO_PULL"`, `"AUTO_PUSH"`
 
 ---
 
-## `bot-interaction`
+## 9. Performance
 
-```yaml
-bot-interaction:
-  right-click-enabled: true
-  shift-right-click-settings: true
-```
-
-Controls in-world interaction behavior.
-
-| Key | Description |
-|-----|-------------|
-| `right-click-enabled` | Enables bot right-click interaction at all |
-| `shift-right-click-settings` | Opens `BotSettingGui` when sneaking |
-
-Behavior:
-- normal right-click → inventory or stored command
-- shift-right-click → per-bot settings GUI
+### `performance`
+- `position-sync-distance: 128.0` — max distance (blocks) for per-tick position-sync packets. `0` = send to all players regardless of distance.
 
 ---
 
-## `messages`
+## 10. Debug & Logging
 
-```yaml
-messages:
-  join-message: true
-  leave-message: true
-  kill-message: false
-  notify-admins-on-join: true
-```
+### `debug: false`
+Master switch. `true` enables all debug categories.
 
-Controls join/leave/kill broadcasts and startup join warnings for admins.
-
----
-
-## `body`
-
-```yaml
-body:
-  enabled: true
-  pushable: true
-  damageable: true
-  pick-up-items: true
-  pick-up-xp: true
-  drop-items-on-despawn: true
-```
-
-| Key | Description |
-|-----|-------------|
-| `enabled` | Spawn a physical NMS `ServerPlayer` body |
-| `pushable` | Allow players/entities to push bots |
-| `damageable` | Allow damage from normal combat/environment |
-| `pick-up-items` | Allow item pickup |
-| `pick-up-xp` | Allow XP orb pickup |
-| `drop-items-on-despawn` | Drop inventory + XP when the bot is despawned |
-
-Per-bot pickup toggles also exist in `BotSettingGui`.
+### `logging.debug`
+- `startup: false`
+- `nms: false`
+- `packets: false`
+- `network: false`
+- `config-sync: false`
+- `database: false`
 
 ---
 
-## `combat`
+## Attack Mob Targeting
 
-```yaml
-combat:
-  max-health: 20.0
-  hurt-sound: true
-```
-
-- `max-health` → bot max HP
-- `hurt-sound` → play player hurt sound when damaged
+### `attack-mob`
+- `default-range: 8.0`
+- `default-priority: nearest` — `nearest` or `lowest-health`
+- `smooth-rotation-speed: 12.0` — degrees per tick
+- `retarget-interval: 10` — ticks between scans
+- `line-of-sight: true`
 
 ---
 
-## `death`
+## Metrics
 
-```yaml
-death:
-  respawn-on-death: false
-  respawn-delay: 15
-  suppress-drops: false
-```
-
-| Key | Description |
-|-----|-------------|
-| `respawn-on-death` | Respawn the bot after death |
-| `respawn-delay` | Ticks before respawn |
-| `suppress-drops` | Prevent death drops |
-
-> **Per-bot override:** each `FakePlayer` stores its own `respawnOnDeath` flag, initialized from the global `respawn-on-death` default at spawn. Editable at runtime via `BotSettingGui` (Danger tab) and persisted across restarts.
+### `metrics`
+- `enabled: true` — anonymous FastStats usage statistics
 
 ---
 
-## `chunk-loading`
+## Migration
 
-```yaml
-chunk-loading:
-  enabled: true
-  radius: "auto"
-  update-interval: 20
-```
+The plugin includes a built-in **ConfigMigrator** that:
+1. Creates a timestamped backup before any change
+2. Automatically upgrades configs when `config-version` is outdated
+3. Removes obsolete keys and adds new defaults
 
-Important `radius` behavior in current config:
-- `"auto"` = match server simulation distance
-- `0` = do not load chunks at all
-- positive number = fixed chunk radius
-
-Per-bot override: each bot has its own `chunkLoadRadius` field (`-1` = follow global, `0` = disable, `1-N` = fixed). Editable in `BotSettingGui` General tab.
-
-New key:
-- `mass-disable-threshold: 100` — when active bots reach this count, plugin chunk tickets are released to avoid mass-bot lag. `0` = never auto-disable.
-
----
-
-## `automation`
-
-```yaml
-automation:
-  auto-eat: true        # Bots eat food from inventory when hunger prevents sprinting
-  auto-place-bed: true  # Bots may place a bed from inventory for auto-sleep, then break it after waking
-  auto-milk: true       # Bots automatically remove harmful potion effects (poison, wither, slowness, etc.)
-  prevent-bad-omen: true # Prevent Bad Omen, Raid Omen, and Trial Omen effects
-```
-
-Defaults copied to newly spawned/restored bots. Existing bots keep per-bot values.
-
-> **Per-bot overrides:** each `FakePlayer` stores its own `autoEatEnabled`, `autoPlaceBedEnabled`, `autoMilkEnabled`, and `preventBadOmen` flags, initialized from these global defaults at spawn. All are editable at runtime via `BotSettingGui` (General tab) and persist across restarts.
-
-> **Note:** `auto-milk` and `prevent-bad-omen` config keys exist and the per-bot toggles in `BotSettingGui` are functional, but the runtime tick logic (`BotEffectHandler.tickEffects()`) is not yet wired up — these settings currently have **no live effect** on bot behavior.
-
----
-
-## `ping`
-
-```yaml
-ping:
-  enabled: false
-  min: 50
-  max: 200
-  spike-chance: 0.05
-  spike-min: 200
-  spike-max: 500
-  latency-effect: true
-  join-ramp-ticks: 60
-```
-
-Simulates realistic tab-list ping values for bots.
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `enabled` | `false` | Master switch — bots show `No Connection` when disabled |
-| `min` | `50` | Minimum simulated ping (ms) |
-| `max` | `200` | Maximum simulated ping (ms) |
-| `spike-chance` | `0.05` | Chance per interval that a ping spike occurs |
-| `spike-min` | `200` | Minimum spike ping value |
-| `spike-max` | `500` | Maximum spike ping value |
-| `latency-effect` | `true` | Simulate realistic latency variation over time |
-| `join-ramp-ticks` | `60` | Ticks over which ping ramps up from 0 after bot join |
-
-Per-bot overrides are available via `/fpp ping <bot> --ping <ms>` or `--random`. Per-bot `basePing` values persist across restarts.
-
----
-
-## `head-ai`
-
-```yaml
-head-ai:
-  enabled: true
-  look-range: 8.0
-  turn-speed: 0.3
-  tick-rate: 3
-```
-
-| Key | Description |
-|-----|-------------|
-| `enabled` | Master switch |
-| `look-range` | Player detection range in blocks |
-| `turn-speed` | Rotation smoothing |
-| `tick-rate` | How often the tracking scan runs |
-
----
-
-## `swim-ai`
-
-```yaml
-swim-ai:
-  enabled: true
-```
-
-When enabled, bots swim upward in water/lava like a real player holding jump.
-
-Per-bot override: each bot has its own `swimAiEnabled` toggle (initialised from the global config at spawn). Editable in `BotSettingGui` General tab.
-
----
-
-## `collision`
-
-```yaml
-collision:
-  walk-radius: 0.85
-  walk-strength: 0.22
-  hit-strength: 0.45
-  hit-max-horizontal-speed: 0.80
-  bot-radius: 0.90
-  bot-strength: 0.14
-  max-horizontal-speed: 0.30
-```
-
-Controls push physics and bot-vs-bot separation.
-
----
-
-## `pathfinding`
-
-```yaml
-pathfinding:
-  parkour: false
-  break-blocks: false
-  place-blocks: false
-  place-material: DIRT
-  arrival-distance: 1.2
-  patrol-arrival-distance: 1.5
-  waypoint-arrival-distance: 0.65
-  sprint-distance: 6.0
-  follow-recalc-distance: 3.5
-  follow-recalc-interval: 100
-  recalc-interval: 60
-  stuck-ticks: 5
-  stuck-threshold: 0.04
-  break-ticks: 15
-  place-ticks: 5
-  max-range: 64
-  max-nodes: 900
-  max-nodes-extended: 1800
-  max-fall: 3
-```
-
-Shared navigation tuning for:
-- `/fpp move`
-- `/fpp mine`
-- `/fpp place`
-- `/fpp use`
-- `/fpp follow`
-- waypoint patrols
-
-Feature flags:
-- `parkour`
-- `break-blocks`
-- `place-blocks`
-- `place-material`
-
-Tuning:
-- `arrival-distance`, `patrol-arrival-distance`, `waypoint-arrival-distance`
-- `follow-recalc-distance` — how far target must move before path recalculates
-- `follow-recalc-interval` — heartbeat recalc interval in ticks for follow mode
-- stuck detection thresholds
-- block interaction timings
-- node/range caps
-- `max-fall` — maximum safe descent height in a single unbroken fall (default `3`)
-
----
-
-## `attack-mob`
-
-```yaml
-attack-mob:
-  default-range: 8.0
-  default-priority: "nearest"   # nearest | lowest-health
-  smooth-rotation-speed: 12.0   # degrees per tick
-  retarget-interval: 10         # ticks between target re-evaluations
-  line-of-sight: true
-```
-
-Controls the `/fpp attack --mob` stationary PvE mode defaults. All values can be overridden per-bot via `BotSettingGui` or `/fpp attack --mob --range <n> --priority <mode>`.
-
-> **PvE Smart Attack Mode:** each bot has a `pveSmartAttackMode` tri-state (`OFF` / `ON_NO_MOVE` / `ON_MOVE`) replacing the simple boolean. `ON_MOVE` enables pursuit (bot chases targets when out of melee range via `PathfindingService`). The `pveEnabled` accessor is a convenience that maps to `pveSmartAttackMode.isEnabled()`. Editable in `BotSettingGui` PvE tab.
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `default-range` | `8.0` | Mob scan radius in blocks |
-| `default-priority` | `"nearest"` | Target selection strategy: `nearest` or `lowest-health` |
-| `smooth-rotation-speed` | `12.0` | Bot rotation speed toward target (degrees/tick) |
-| `retarget-interval` | `10` | Ticks between target re-evaluations |
-| `line-of-sight` | `true` | Require unobstructed line of sight before attacking |
-
----
-
-## `server-list`
-
-```yaml
-server-list:
-  count-bots: true
-  include-remote-bots: false
-```
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `count-bots` | `true` | Whether bots increment the displayed server-list player count |
-| `include-remote-bots` | `false` | Include remote proxy bots in the server-list count (NETWORK mode only) |
-
-> **Note:** Existing installs receive these keys with safe defaults via config v60→v61 migration — no behaviour change unless you actively set `count-bots: false`.
-
----
-
-## `pvp-ai`
-
-Currently a future / internal section.
-
-The public plugin still keeps PvP spawning restricted, so treat this as advanced/internal tuning rather than a generally available feature.
-
----
-
-## `fake-chat`
-
-```yaml
-fake-chat:
-  enabled: false
-  require-player-online: true
-  chance: 0.75
-  interval:
-    min: 5
-    max: 10
-  typing-delay: true
-  activity-variation: true
-  history-size: 5
-  stagger-interval: 3
-  burst-chance: 0.12
-  burst-delay:
-    min: 2
-    max: 5
-  reply-to-mentions: true
-  mention-reply-chance: 0.65
-  reply-delay:
-    min: 2
-    max: 8
-  remote-format: "<yellow>{name}<dark_gray>: <white>{message}"
-```
-
-Also includes newer subsections:
-- `bot-to-bot`
-- `event-triggers.on-player-join`
-- `event-triggers.on-death`
-- `event-triggers.on-player-leave`
-- `event-triggers.on-advancement`
-- `event-triggers.on-first-join`
-- `event-triggers.on-kill`
-- `event-triggers.on-high-level`
-- `on-player-chat`
-- `keyword-reactions`
-
-See [Fake-Chat](Fake-Chat) for the full breakdown.
-
----
-
-## `ai-conversations`
-
-```yaml
-ai-conversations:
-  enabled: true
-  default-personality: "default"
-  typing-delay:
-    enabled: true
-    base: 1.0
-    per-char: 0.07
-    max: 5.0
-  max-history: 10
-  cooldown: 3
-  debug: false
-```
-
-This powers bot DM replies to:
-- `/msg`
-- `/tell`
-- `/whisper`
-
-### Personality files
-
-- `default-personality` refers to a file in `plugins/FakePlayerPlugin/personalities/`
-- `default` means `personalities/default.txt`
-- per-bot overrides are assigned with `/fpp personality <bot> set <name>`
-
-### API keys
-
-Keys/endpoints are stored in `plugins/FakePlayerPlugin/secrets.yml`, not in `config.yml`.
-
-Supported provider order:
-- OpenAI
-- Anthropic
-- Groq
-- Google Gemini
-- Ollama
-- Copilot
-- Custom OpenAI-compatible
-
----
-
-## `swap`
-
-```yaml
-swap:
-  enabled: false
-  max-swapped-out: 0
-  min-online: 0
-  same-name-on-rejoin: true
-  farewell-chat: true
-  greeting-chat: true
-  retry-rejoin: true
-  retry-delay: 60
-  session:
-    min: 60
-    max: 300
-  absence:
-    min: 30
-    max: 120
-```
-
-Newer important keys:
-- `min-online`
-- `retry-rejoin`
-- `retry-delay`
-
-See [Swap-System](Swap-System).
-
----
-
-## `peak-hours`
-
-```yaml
-peak-hours:
-  enabled: false
-  timezone: "UTC"
-  stagger-seconds: 30
-  min-online: 0
-  notify-transitions: false
-```
-
-Scales the bot pool based on time windows.
-
-Requires:
-- `swap.enabled: true`
-
-See [Peak-Hours](Peak-Hours).
-
----
-
-## `database`
-
-```yaml
-database:
-  enabled: true
-  mode: "LOCAL"
-  server-id: "default"
-  mysql-enabled: false
-  mysql:
-    host: "localhost"
-    port: 3306
-    database: "fpp"
-    username: "root"
-    password: ""
-    use-ssl: false
-    pool-size: 5
-    connection-timeout: 30000
-  location-flush-interval: 30
-  session-history:
-    max-rows: 20
-```
-
-| Key | Description |
-|-----|-------------|
-| `enabled` | Master DB switch |
-| `mode` | `LOCAL` or `NETWORK` |
-| `server-id` | Unique backend ID in proxy networks |
-| `mysql-enabled` | Enable MySQL backend |
-| `location-flush-interval` | Seconds between batched position flushes |
-| `session-history.max-rows` | Max rows returned in info queries |
-
----
-
-## `config-sync`
-
-```yaml
-config-sync:
-  mode: "DISABLED"
-```
-
-Modes:
-- `DISABLED`
-- `MANUAL`
-- `AUTO_PULL`
-- `AUTO_PUSH`
-
-Used only in `NETWORK` mode with shared MySQL.
-
----
-
-## `performance`
-
-```yaml
-performance:
-  position-sync-distance: 128.0
-```
-
-Maximum distance for position-sync packets.
-
-- `0` = unlimited
-- `128.0` = recommended default
-
----
-
-## `nametag-integration`
-
-```yaml
-nametag-integration:
-  block-nick-conflicts: true
-  bot-isolation: true
-  sync-nick-as-rename: false
-```
-
-Settings for the [NameTag](https://lode.gg) soft-dependency. Only active when NameTag is installed.
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `block-nick-conflicts` | `true` | Prevents spawning a bot whose `--name` matches a real player's current NameTag nickname |
-| `bot-isolation` | `true` | Removes bots from NameTag's internal player cache after spawn, preventing NameTag from treating them as real players |
-| `sync-nick-as-rename` | `false` | When a bot has a NameTag nick set, auto-trigger a full FPP rename so the bot's MC name becomes the nick |
-
-> **Note:** `sync-nick-as-rename` requires `bot-isolation: true`. Enable consciously — it triggers a full despawn+respawn rename cycle.
-
----
-
-## `debug` and `logging.debug.*`
-
-```yaml
-debug: false
-logging:
-  debug:
-    startup: false
-    nms: false
-    packets: false
-    luckperms: false
-    network: false
-    config-sync: false
-    skin: false
-    database: false
-    chat: false
-    swap: false
-```
-
-Use granular flags instead of global `debug` whenever possible.
-
----
-
-## `update-checker`
-
-```yaml
-update-checker:
-  enabled: true
-```
-
-Controls startup/reload version checks.
-
----
-
-## `metrics`
-
-```yaml
-metrics:
-  enabled: true
-```
-
-Controls anonymous FastStats telemetry.
-
----
-
-## Related Pages
-
-- [Getting-Started](Getting-Started)
-- [Commands](Commands)
-- [Fake-Chat](Fake-Chat)
-- [Database](Database)
-- [Peak-Hours](Peak-Hours)
-- [Skin-System](Skin-System)
-- [Migration](Migration)
+Do **not** edit `config-version` manually.

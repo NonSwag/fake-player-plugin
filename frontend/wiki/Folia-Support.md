@@ -1,69 +1,32 @@
-# 🍃 Folia Support
+# Folia Support
 
-> **Folia regionised threading compatibility — v1.6.6.8**
+FPP is compatible with **Folia** regionised threading out of the box.
 
-FPP is compatible with Folia's regionised threading model. This means you can run FPP on Folia-based servers (a fork of Paper that divides the world into independently threaded regions) without crashes or scheduler conflicts.
+## What Works
 
----
+- Bot spawning and despawning
+- Pathfinding and navigation
+- Chunk loading (Folia-compatible ticket system)
+- Task scheduling (repeating/delayed tasks dispatch to the correct region)
+- Database I/O (async safe)
+- Plugin messaging (BungeeCord / Velocity channels)
+- Per-bot GUIs and settings
 
-## ✅ Requirements
+## What Does Not Work
 
-- **Folia** 1.21.x or compatible fork
-- **FPP** 1.6.6.8+
-- `folia-supported: true` is declared in `plugin.yml`
+- Features that rely on Folia-unsafe synchronous cross-region operations may behave differently. The codebase avoids blocking Folia scheduler threads.
 
----
+## How It Works
 
-## 🧵 How Folia Compatibility Works
+- `FppScheduler` detects Folia at runtime via reflection on `RegionScheduler`.
+- Tasks are dispatched to the entity's owning region thread or the location's region thread instead of the global main thread.
+- `NmsPlayerSpawner.isFolia()` gates Folia-specific logic throughout the codebase.
 
-Folia replaces Bukkit's global tick loop with region-local schedulers. FPP adapts by:
+## Performance Notes
 
-- Using Folia's `RegionScheduler` and `EntityScheduler` where available
-- Falling back to Bukkit's synchronous scheduler on Paper
-- Ensuring bot AI ticks, pathfinding, and entity updates run on the correct region thread
-- Avoiding cross-region entity lookups that would break Folia's threading rules
+- On Folia, bot-heavy servers benefit from regionised scheduling because bot tick work is distributed across region threads rather than all running on one main thread.
+- Chunk loading still works, but the `mass-disable-threshold` (`chunk-loading.mass-disable-threshold`) auto-releases chunk tickets when bot counts are high to avoid region overload.
 
----
+## No Extra Configuration Needed
 
-## 🚀 Installation on Folia
-
-Installation is identical to Paper:
-
-1. Download FPP.
-2. Drop the JAR into `plugins/`.
-3. Start the Folia server.
-4. FPP auto-detects Folia and uses the correct scheduler internally.
-
-No extra config is required.
-
----
-
-## ⚠️ Known Differences
-
-| Feature | Paper | Folia |
-|---------|-------|-------|
-| Global scheduling | Standard Bukkit scheduler | Region / entity schedulers |
-| Cross-world bot operations | Immediate | May be delayed by region boundaries |
-| Chunk loading | Standard | Uses Folia ticket API |
-
----
-
-## 🐛 Troubleshooting
-
-### "Scheduler mismatch" errors
-
-- Make sure you are on Folia 1.21.x or newer.
-- Do not use FPP builds older than 1.6.6.8 on Folia.
-
-### Bots freeze in some regions
-
-- Check Folia's region boundaries with `/folia debug`.
-- Ensure the bot's target is in the same region or an adjacent loaded region.
-
----
-
-## 🔗 Related Pages
-
-- [Getting-Started](Getting-Started)
-- [Configuration](Configuration)
-- [Home](Home)
+FPP auto-detects Folia. There are no Folia-specific config keys.
