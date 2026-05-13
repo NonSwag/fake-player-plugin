@@ -33,8 +33,6 @@ public final class ExtensionLoader {
 
   private static final String BUNDLE_MANIFEST_ATTRIBUTE = "FPP-Extension-Bundle";
   private static final String BUNDLE_JARS_MANIFEST_ATTRIBUTE = "FPP-Extension-Jars";
-  private static final String BUNDLED_EXTENSION_DATA_ROOT = "spoof-bundle";
-
   private static final class ExtensionContext {
     final File dataFolder;
     final URLClassLoader classLoader;
@@ -416,7 +414,11 @@ public final class ExtensionLoader {
           Files.copy(in, extractedJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
         File bundledDataRoot =
-            new File(plugin.getDataFolder(), "extensions" + File.separator + BUNDLED_EXTENSION_DATA_ROOT);
+            new File(
+                plugin.getDataFolder(),
+                "extensions"
+                    + File.separator
+                    + sanitizeFileName(stripJarSuffix(bundleJar.getName())));
         found += loadJar(extractedJar, wrappers, bundledDataRoot);
       }
     } catch (IOException e) {
