@@ -89,6 +89,8 @@ public class FakePlayerManager {
 
   private final Map<UUID, Double> trackedFallDistance = new ConcurrentHashMap<>();
 
+  private final Map<UUID, Double> lastFallY = new ConcurrentHashMap<>();
+
   private final Set<UUID> wasOnGround = ConcurrentHashMap.newKeySet();
 
   /**
@@ -529,6 +531,7 @@ public class FakePlayerManager {
         || bot.getGameMode() == GameMode.CREATIVE
         || bot.getGameMode() == GameMode.SPECTATOR) {
       trackedFallDistance.remove(uuid);
+      lastFallY.remove(uuid);
       wasOnGround.add(uuid);
       return;
     }
@@ -536,6 +539,7 @@ public class FakePlayerManager {
     boolean onGround = isBotOnGround(bot);
     if (!before.getWorld().equals(after.getWorld())) {
       trackedFallDistance.remove(uuid);
+      lastFallY.remove(uuid);
       if (onGround) wasOnGround.add(uuid);
       else wasOnGround.remove(uuid);
       return;
@@ -543,39 +547,51 @@ public class FakePlayerManager {
 
     if (!onGround && isFallDamageResetByCurrentBlock(bot)) {
       trackedFallDistance.remove(uuid);
+      lastFallY.put(uuid, after.getY());
       wasOnGround.remove(uuid);
       return;
     }
 
-    double dy = before.getY() - after.getY();
-    if (!onGround && dy > 0.0) {
-      double distance = trackedFallDistance.getOrDefault(uuid, 0.0) + dy;
-      trackedFallDistance.put(uuid, Math.max(distance, bot.getFallDistance()));
+    double currentY = after.getY();
+    Double previousY = lastFallY.put(uuid, currentY);
+    if (!onGround) {
+      if (previousY != null && previousY > currentY) {
+        addTrackedFallDistance(uuid, previousY - currentY, bot.getFallDistance());
+      }
+      wasOnGround.remove(uuid);
+      return;
     }
 
-    if (onGround) {
-      double distance = Math.max(trackedFallDistance.getOrDefault(uuid, 0.0), bot.getFallDistance());
-      double safeDistance = Config.fallDamageSafeDistance();
-      if (!wasOnGround.contains(uuid) && distance > safeDistance) {
-        double damage =
-            Math.floor(
-                (distance - safeDistance)
-                    * Config.fallDamageMultiplier()
-                    * landingFallDamageMultiplier(bot));
-        if (damage > 0.0) {
-          double beforeHealth = bot.getHealth();
-          bot.damage(damage);
-          if (!bot.isDead() && Math.abs(bot.getHealth() - beforeHealth) < 0.001) {
-            bot.setHealth(Math.max(0.0, beforeHealth - damage));
-            playHurtFeedback(fp, bot);
-          }
+    if (previousY != null && previousY > currentY) {
+      addTrackedFallDistance(uuid, previousY - currentY, bot.getFallDistance());
+    }
+
+    double distance = Math.max(trackedFallDistance.getOrDefault(uuid, 0.0), bot.getFallDistance());
+    double safeDistance = Config.fallDamageSafeDistance();
+    if (!wasOnGround.contains(uuid) && distance > safeDistance) {
+      double damage =
+          Math.floor(
+              (distance - safeDistance)
+                  * Config.fallDamageMultiplier()
+                  * landingFallDamageMultiplier(bot));
+      if (damage > 0.0) {
+        double beforeHealth = bot.getHealth();
+        bot.damage(damage);
+        if (!bot.isDead() && Math.abs(bot.getHealth() - beforeHealth) < 0.001) {
+          bot.setHealth(Math.max(0.0, beforeHealth - damage));
+          playHurtFeedback(fp, bot);
         }
       }
-      trackedFallDistance.remove(uuid);
-      wasOnGround.add(uuid);
-    } else {
-      wasOnGround.remove(uuid);
     }
+    trackedFallDistance.remove(uuid);
+    lastFallY.remove(uuid);
+    wasOnGround.add(uuid);
+  }
+
+  private void addTrackedFallDistance(UUID uuid, double delta, double bukkitFallDistance) {
+    if (delta <= 0.0) return;
+    double distance = trackedFallDistance.getOrDefault(uuid, 0.0) + delta;
+    trackedFallDistance.put(uuid, Math.max(distance, bukkitFallDistance));
   }
 
   private boolean isBotOnGround(Player bot) {
@@ -2360,6 +2376,7 @@ public class FakePlayerManager {
     actionLockedBots.remove(uuid);
     navLockedBots.remove(uuid);
     trackedFallDistance.remove(uuid);
+    lastFallY.remove(uuid);
     wasOnGround.remove(uuid);
     bodyTransitionBots.remove(uuid);
 

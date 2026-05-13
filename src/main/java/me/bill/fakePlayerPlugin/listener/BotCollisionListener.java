@@ -60,16 +60,6 @@ public class BotCollisionListener implements Listener {
       return;
     }
 
-    if (event.getDamager() instanceof Player attackerPlayer
-        && !canCollide(attackerPlayer, target)) {
-      Config.debugNms(
-          "[KB-DEBUG] BotCollision: SKIP - player collision blocked for bot="
-              + target.getName()
-              + " attacker="
-              + attackerPlayer.getName());
-      return;
-    }
-
     boolean fromPlayer = attacker instanceof Player;
 
     Config.debugNms(
