@@ -449,6 +449,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
     String configVersion =
         "v" + cfgVer + (cfgVer >= ConfigMigrator.CURRENT_VERSION ? " ✔" : " (migrated)");
     int backupCount = BackupManager.listBackups(this).size();
+    int extensionsLoaded = extensionLoader != null ? extensionLoader.getLoadedExtensionCount() : 0;
 
     FppLogger.printStartupBanner(
         getPluginMeta().getVersion(),
@@ -466,6 +467,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
         fppMetrics.isActive(),
         configVersion,
         backupCount,
+        extensionsLoaded,
         startupMs);
 
     botPersistence.purgeOrphanedBodiesAndRestore(fakePlayerManager);
