@@ -11,6 +11,7 @@
 - Database/config migration improvements
 
 ## v1.6.6.8
+- **Spoofing features moved to `fpp-spoof.jar` extension** — fake chat, AI conversations, swap system, peak-hours scheduler, ping command, bot groups, and stored commands are no longer in core; they now ship as the `fpp-spoof.jar` extension
 - **PvE Smart Attack Mode**: tri-state per-bot setting (OFF / ON_NO_MOVE / ON_MOVE)
 - Hunt mode (`--hunt`) for roaming mob hunting
 - New commands: `/fpp save`, `/fpp setowner`
