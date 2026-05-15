@@ -26,21 +26,21 @@ public final class ChunkLoader {
 
   private void tick() {
     if (!Config.chunkLoadingEnabled()) {
-      if (!states.isEmpty()) releaseAll();
+      if (hasStates()) releaseAll();
       return;
     }
 
     int globalRadius = Config.chunkLoadingRadius();
     if (globalRadius == 0) {
 
-      if (!states.isEmpty()) releaseAll();
+      if (hasStates()) releaseAll();
       return;
     }
 
     int activeCount = manager.getActivePlayers().size();
     int massThreshold = Config.chunkLoadingMassDisableThreshold();
     if (massThreshold > 0 && activeCount >= massThreshold) {
-      if (!states.isEmpty()) releaseAll();
+      if (hasStates()) releaseAll();
       return;
     }
 
@@ -50,17 +50,36 @@ public final class ChunkLoader {
       UUID botId = fp.getUuid();
       activeUuids.add(botId);
 
+      tickBot(fp, globalRadius);
+    }
+
+    synchronized (this) {
+      states
+          .entrySet()
+          .removeIf(
+              entry -> {
+                if (activeUuids.contains(entry.getKey())) return false;
+                releaseState(entry.getValue());
+                return true;
+              });
+    }
+  }
+
+  private void tickBot(FakePlayer fp, int globalRadius) {
+    synchronized (this) {
+      UUID botId = fp.getUuid();
+
       int botR = fp.getChunkLoadRadius();
       int radius = (botR < 0) ? globalRadius : Math.min(botR, globalRadius);
 
       if (radius == 0) {
         BotChunkState existing = states.remove(botId);
         if (existing != null) releaseState(existing);
-        continue;
+        return;
       }
 
       Location pos = resolvePosition(fp);
-      if (pos == null || pos.getWorld() == null) continue;
+      if (pos == null || pos.getWorld() == null) return;
 
       World world = pos.getWorld();
       String wName = world.getName();
@@ -74,7 +93,7 @@ public final class ChunkLoader {
       BotChunkState state = states.get(botId);
 
       if (state != null && state.worldName.equals(wName) && state.cx == cx && state.cz == cz) {
-        continue;
+        return;
       }
 
       if (state != null && !state.worldName.equals(wName)) {
@@ -94,13 +113,7 @@ public final class ChunkLoader {
       for (long[] coord : spiral) {
         long key = packKey((int) coord[0], (int) coord[1]);
         if (state.keys.add(key)) {
-          world.addPluginChunkTicket((int) coord[0], (int) coord[1], plugin);
-          if (world.isChunkLoaded((int) coord[0], (int) coord[1])) {
-            var chunkEvt = new me.bill.fakePlayerPlugin.api.event.FppBotChunkLoadEvent(
-                new me.bill.fakePlayerPlugin.api.impl.FppBotImpl(fp),
-                world.getChunkAt((int) coord[0], (int) coord[1]));
-            org.bukkit.Bukkit.getPluginManager().callEvent(chunkEvt);
-          }
+          addTicketAndCallEvent(fp, world, (int) coord[0], (int) coord[1]);
         }
       }
 
@@ -108,7 +121,7 @@ public final class ChunkLoader {
       while (it.hasNext()) {
         long key = it.next();
         if (!desired.contains(key)) {
-          world.removePluginChunkTicket(unpackX(key), unpackZ(key), plugin);
+          removeTicket(world, unpackX(key), unpackZ(key));
           it.remove();
         }
       }
@@ -117,30 +130,33 @@ public final class ChunkLoader {
       state.cz = cz;
       state.worldName = wName;
     }
-
-    states
-        .entrySet()
-        .removeIf(
-            entry -> {
-              if (activeUuids.contains(entry.getKey())) return false;
-              releaseState(entry.getValue());
-              return true;
-            });
   }
 
   public void releaseForBot(FakePlayer fp) {
-    BotChunkState state = states.remove(fp.getUuid());
-    if (state != null) releaseState(state);
+    synchronized (this) {
+      BotChunkState state = states.remove(fp.getUuid());
+      if (state != null) releaseState(state);
+    }
   }
 
   public void releaseAll() {
-    states.values().forEach(this::releaseState);
-    states.clear();
+    synchronized (this) {
+      states.values().forEach(this::releaseState);
+      states.clear();
+    }
+  }
+
+  private boolean hasStates() {
+    synchronized (this) {
+      return !states.isEmpty();
+    }
   }
 
   @SuppressWarnings("unused")
   public int totalTickets() {
-    return states.values().stream().mapToInt(s -> s.keys.size()).sum();
+    synchronized (this) {
+      return states.values().stream().mapToInt(s -> s.keys.size()).sum();
+    }
   }
 
   private static Location resolvePosition(FakePlayer fp) {
@@ -206,9 +222,29 @@ public final class ChunkLoader {
       return;
     }
     for (long key : state.keys) {
-      world.removePluginChunkTicket(unpackX(key), unpackZ(key), plugin);
+      removeTicket(world, unpackX(key), unpackZ(key));
     }
     state.keys.clear();
+  }
+
+  private void addTicketAndCallEvent(FakePlayer fp, World world, int chunkX, int chunkZ) {
+    Runnable runnable =
+        () -> {
+          world.addPluginChunkTicket(chunkX, chunkZ, plugin);
+          if (world.isChunkLoaded(chunkX, chunkZ)) {
+            var chunkEvt =
+                new me.bill.fakePlayerPlugin.api.event.FppBotChunkLoadEvent(
+                    new me.bill.fakePlayerPlugin.api.impl.FppBotImpl(fp),
+                    world.getChunkAt(chunkX, chunkZ));
+            org.bukkit.Bukkit.getPluginManager().callEvent(chunkEvt);
+          }
+        };
+    runnable.run();
+  }
+
+  private void removeTicket(World world, int chunkX, int chunkZ) {
+    Runnable runnable = () -> world.removePluginChunkTicket(chunkX, chunkZ, plugin);
+    runnable.run();
   }
 
   private static long packKey(int x, int z) {

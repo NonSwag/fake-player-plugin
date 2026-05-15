@@ -697,7 +697,7 @@ public class FakePlayerManager {
 
     net.kyori.adventure.text.Component defaultMessage =
         useDefaultMessage && displayName != null && !displayName.isBlank()
-            ? BotBroadcast.leaveComponent(displayName)
+            ? BotBroadcast.leaveComponent(fp)
             : null;
     org.bukkit.event.player.PlayerQuitEvent quitEvent =
         new org.bukkit.event.player.PlayerQuitEvent(player, defaultMessage, reason);
@@ -1077,32 +1077,9 @@ public class FakePlayerManager {
   private void visualChain(List<FakePlayer> batch, int index, Location location) {
     if (batch == null) return;
 
-    while (index < batch.size() && !activePlayers.containsKey(batch.get(index).getUuid())) {
-      index++;
-    }
-    if (index >= batch.size()) return;
-
-    FakePlayer fp = batch.get(index);
-    finishSpawn(fp, location);
-
-    int delayMinTicks = Config.joinDelayMin();
-    int delayMaxTicks = Math.max(delayMinTicks, Config.joinDelayMax());
-    long delayTicks;
-    if (delayMaxTicks <= 0) {
-      delayTicks = 0L;
-    } else {
-      int spread = delayMaxTicks - delayMinTicks;
-      delayTicks =
-          delayMinTicks + (spread > 0 ? ThreadLocalRandom.current().nextInt(spread + 1) : 0);
-      if (delayTicks < 1) delayTicks = 0L;
-    }
-
-    final int next = index + 1;
-    if (delayTicks <= 0) {
-
-      FppScheduler.runSync(plugin, () -> visualChain(batch, next, location));
-    } else {
-      FppScheduler.runSyncLater(plugin, () -> visualChain(batch, next, location), delayTicks);
+    for (int i = index; i < batch.size(); i++) {
+      FakePlayer fp = batch.get(i);
+      if (activePlayers.containsKey(fp.getUuid())) finishSpawn(fp, location);
     }
   }
 
@@ -1235,40 +1212,6 @@ public class FakePlayerManager {
           int initialPing = computeInitialPing(fp);
 
           if (!fp.isBodyless() && Config.spawnBody()) {
-            if (NmsPlayerSpawner.isFolia() && fp.getPlayer() == null) {
-              // On Folia, dispatch placement to the destination chunk's region thread
-              // and continue the spawn pipeline asynchronously.
-              FakePlayerBody.spawnAsync(
-                  fp,
-                  spawnLoc,
-                  initialPing,
-                  asyncBody -> {
-                    if (asyncBody == null) {
-                      FppScheduler.runSync(
-                          plugin,
-                          () -> {
-                            FppLogger.warn(
-                                "finishSpawn: async body spawn failed for '"
-                                    + fp.getName()
-                                    + "' - rolling back.");
-                            delete(fp.getName());
-                          });
-                      return;
-                    }
-                    FppScheduler.runSync(
-                        plugin,
-                        () -> {
-                          if (!activePlayers.containsKey(fp.getUuid())) return;
-                          fp.setPhysicsEntity(asyncBody);
-                          entityIdIndex.put(asyncBody.getEntityId(), fp);
-                          fp.setPacketProfileName(fp.getName());
-                          // Re-enter the spawn pipeline; now fp.getPlayer() != null so
-                          // the Folia branch is skipped and downstream logic runs normally.
-                          spawnBodyAndFinish(fp, spawnLoc);
-                        });
-                  });
-              return;
-            }
             Player body =
                 fp.getPlayer() != null ? fp.getPlayer() : FakePlayerBody.spawn(fp, spawnLoc, initialPing);
             if (body != null) {
@@ -1693,13 +1636,8 @@ public class FakePlayerManager {
       unregisterBotState(fp, "DELETED");
     }
 
-    long maxDelay = 0;
-
     for (int i = 0; i < toRemove.size(); i++) {
       FakePlayer fp = toRemove.get(i);
-
-      long leaveDelayTicks = (long) i;
-      maxDelay = Math.max(maxDelay, leaveDelayTicks);
 
       final FakePlayer target = fp;
       final boolean explicitUuidSpawn = isExplicitUuidSpawn(target);
@@ -1741,18 +1679,12 @@ public class FakePlayerManager {
             Config.debug("Removed bot: " + target.getName());
           };
 
-      if (leaveDelayTicks <= 0L) {
-        Player body = target.getPlayer();
-        if (body != null) FppScheduler.runAtEntity(plugin, body, doVisualRemove);
-        else FppScheduler.runSync(plugin, doVisualRemove);
-      } else {
-        Player body = target.getPlayer();
-        if (body != null) FppScheduler.runAtEntityLaterWithId(plugin, body, doVisualRemove, leaveDelayTicks);
-        else FppScheduler.runSyncLater(plugin, doVisualRemove, leaveDelayTicks);
-      }
+      Player body = target.getPlayer();
+      if (body != null) FppScheduler.runAtEntity(plugin, body, doVisualRemove);
+      else FppScheduler.runSync(plugin, doVisualRemove);
     }
 
-    final long saveDelay = maxDelay + 20L;
+    final long saveDelay = 20L;
     FppScheduler.runSyncLater(
         plugin,
         () -> {
@@ -2026,17 +1958,16 @@ public class FakePlayerManager {
   }
 
   public boolean delete(String name) {
-    return deleteInternal(name, 1L, false, false, null);
+    return deleteInternal(name, false, false, null);
   }
 
   public boolean deleteForLoginHandoff(
       String name, @org.jetbrains.annotations.Nullable Runnable onComplete) {
-    return deleteInternal(name, 0L, true, true, onComplete);
+    return deleteInternal(name, true, true, onComplete);
   }
 
   private boolean deleteInternal(
       String name,
-      long leaveDelay,
       boolean fastVisualRemove,
       boolean suppressLeaveBroadcast,
       @org.jetbrains.annotations.Nullable Runnable onComplete) {
@@ -2150,14 +2081,8 @@ public class FakePlayerManager {
         };
 
     Player body = target.getPlayer();
-    if (leaveDelay <= 0L) {
-      if (body != null) FppScheduler.runAtEntity(plugin, body, doVisualRemove);
-      else FppScheduler.runSync(plugin, doVisualRemove);
-    } else if (body != null) {
-      FppScheduler.runAtEntityLaterWithId(plugin, body, doVisualRemove, leaveDelay);
-    } else {
-      FppScheduler.runSyncLater(plugin, doVisualRemove, leaveDelay);
-    }
+    if (body != null) FppScheduler.runAtEntity(plugin, body, doVisualRemove);
+    else FppScheduler.runSync(plugin, doVisualRemove);
 
     return true;
   }

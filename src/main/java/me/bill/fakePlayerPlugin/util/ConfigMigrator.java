@@ -10,7 +10,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 public final class ConfigMigrator {
 
-  public static final int CURRENT_VERSION = 71;
+  public static final int CURRENT_VERSION = 73;
 
   private static boolean rawDebug = false;
 
@@ -136,6 +136,7 @@ public final class ConfigMigrator {
     if (stored < 70) anyChange |= v69to70(cfg);
     if (stored < 71) anyChange |= v70to71(cfg);
     if (stored < 72) anyChange |= v71to72(plugin, cfg);
+    if (stored < 73) anyChange |= v72to73(cfg);
 
     fillDefaults(plugin, cfg);
 
@@ -326,22 +327,6 @@ public final class ConfigMigrator {
       changed = true;
     }
 
-    if (cfg.contains("join-delay-min") && !cfg.contains("join-delay.min")) {
-      cfg.set("join-delay.min", cfg.getInt("join-delay-min", 0));
-      cfg.set("join-delay.max", cfg.getInt("join-delay-max", 40));
-      cfg.set("join-delay-min", null);
-      cfg.set("join-delay-max", null);
-      log("v9→v10", "join-delay-min/max → join-delay section");
-      changed = true;
-    }
-    if (cfg.contains("leave-delay-min") && !cfg.contains("leave-delay.min")) {
-      cfg.set("leave-delay.min", cfg.getInt("leave-delay-min", 0));
-      cfg.set("leave-delay.max", cfg.getInt("leave-delay-max", 40));
-      cfg.set("leave-delay-min", null);
-      cfg.set("leave-delay-max", null);
-      log("v9→v10", "leave-delay-min/max → leave-delay section");
-      changed = true;
-    }
 
     if (!cfg.contains("database")) {
       cfg.set("database.mysql-enabled", false);
@@ -1048,6 +1033,20 @@ public final class ConfigMigrator {
       FppLogger.warn("ConfigMigrator v71→v72: " + e.getMessage());
       return false;
     }
+  }
+
+  private static boolean v72to73(YamlConfiguration cfg) {
+    boolean changed = false;
+    for (String path : new String[] {"join-delay", "join-delay-min", "join-delay-max", "leave-delay", "leave-delay-min", "leave-delay-max"}) {
+      if (cfg.isSet(path)) {
+        cfg.set(path, null);
+        changed = true;
+      }
+    }
+    if (changed) {
+      log("v72→v73", "removed join/leave delay settings from core config");
+    }
+    return changed;
   }
 
   private static boolean pruneUnknownKeys(

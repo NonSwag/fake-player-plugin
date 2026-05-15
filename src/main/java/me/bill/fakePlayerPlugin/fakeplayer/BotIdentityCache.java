@@ -18,8 +18,10 @@ import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.util.BotDataYaml;
+import me.bill.fakePlayerPlugin.util.FppScheduler;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 public final class BotIdentityCache {
@@ -37,6 +39,8 @@ public final class BotIdentityCache {
   private final Map<String, UUID> cache = new ConcurrentHashMap<>();
   private final Map<String, IdentityResolution> resolvedCache = new ConcurrentHashMap<>();
   private volatile long mojangRateLimitedUntilMs = 0;
+  private volatile boolean yamlSaveQueued = false;
+  private volatile boolean yamlSaveDirty = false;
 
   private YamlConfiguration yamlConfig = null;
 
@@ -47,9 +51,8 @@ public final class BotIdentityCache {
 
     if (db == null) {
       loadYaml();
-      migrateLegacyYamlMappings();
     } else {
-      migrateLegacyDbMappings();
+      loadDbAsync();
     }
   }
 
@@ -59,9 +62,7 @@ public final class BotIdentityCache {
     UUID cached = cache.get(key);
     if (cached != null) return cached;
 
-    UUID resolved = db != null ? lookupOrCreateDb(botName) : lookupOrCreateYaml(botName, key);
-    cache.put(key, resolved);
-    return resolved;
+    return db != null ? lookupOrCreateDb(botName, key) : lookupOrCreateYaml(botName, key);
   }
 
   public UUID refresh(String botName) {
@@ -96,27 +97,44 @@ public final class BotIdentityCache {
         (OFFLINE_UUID_NAMESPACE + String.valueOf(botName)).getBytes(StandardCharsets.UTF_8));
   }
 
-  private UUID lookupOrCreateDb(String botName) {
-    String serverId = Config.serverId();
-    IdentityResolution resolved = resolvePreferredUuid(botName);
-    UUID safeUuid = resolved.uuid();
+  private UUID lookupOrCreateDb(String botName, String cacheKey) {
+    UUID safeUuid = offlineModeUuid(botName);
+    UUID existing = cache.putIfAbsent(cacheKey, safeUuid);
+    if (existing != null) return existing;
 
-    UUID fromDb = db.lookupBotUuid(botName, serverId);
-    if (fromDb != null) {
-      if (!safeUuid.equals(fromDb) && resolved.authoritative()) {
-        db.migrateBotUuid(botName, serverId, fromDb, safeUuid);
-        Config.debugDatabase(
-            "BotIdentityCache: migrated legacy DB UUID for '" + botName + "' → " + safeUuid);
-        return safeUuid;
-      } else {
-        Config.debugDatabase("BotIdentityCache: DB hit for '" + botName + "' → " + fromDb);
-        return fromDb;
-      }
-    }
-
-    db.registerBotUuid(botName, safeUuid, serverId);
+    db.registerBotUuid(botName, safeUuid, Config.serverId());
     Config.debugDatabase("BotIdentityCache: new identity for '" + botName + "' → " + safeUuid);
     return safeUuid;
+  }
+
+  private void loadDbAsync() {
+    FppScheduler.runAsync(
+        pluginRef,
+        () -> {
+          String serverId = Config.serverId();
+          int loaded = 0;
+          for (DatabaseManager.BotIdentityRow row : db.getBotIdentityRows()) {
+            if (row == null
+                || row.botName() == null
+                || row.botName().isBlank()
+                || !serverId.equals(row.serverId())) {
+              continue;
+            }
+            try {
+              cache.putIfAbsent(normalizeKey(row.botName()), UUID.fromString(row.botUuid()));
+              loaded++;
+            } catch (Exception e) {
+              FppLogger.warn(
+                  "BotIdentityCache: skipping malformed DB UUID for '"
+                      + row.botName()
+                      + "': "
+                      + row.botUuid());
+            }
+          }
+          if (loaded > 0) {
+            FppLogger.info("BotIdentityCache: asynchronously loaded " + loaded + " DB identity mapping(s).");
+          }
+        });
   }
 
   private void loadYaml() {
@@ -166,34 +184,70 @@ public final class BotIdentityCache {
   }
 
   private UUID lookupOrCreateYaml(String botName, String cacheKey) {
-    if (yamlConfig == null) yamlConfig = new YamlConfiguration();
+    synchronized (this) {
+      if (yamlConfig == null) yamlConfig = new YamlConfiguration();
 
-    IdentityResolution resolved = resolvePreferredUuid(botName);
-    UUID safeUuid = resolved.uuid();
-    String stored = yamlConfig.getString(ROOT + "." + cacheKey);
-    if (stored != null && !stored.isBlank()) {
-      try {
-        UUID fromYaml = UUID.fromString(stored);
-        if (!safeUuid.equals(fromYaml) && resolved.authoritative()) {
-          yamlConfig.set(ROOT + "." + cacheKey, safeUuid.toString());
-          saveYaml();
-          Config.debugDatabase(
-              "BotIdentityCache: migrated legacy YAML UUID for '" + botName + "' → " + safeUuid);
-          return safeUuid;
-        } else {
+      String stored = yamlConfig.getString(ROOT + "." + cacheKey);
+      if (stored != null && !stored.isBlank()) {
+        try {
+          UUID fromYaml = UUID.fromString(stored);
+          cache.putIfAbsent(cacheKey, fromYaml);
           Config.debugDatabase("BotIdentityCache: YAML hit for '" + botName + "' → " + fromYaml);
           return fromYaml;
+        } catch (IllegalArgumentException e) {
+          FppLogger.warn(
+              "BotIdentityCache: malformed YAML entry for '" + botName + "' - regenerating UUID.");
         }
-      } catch (IllegalArgumentException e) {
-        FppLogger.warn(
-            "BotIdentityCache: malformed YAML entry for '" + botName + "' - regenerating UUID.");
+      }
+
+      UUID safeUuid = offlineModeUuid(botName);
+      UUID existing = cache.putIfAbsent(cacheKey, safeUuid);
+      if (existing != null) return existing;
+      yamlConfig.set(ROOT + "." + cacheKey, safeUuid.toString());
+      scheduleYamlSave();
+      Config.debugDatabase("BotIdentityCache: new YAML identity for '" + botName + "' → " + safeUuid);
+      return safeUuid;
+    }
+  }
+
+  private void scheduleYamlSave() {
+    yamlSaveDirty = true;
+    if (yamlSaveQueued) return;
+    yamlSaveQueued = true;
+    FppScheduler.runSyncLater(
+        pluginRef,
+        () -> {
+          yamlSaveDirty = false;
+          YamlConfiguration snapshot = snapshotYamlIdentities();
+          FppScheduler.runAsync(
+              pluginRef,
+              () -> {
+                try {
+                  BotDataYaml.save(pluginRef, snapshot);
+                } catch (IOException e) {
+                  FppLogger.warn("BotIdentityCache: failed to save " + YAML_FILE + ": " + e.getMessage());
+                } finally {
+                  yamlSaveQueued = false;
+                  if (yamlSaveDirty) scheduleYamlSave();
+                }
+              });
+        },
+        20L);
+  }
+
+  private synchronized YamlConfiguration snapshotYamlIdentities() {
+    YamlConfiguration snapshot = new YamlConfiguration();
+    if (yamlConfig != null) {
+      try {
+        snapshot.loadFromString(yamlConfig.saveToString());
+      } catch (InvalidConfigurationException e) {
+        FppLogger.warn("BotIdentityCache: failed to snapshot identity YAML: " + e.getMessage());
       }
     }
-
-    yamlConfig.set(ROOT + "." + cacheKey, safeUuid.toString());
-    saveYaml();
-    Config.debugDatabase("BotIdentityCache: new YAML identity for '" + botName + "' → " + safeUuid);
-    return safeUuid;
+    for (Map.Entry<String, UUID> entry : cache.entrySet()) {
+      snapshot.set(ROOT + "." + entry.getKey(), entry.getValue().toString());
+    }
+    return snapshot;
   }
 
   private void migrateLegacyDbMappings() {

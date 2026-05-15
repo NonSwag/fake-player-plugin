@@ -294,10 +294,6 @@ public final class ExtensionLoader {
     FppLogger.info("[Extensions] Loaded " + wrappers.size() + " extension(s) from jar file(s).");
   }
 
-  public int getLoadedExtensionCount() {
-    return activeWrappers.size();
-  }
-
   public void reload() {
     for (ExtensionAddonWrapper wrapper : activeWrappers) {
       try {

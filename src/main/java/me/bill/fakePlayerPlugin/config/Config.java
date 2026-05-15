@@ -390,22 +390,6 @@ public final class Config {
     return BotNameConfig.getNames();
   }
 
-  public static int joinDelayMin() {
-    return cfg.getInt("join-delay.min", 0);
-  }
-
-  public static int joinDelayMax() {
-    return cfg.getInt("join-delay.max", 40);
-  }
-
-  public static int leaveDelayMin() {
-    return cfg.getInt("leave-delay.min", 0);
-  }
-
-  public static int leaveDelayMax() {
-    return cfg.getInt("leave-delay.max", 40);
-  }
-
   public static boolean swapEnabled() {
     return bool("swap.enabled", false);
   }

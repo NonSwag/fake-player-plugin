@@ -74,13 +74,7 @@ public class BotCollisionListener implements Listener {
             + " bodyDamageable="
             + Config.bodyDamageable());
 
-    if (event.isCancelled()) {
-      if (fromPlayer && Config.bodyDamageable()) {
-        Config.debugNms(
-            "[KB-DEBUG] BotCollision: SKIP - event cancelled & fromPlayer &" + " bodyDamageable");
-        return;
-      }
-    }
+    if (event.isCancelled() && !fromPlayer) return;
 
     double hitStrength = Config.collisionHitStrength();
     double hitMaxHoriz = Config.collisionHitMaxHoriz();

@@ -79,7 +79,7 @@ public class PlayerJoinListener implements Listener {
     FakePlayer fp = manager.getByUuid(uuid);
     if (fp == null) return;
 
-    event.quitMessage(Config.leaveMessage() ? BotBroadcast.leaveComponent(fp.getDisplayName()) : null);
+    event.quitMessage(Config.leaveMessage() ? BotBroadcast.leaveComponent(fp) : null);
   }
 
   private static void forceHasPlayedBefore(Player player) {

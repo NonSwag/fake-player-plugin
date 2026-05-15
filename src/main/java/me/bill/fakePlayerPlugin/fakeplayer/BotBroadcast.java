@@ -3,6 +3,8 @@ package me.bill.fakePlayerPlugin.fakeplayer;
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.api.FppBotDisplayService;
+import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.util.TextUtil;
@@ -41,14 +43,38 @@ public final class BotBroadcast {
   }
 
   public static String resolveDisplayName(FakePlayer fp) {
+    String raw;
     if (fp.getNameTagNick() != null && !fp.getNameTagNick().isEmpty()) {
-      return fp.getNameTagNick();
+      raw = fp.getNameTagNick();
+    } else {
+      raw = fp.getRawDisplayName() != null ? fp.getRawDisplayName() : fp.getDisplayName();
     }
-    return fp.getRawDisplayName() != null ? fp.getRawDisplayName() : fp.getDisplayName();
+    return decorateDisplayName(fp, raw);
+  }
+
+  private static String decorateDisplayName(FakePlayer fp, String displayName) {
+    FakePlayerPlugin plugin = FakePlayerPlugin.getInstance();
+    if (plugin == null || plugin.getFppApi() == null) return displayName;
+    FppBotDisplayService service = plugin.getFppApi().getService(FppBotDisplayService.class);
+    if (service == null) return displayName;
+    try {
+      String decorated = service.decorateDisplayName(new FppBotImpl(fp), displayName);
+      return decorated != null && !decorated.isBlank() ? decorated : displayName;
+    } catch (Throwable ignored) {
+      return displayName;
+    }
   }
 
   public static Component joinComponent(FakePlayer fp) {
     return buildMessage("bot-join", resolveDisplayName(fp));
+  }
+
+  public static Component joinComponent(String displayName) {
+    return buildMessage("bot-join", displayName);
+  }
+
+  public static Component leaveComponent(FakePlayer fp) {
+    return buildMessage("bot-leave", resolveDisplayName(fp));
   }
 
   public static Component leaveComponent(String displayName) {

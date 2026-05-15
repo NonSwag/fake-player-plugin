@@ -1108,31 +1108,13 @@ public final class SettingGui implements Listener {
                 Material.SHIELD,
                 new int[] {1, 2, 3, 5, 10}),
             SettingEntry.cycleInt(
-                "join-delay.min",
-                "ᴊᴏɪɴ ᴅᴇʟᴀʏ - ᴍɪɴ (ᴛɪᴄᴋꜱ)",
-                "ꜱʜᴏʀᴛᴇꜱᴛ ʀᴀɴᴅᴏᴍ ᴅᴇʟᴀʏ ʙᴇꜰᴏʀᴇ\nᴀ ʙᴏᴛ ᴊᴏɪɴꜱ. 20 = 1 ꜱᴇᴄᴏɴᴅ.",
-                Material.FEATHER,
-                new int[] {0, 5, 10, 20, 40, 100}),
-            SettingEntry.cycleInt(
-                "join-delay.max",
-                "ᴊᴏɪɴ ᴅᴇʟᴀʏ - ᴍᴀx (ᴛɪᴄᴋꜱ)",
-                "ʟᴏɴɡᴇꜱᴛ ʀᴀɴᴅᴏᴍ ᴅᴇʟᴀʏ ʙᴇꜰᴏʀᴇ\nᴀ ʙᴏᴛ ᴊᴏɪɴꜱ. 20 = 1 ꜱᴇᴄᴏɴᴅ.",
-                Material.FEATHER,
-                new int[] {0, 5, 10, 20, 40, 100}),
-            SettingEntry.cycleInt(
-                "leave-delay.min",
-                "ʟᴇᴀᴠᴇ ᴅᴇʟᴀʏ - ᴍɪɴ (ᴛɪᴄᴋꜱ)",
-                "ꜱʜᴏʀᴛᴇꜱᴛ ʀᴀɴᴅᴏᴍ ᴅᴇʟᴀʏ ʙᴇꜰᴏʀᴇ\nᴀ ʙᴏᴛ ʟᴇᴀᴠᴇꜱ. 20 = 1 ꜱᴇᴄᴏɴᴅ.",
-                Material.GRAY_DYE,
-                new int[] {0, 5, 10, 20, 40, 100}),
-            SettingEntry.cycleInt(
-                "leave-delay.max",
-                "ʟᴇᴀᴠᴇ ᴅᴇʟᴀʏ - ᴍᴀx (ᴛɪᴄᴋꜱ)",
-                "ʟᴏɴɡᴇꜱᴛ ʀᴀɴᴅᴏᴍ ᴅᴇʟᴀʏ ʙᴇꜰᴏʀᴇ\nᴀ ʙᴏᴛ ʟᴇᴀᴠᴇꜱ. 20 = 1 ꜱᴇᴄᴏɴᴅ.",
-                Material.GRAY_DYE,
-                new int[] {0, 5, 10, 20, 40, 100}),
-            SettingEntry.cycleInt(
                 "chunk-loading.radius",
+                "ᴄʜᴜɴᴋ ʟᴏᴀᴅ ʀᴀᴅɪᴜꜱ",
+                "ʟᴏɴɡᴇꜱᴛ ʀᴀɴᴅᴏᴍ ᴅᴇʟᴀʏ ʙᴇꜰᴏʀᴇ\nᴀ ʙᴏᴛ ʟᴇᴀᴠᴇꜱ. 20 = 1 ꜱᴇᴄᴏɴᴅ.",
+                Material.COMPASS,
+                new int[] {0, 2, 4, 6, 8, 12, 16}),
+            SettingEntry.cycleInt(
+                "chunk-loading.radius-duplicate",
                 "ᴄʜᴜɴᴋ ʟᴏᴀᴅ ʀᴀᴅɪᴜꜱ",
                 "ᴄʜᴜɴᴋ ʀᴀᴅɪᴜꜱ ᴋᴇᴘᴛ ʟᴏᴀᴅᴇᴅ ᴀʀᴏᴜɴᴅ\nᴇᴀᴄʜ ʙᴏᴛ. 0 = ꜱᴇʀᴠᴇʀ ᴅᴇꜰᴀᴜʟᴛ.",
                 Material.COMPASS,
