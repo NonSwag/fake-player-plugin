@@ -1,10 +1,12 @@
 # FakePlayerPlugin Wiki
 
-> Advanced Fake Player Spoofer for Paper 1.21+
+> Advanced NPC / Bot Plugin for Paper 1.21+
 
-Welcome to the FakePlayerPlugin (FPP) wiki. This documentation covers the **base plugin only** — features that ship in the core `fpp.jar`.
+Welcome to the FakePlayerPlugin (FPP) wiki. FPP spawns server-side bot entities that behave like players — useful for **AFK farms, automated tasks, testing, and NPC simulations**. It is **not** a fake-online-count or player-spoofing tool.
 
-Some advanced subsystems are implemented as the **`fpp-spoof.jar` extension** and are not part of the base plugin. Those are noted where applicable.
+This documentation covers the **base plugin only** — features that ship in the core `fpp.jar`.
+
+Some advanced subsystems are implemented as extensions and are not part of the base plugin. Those are noted where applicable. You can find official extensions on the [FPP Marketplace](https://mp.fpp.wtf/resources/).
 
 ---
 
@@ -42,4 +44,5 @@ Some advanced subsystems are implemented as the **`fpp-spoof.jar` extension** an
 - **Source:** https://github.com/Pepe-tf/fake-player-plugin
 - **Discord:** https://discord.gg/RfjEJDG2TM
 - **Modrinth:** https://modrinth.com/plugin/fake-player-plugin-(fpp)
+- **Marketplace:** https://mp.fpp.wtf/resources/
 - **License:** MIT

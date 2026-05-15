@@ -1,5 +1,7 @@
 # Getting Started
 
+FPP spawns server-side bot entities that behave like players — useful for **AFK farms, automated tasks, testing, and NPC simulations**. It is **not** a fake-online-count or player-spoofing tool.
+
 ## Requirements
 
 - **Server:** Paper 1.21+ (up to `1.21.11`)

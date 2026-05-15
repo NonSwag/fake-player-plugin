@@ -56,7 +56,7 @@
 **A:** `plugins/FakePlayerPlugin/extensions/`. Create the folder if it doesn't exist, then `/fpp reload`.
 
 ### Q: `fpp-spoof.jar` extension is missing.
-**A:** This extension is not part of the core repository. You need the `fpp-spoof.jar` separately. Contact the project maintainer or build it from the extension source if available.
+**A:** This extension is not part of the core plugin. Download it from the [FPP Marketplace](https://mp.fpp.wtf/resources/resource/9-fpp---spoof/).
 
 ## Performance
 

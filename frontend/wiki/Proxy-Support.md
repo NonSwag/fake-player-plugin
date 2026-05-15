@@ -10,12 +10,12 @@ FPP supports **Velocity** and **BungeeCord** proxy networks via optional compani
 
 ## Companion Plugins
 
-The main `fpp.jar` handles backend server logic. For the proxy layer:
+The main `fpp.jar` handles backend server logic. For the proxy layer, download the companion plugins from the [FPP Marketplace](https://mp.fpp.wtf/resources/):
 
-- **Velocity companion** — build with `-Pbuild-velocity-companion`
-- **BungeeCord companion** — build with `-Pbuild-bungee-companion`
+- **Velocity companion** — [FPP — Velocity](https://mp.fpp.wtf/resources/resource/7-fpp---velocity/)
+- **BungeeCord companion** — [FPP — BungeeCord](https://mp.fpp.wtf/resources/resource/8-fpp---bungeecord/)
 
-These are **.gitignored** directories (`velocity-companion/` and `bungee-companion/`) that are not in this repository. You need the companion source separately, or build it if available.
+These are also available as optional Maven profiles in the source (`-Pbuild-velocity-companion` / `-Pbuild-bungee-companion`) if you prefer to build them yourself.
 
 ## Setup
 

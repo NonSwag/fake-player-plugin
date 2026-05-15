@@ -838,6 +838,8 @@ The following features are **not in core** and require the `fpp-spoof.jar` exten
 - Ping command (`/fpp ping`)
 - Stored right-click commands (`/fpp cmd`)
 
+You can download it from the [FPP Marketplace](https://mp.fpp.wtf/resources/resource/9-fpp---spoof/).
+
 ---
 
 ## Read More
