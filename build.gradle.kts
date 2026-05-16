@@ -32,10 +32,6 @@ dependencies {
     paperweight.paperDevBundle("1.21.11-R0.1-SNAPSHOT")
 
     implementation("dev.faststats.metrics:bukkit:0.22.0")
-    implementation("org.xerial:sqlite-jdbc:3.47.1.0")
-    implementation("com.mysql:mysql-connector-j:8.3.0") {
-        exclude("com.google.protobuf", "protobuf-java")
-    }
 
     compileOnly("net.luckperms:api:5.5")
     compileOnly("me.clip:placeholderapi:2.11.6")
