@@ -14,7 +14,11 @@ dependency-reduced-pom.xml
 *.class
 *.log
 
+# Gradle
+.gradle
+
 # IDEs
+.idea
 *.iml
 *.iws
 /.project
