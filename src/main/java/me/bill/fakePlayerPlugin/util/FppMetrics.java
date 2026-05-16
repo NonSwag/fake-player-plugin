@@ -10,12 +10,24 @@ import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import org.bukkit.Bukkit;
 
+/**
+ * FastStats anonymous usage metrics - developer-only, not user-configurable.
+ *
+ * <p>FastStats is loaded at runtime via a dedicated {@link URLClassLoader} pointing to jars
+ * bundled inside the plugin jar as resources (src/main/resources/faststats/). This sidesteps all
+ * Maven shade-plugin relocation issues: the shade plugin does NOT update references in the
+ * project's own class files, causing NoClassDefFoundError. With URLClassLoader the classes are found
+ * directly - no relocation needed.
+ *
+ * <p>No personal data, player names, or server addresses are ever collected.
+ */
 public final class FppMetrics {
 
   private static final String TOKEN = "376511af6c97b56954ff2abed24dfaea";
 
   private URLClassLoader fsLoader;
   private Object metrics;
+  private Object errorTracker;
   private boolean initialised = false;
 
   public void init(FakePlayerPlugin plugin, FakePlayerManager botManager) {
@@ -42,21 +54,25 @@ public final class FppMetrics {
 
       Thread.currentThread().setContextClassLoader(fsLoader);
 
-      FppLogger.debug("Metrics: [1/3] Creating ErrorTracker...");
+      // ── [1/4] ErrorTracker ────────────────────────────────────────────────
+      FppLogger.debug("Metrics: [1/4] Creating ErrorTracker...");
       Class<?> etClass = fsLoader.loadClass("dev.faststats.core.ErrorTracker");
-      Object errorTracker = etClass.getMethod("contextAware").invoke(null);
+      errorTracker = etClass.getMethod("contextAware").invoke(null);
       FppLogger.debug("Metrics:       ErrorTracker ✔");
 
-      FppLogger.debug("Metrics: [2/3] Building BukkitMetrics...");
+      // ── [2/4] Factory + Metrics ───────────────────────────────────────────
+      FppLogger.debug("Metrics: [2/4] Building BukkitMetrics...");
       Class<?> bmClass = fsLoader.loadClass("dev.faststats.bukkit.BukkitMetrics");
       Class<?> mClass = fsLoader.loadClass("dev.faststats.core.data.Metric");
 
       Method numberMethod = findMethod(mClass, "number", 2);
       Method stringMethod = findMethod(mClass, "string", 2);
+      Method stringArrayMethod = findMethod(mClass, "stringArray", 2);
 
       Object factory = bmClass.getMethod("factory").invoke(null);
       factory = chain(factory, "token", TOKEN);
 
+      // Core numeric metrics
       factory =
           addMetric(
               factory,
@@ -73,7 +89,18 @@ public final class FppMetrics {
                   (Callable<Long>) () -> (long) Bukkit.getOnlinePlayers().size()));
       factory =
           addMetric(
-              factory, stringMethod.invoke(null, "skin_mode", (Callable<String>) Config::skinMode));
+              factory,
+              numberMethod.invoke(
+                  null,
+                  "max_bots_config",
+                  (Callable<Long>) () -> (long) Config.maxBots()));
+      factory =
+          addMetric(
+              factory,
+              numberMethod.invoke(
+                  null,
+                  "user_bot_limit",
+                  (Callable<Long>) () -> (long) Config.userBotLimit()));
       factory =
           addMetric(
               factory,
@@ -85,7 +112,23 @@ public final class FppMetrics {
           addMetric(
               factory,
               numberMethod.invoke(
-                  null, "body_enabled", (Callable<Long>) () -> Config.spawnBody() ? 1L : 0L));
+                  null,
+                  "body_enabled",
+                  (Callable<Long>) () -> Config.spawnBody() ? 1L : 0L));
+      factory =
+          addMetric(
+              factory,
+              numberMethod.invoke(
+                  null,
+                  "body_damageable",
+                  (Callable<Long>) () -> Config.bodyDamageable() ? 1L : 0L));
+      factory =
+          addMetric(
+              factory,
+              numberMethod.invoke(
+                  null,
+                  "body_pushable",
+                  (Callable<Long>) () -> Config.bodyPushable() ? 1L : 0L));
       factory =
           addMetric(
               factory,
@@ -103,10 +146,59 @@ public final class FppMetrics {
       factory =
           addMetric(
               factory,
-              stringMethod.invoke(
+              numberMethod.invoke(
                   null,
-                  "database_type",
-                  (Callable<String>) () -> Config.mysqlEnabled() ? "mysql" : "sqlite"));
+                  "swap_enabled",
+                  (Callable<Long>) () -> Config.swapEnabled() ? 1L : 0L));
+      factory =
+          addMetric(
+              factory,
+              numberMethod.invoke(
+                  null,
+                  "peak_hours_enabled",
+                  (Callable<Long>) () -> Config.peakHoursEnabled() ? 1L : 0L));
+      factory =
+          addMetric(
+              factory,
+              numberMethod.invoke(
+                  null,
+                  "head_ai_enabled",
+                  (Callable<Long>) () -> Config.headAiEnabled() ? 1L : 0L));
+      factory =
+          addMetric(
+              factory,
+              numberMethod.invoke(
+                  null,
+                  "swim_ai_enabled",
+                  (Callable<Long>) () -> Config.swimAiEnabled() ? 1L : 0L));
+      factory =
+          addMetric(
+              factory,
+              numberMethod.invoke(
+                  null,
+                  "fall_damage_enabled",
+                  (Callable<Long>) () -> Config.fallDamageEnabled() ? 1L : 0L));
+      factory =
+          addMetric(
+              factory,
+              numberMethod.invoke(
+                  null,
+                  "respawn_on_death",
+                  (Callable<Long>) () -> Config.respawnOnDeath() ? 1L : 0L));
+      factory =
+          addMetric(
+              factory,
+              numberMethod.invoke(
+                  null,
+                  "tab_list_enabled",
+                  (Callable<Long>) () -> Config.tabListEnabled() ? 1L : 0L));
+      factory =
+          addMetric(
+              factory,
+              numberMethod.invoke(
+                  null,
+                  "ping_enabled",
+                  (Callable<Long>) () -> Config.pingEnabled() ? 1L : 0L));
       factory =
           addMetric(
               factory,
@@ -119,14 +211,80 @@ public final class FppMetrics {
           addMetric(
               factory,
               numberMethod.invoke(
-                  null, "max_bots_config", (Callable<Long>) () -> (long) Config.maxBots()));
+                  null,
+                  "placeholderapi_installed",
+                  (Callable<Long>)
+                      () -> Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null ? 1L : 0L));
+      factory =
+          addMetric(
+              factory,
+              numberMethod.invoke(
+                  null,
+                  "worldguard_installed",
+                  (Callable<Long>)
+                      () -> Bukkit.getPluginManager().getPlugin("WorldGuard") != null ? 1L : 0L));
+      factory =
+          addMetric(
+              factory,
+              numberMethod.invoke(
+                  null,
+                  "worldedit_installed",
+                  (Callable<Long>)
+                      () -> Bukkit.getPluginManager().getPlugin("WorldEdit") != null ? 1L : 0L));
+      factory =
+          addMetric(
+              factory,
+              numberMethod.invoke(
+                  null,
+                  "nametag_installed",
+                  (Callable<Long>)
+                      () -> Bukkit.getPluginManager().getPlugin("NameTag") != null ? 1L : 0L));
 
+      // String metrics
+      factory =
+          addMetric(
+              factory,
+              stringMethod.invoke(null, "skin_mode", (Callable<String>) Config::skinMode));
+      factory =
+          addMetric(
+              factory,
+              stringMethod.invoke(null, "database_type", (Callable<String>) () -> Config.mysqlEnabled() ? "mysql" : "sqlite"));
+      factory =
+          addMetric(
+              factory,
+              stringMethod.invoke(null, "bot_name_mode", (Callable<String>) Config::botNameMode));
+      factory =
+          addMetric(
+              factory,
+              stringMethod.invoke(null, "mc_version", (Callable<String>) () -> plugin.getDetectedMcVersion()));
+      factory =
+          addMetric(
+              factory,
+              stringMethod.invoke(null, "plugin_version", (Callable<String>) () -> plugin.getPluginMeta().getVersion()));
+
+      // String array metric: active feature flags
+      factory =
+          addMetric(
+              factory,
+              stringArrayMethod.invoke(
+                  null,
+                  "active_features",
+                  (Callable<String[]>) () -> collectActiveFeatures()));
+
+      // Error tracker + debug + flush callback
       factory = chain(factory, "errorTracker", errorTracker);
-      factory = chain(factory, "debug", false);
+      factory = chain(factory, "debug", Config.metricsDebug());
+      factory = chainFlushCallback(factory);
+
       FppLogger.debug("Metrics:       BukkitMetrics built ✔");
 
-      FppLogger.debug("Metrics: [3/3] Calling ready()...");
+      // ── [3/4] Create ──────────────────────────────────────────────────────
+      FppLogger.debug("Metrics: [3/4] Calling create()...");
       metrics = chain(factory, "create", plugin);
+      FppLogger.debug("Metrics:       create() returned ✔");
+
+      // ── [4/4] Ready ─────────────────────────────────────────────────────────
+      FppLogger.debug("Metrics: [4/4] Calling ready()...");
       findMethod(metrics.getClass(), "ready", 0).invoke(metrics);
       initialised = true;
       FppLogger.debug("Metrics: FastStats connected and reporting ✔");
@@ -146,6 +304,7 @@ public final class FppMetrics {
       for (int i = 0; i < Math.min(10, st.length); i++) FppLogger.error("║    at " + st[i]);
       FppLogger.error("╚══════════════════════════════════════════════════");
       metrics = null;
+      errorTracker = null;
       closeLoader();
     } finally {
       Thread.currentThread().setContextClassLoader(prevCtx);
@@ -160,6 +319,7 @@ public final class FppMetrics {
       }
       metrics = null;
     }
+    errorTracker = null;
     initialised = false;
     closeLoader();
   }
@@ -167,6 +327,50 @@ public final class FppMetrics {
   public boolean isActive() {
     return initialised && metrics != null;
   }
+
+  /**
+   * Track an error through the context-aware ErrorTracker.
+   * Safe to call even if metrics are not initialised - silently no-ops.
+   */
+  public void trackError(Throwable throwable) {
+    if (errorTracker == null) return;
+    try {
+      Method trackMethod = findMethod(errorTracker.getClass(), "trackError", 1);
+      // Try Throwable overload first, then String overload as fallback
+      for (Method m : errorTracker.getClass().getMethods()) {
+        if (m.getName().equals("trackError") && m.getParameterCount() == 1) {
+          try {
+            m.invoke(errorTracker, throwable);
+            return;
+          } catch (IllegalArgumentException ignored) {
+          }
+        }
+      }
+      // Fallback to string representation
+      trackMethod.invoke(errorTracker, throwable.toString());
+    } catch (Throwable ignored) {
+    }
+  }
+
+  public void trackError(String message) {
+    if (errorTracker == null) return;
+    try {
+      for (Method m : errorTracker.getClass().getMethods()) {
+        if (m.getName().equals("trackError") && m.getParameterCount() == 1) {
+          try {
+            m.invoke(errorTracker, message);
+            return;
+          } catch (IllegalArgumentException ignored) {
+          }
+        }
+      }
+    } catch (Throwable ignored) {
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
 
   private static Object chain(Object obj, String name, Object... args)
       throws ReflectiveOperationException {
@@ -253,6 +457,64 @@ public final class FppMetrics {
       }
     }
     throw new NoSuchMethodException("addMetric");
+  }
+
+  private static Object chainFlushCallback(Object factory) {
+    try {
+      // Try to find onFlush(Runnable) or onFlush(java.util.function.Consumer)
+      Class<?> factoryClass = factory.getClass();
+      Method flushMethod = null;
+      while (factoryClass != null) {
+        for (Method m : factoryClass.getDeclaredMethods()) {
+          if (m.getName().equals("onFlush") && m.getParameterCount() == 1) {
+            flushMethod = m;
+            break;
+          }
+        }
+        if (flushMethod != null) break;
+        factoryClass = factoryClass.getSuperclass();
+      }
+      if (flushMethod == null) {
+        for (Method m : factory.getClass().getMethods()) {
+          if (m.getName().equals("onFlush") && m.getParameterCount() == 1) {
+            flushMethod = m;
+            break;
+          }
+        }
+      }
+      if (flushMethod != null) {
+        flushMethod.setAccessible(true);
+        // Pass a simple Runnable that just logs at debug level
+        Runnable callback = () -> FppLogger.debug("Metrics: FastStats flush completed.");
+        return flushMethod.invoke(factory, callback);
+      }
+    } catch (Throwable ignored) {
+    }
+    return factory;
+  }
+
+  private static String[] collectActiveFeatures() {
+    java.util.List<String> features = new java.util.ArrayList<>();
+    if (Config.spawnBody()) features.add("body");
+    if (Config.bodyDamageable()) features.add("body_damageable");
+    if (Config.bodyPushable()) features.add("body_pushable");
+    if (Config.persistOnRestart()) features.add("persistence");
+    if (Config.fakeChatEnabled()) features.add("fake_chat");
+    if (Config.chunkLoadingEnabled()) features.add("chunk_loading");
+    if (Config.swapEnabled()) features.add("swap");
+    if (Config.peakHoursEnabled()) features.add("peak_hours");
+    if (Config.headAiEnabled()) features.add("head_ai");
+    if (Config.swimAiEnabled()) features.add("swim_ai");
+    if (Config.fallDamageEnabled()) features.add("fall_damage");
+    if (Config.respawnOnDeath()) features.add("respawn");
+    if (Config.tabListEnabled()) features.add("tab_list");
+    if (Config.pingEnabled()) features.add("ping");
+    if (Bukkit.getPluginManager().getPlugin("LuckPerms") != null) features.add("luckperms");
+    if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) features.add("placeholderapi");
+    if (Bukkit.getPluginManager().getPlugin("WorldGuard") != null) features.add("worldguard");
+    if (Bukkit.getPluginManager().getPlugin("WorldEdit") != null) features.add("worldedit");
+    if (Bukkit.getPluginManager().getPlugin("NameTag") != null) features.add("nametag");
+    return features.toArray(new String[0]);
   }
 
   private static File extractResource(FakePlayerPlugin plugin, String resourcePath, File destDir)

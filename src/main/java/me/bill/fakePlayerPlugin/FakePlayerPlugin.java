@@ -669,6 +669,10 @@ public final class FakePlayerPlugin extends JavaPlugin {
     return extensionLoader;
   }
 
+  public me.bill.fakePlayerPlugin.util.FppMetrics getFppMetrics() {
+    return fppMetrics;
+  }
+
   public Component getUpdateNotification() {
     return updateNotificationMessage;
   }

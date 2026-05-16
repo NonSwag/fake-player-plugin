@@ -295,7 +295,22 @@ public class DatabaseManager {
           + "  last_seen     BIGINT       NOT NULL"
           + ")";
 
-  private static final String CREATE_NETWORK_TASKS =
+  private static final String CREATE_NETWORK_TASKS_SQLITE =
+      "CREATE TABLE IF NOT EXISTS fpp_network_tasks ("
+          + "  id            INTEGER PRIMARY KEY AUTOINCREMENT,"
+          + "  target_bot    VARCHAR(36)  NOT NULL,"
+          + "  source_server VARCHAR(64)  NOT NULL,"
+          + "  target_server VARCHAR(64)  NOT NULL,"
+          + "  task_type     VARCHAR(16)  NOT NULL,"
+          + "  task_data     TEXT         DEFAULT NULL,"
+          + "  created_at    BIGINT       NOT NULL,"
+          + "  claimed_at    BIGINT       DEFAULT NULL,"
+          + "  claimed_by    VARCHAR(64)  DEFAULT NULL,"
+          + "  status        VARCHAR(16)  DEFAULT 'PENDING',"
+          + "  result        TEXT         DEFAULT NULL"
+          + ")";
+
+  private static final String CREATE_NETWORK_TASKS_MYSQL =
       "CREATE TABLE IF NOT EXISTS fpp_network_tasks ("
           + "  id            BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
           + "  target_bot    VARCHAR(36)  NOT NULL,"
@@ -646,7 +661,7 @@ public class DatabaseManager {
     exec(CREATE_META);
     exec(CREATE_NETWORK_BOTS);
     exec(CREATE_SERVER_HEARTBEAT);
-    exec(CREATE_NETWORK_TASKS);
+    exec(isMysql ? CREATE_NETWORK_TASKS_MYSQL : CREATE_NETWORK_TASKS_SQLITE);
   }
 
   private void migrate() {
