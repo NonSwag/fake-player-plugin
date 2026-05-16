@@ -2,7 +2,7 @@ name: FakePlayerPlugin
 version: '1.6.6.10'
 main: me.bill.fakePlayerPlugin.FakePlayerPlugin
 api-version: '1.21'
-authors: [ el_pepes ]
+authors: [ F_PP, Kyttu ]
 description: "Advanced Fake Player Spoofer for Paper 1.21+"
 website: "https://modrinth.com/plugin/fake-player-plugin-(fpp)"
 softdepend: [ PlaceholderAPI, WorldGuard, WorldEdit ]

@@ -17,10 +17,11 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.BlockHitResult;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
 public final class NmsPlayerSpawner {
@@ -1455,10 +1456,9 @@ public final class NmsPlayerSpawner {
     Plugin plugin = FakePlayerPlugin.getInstance();
     if (plugin == null || player == null) return;
     try {
-      FixedMetadataValue value = new FixedMetadataValue(plugin, true);
-      player.setMetadata("NPC", value);
-      player.setMetadata("FPP", value);
-      player.setMetadata("FakePlayerPlugin", value);
+      player.getPersistentDataContainer().set(new NamespacedKey(plugin, "npc"), PersistentDataType.BYTE, (byte) 1);
+      player.getPersistentDataContainer().set(new NamespacedKey(plugin, "fpp"), PersistentDataType.BYTE, (byte) 1);
+      player.getPersistentDataContainer().set(new NamespacedKey(plugin, "fakeplayerplugin"), PersistentDataType.BYTE, (byte) 1);
     } catch (Throwable t) {
       FppLogger.debug("NmsPlayerSpawner: fake-player metadata failed: " + t.getMessage());
     }
@@ -1656,7 +1656,7 @@ public final class NmsPlayerSpawner {
         Class<?> userProfileClass = Class.forName(prefix + ".protocol.player.UserProfile", false, loader);
         Class<?> userClass = Class.forName(prefix + ".protocol.player.User", false, loader);
 
-        Object playState = Enum.valueOf((Class<Enum>) connectionStateClass.asSubclass(Enum.class), "PLAY");
+        Object playState = Enum.valueOf(connectionStateClass.asSubclass(Enum.class), "PLAY");
         Object clientVersion = resolvePacketEventsClientVersion(api, clientVersionClass);
         Object profile = userProfileClass.getConstructor(UUID.class, String.class).newInstance(uuid, name);
 
@@ -1711,7 +1711,7 @@ public final class NmsPlayerSpawner {
     return method.invoke(target, args);
   }
 
-  @SuppressWarnings({"unchecked", "rawtypes"})
+  @SuppressWarnings("unchecked")
   private static void putPacketEventsProtocolMaps(
       ClassLoader loader, String prefix, Object channel, UUID uuid, Object user) throws Exception {
     Class<?> protocolManagerClass = Class.forName(prefix + ".manager.protocol.ProtocolManager", false, loader);
@@ -1775,6 +1775,7 @@ public final class NmsPlayerSpawner {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private static Object resolvePacketEventsClientVersion(Object api, Class<?> clientVersionClass) {
     try {
       Object serverManager = invokeNoArg(api.getClass(), api, "getServerManager");

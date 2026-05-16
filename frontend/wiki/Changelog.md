@@ -1,6 +1,20 @@
 # Changelog
 
-## v1.6.6.9 (Current)
+## v1.6.6.10 (Current)
+- **Velocity & Bungee companions updated to v1.0.1** with config file support (`config.yml`)
+- **New companion config option**: `show-bot-names-in-player-sample` — toggle whether bot names appear in the server-list player sample (hover list)
+- **Extension data folder fix**: extensions now use their `getName()` as the data folder name instead of the JAR filename
+- **FppBotDisplayService API**: new extension service interface (`FppBotDisplayService`) allowing extensions to decorate bot display names dynamically; used by `BotBroadcast` for join/leave messages
+- **BotIdentityCache async loading**: DB identity mappings now load asynchronously on startup to reduce blocking time
+- **BotIdentityCache debounced YAML saves**: YAML identity saves are now batched and scheduled (1-second debounce) instead of writing synchronously on every new bot
+- **Removed stale join-delay/leave-delay config getters**: `Config.joinDelayMin/Max()` and `Config.leaveDelayMin/Max()` removed (config keys were already unused)
+- **Startup banner extensions count**: startup banner now shows how many extensions are loaded
+- **Deprecation fixes**: replaced deprecated BungeeCord `getServers()` with `getServersCopy()`; replaced deprecated `FixedMetadataValue` with `PersistentDataContainer` + `NamespacedKey`; cleaned up unchecked-operation compiler warnings
+- **Legal pages added**: new `frontend/legal/` section with copyright notice, extension policy, privacy policy, and terms of service
+- Plugin authors updated to `F_PP` and `Kyttu`
+- Wiki version references updated across docs
+
+## v1.6.6.9
 - Fall damage implemented (configurable via `combat.fall-damage`)
 - Fall damage tracking fixed in `FakePlayerManager` tick loop
 - Skin injector fixes for skin extension compatibility

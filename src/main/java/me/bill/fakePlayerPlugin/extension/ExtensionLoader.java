@@ -413,13 +413,7 @@ public final class ExtensionLoader {
         try (InputStream in = jarFile.getInputStream(nestedJar)) {
           Files.copy(in, extractedJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
-        File bundledDataRoot =
-            new File(
-                plugin.getDataFolder(),
-                "extensions"
-                    + File.separator
-                    + sanitizeFileName(stripJarSuffix(bundleJar.getName())));
-        found += loadJar(extractedJar, wrappers, bundledDataRoot);
+        found += loadJar(extractedJar, wrappers, null);
       }
     } catch (IOException e) {
       FppLogger.warn(

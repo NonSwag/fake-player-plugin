@@ -785,9 +785,9 @@ String kills = data.get("kills");
     <dependency>
         <groupId>me.bill</groupId>
         <artifactId>fpp</artifactId>
-        <version>1.6.6.9</version>
+        <version>1.6.6.10</version>
         <scope>system</scope>
-        <systemPath>${project.basedir}/libs/fpp-1.6.6.9.jar</systemPath>
+        <systemPath>${project.basedir}/libs/fpp-1.6.6.10.jar</systemPath>
     </dependency>
 </dependencies>
 ```
