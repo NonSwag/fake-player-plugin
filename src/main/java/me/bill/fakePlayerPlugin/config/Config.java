@@ -198,6 +198,10 @@ public final class Config {
     return cfg.getBoolean("metrics.enabled", true);
   }
 
+  public static boolean metricsDebug() {
+    return cfg.getBoolean("metrics.debug", false);
+  }
+
   public static boolean heartbeatEnabled() {
     return cfg.getBoolean("heartbeat.enabled", true);
   }

@@ -273,3 +273,4 @@ attack-mob:
 # Anonymous usage statistics via FastStats. No personal data collected.
 metrics:
   enabled: true
+  debug: false    # Enable FastStats debug logging

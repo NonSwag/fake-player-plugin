@@ -8,7 +8,7 @@ public final class AttributionManager {
 
   private AttributionManager() {}
 
-  private static final int[] _A = {101, 108, 95, 112, 101, 112, 101, 115};
+  private static final int[] _A = {70, 95, 80, 80};
 
   private static final int[] _M = {
     84, 104, 105, 115, 32, 112, 108, 117, 103, 105, 110, 32, 105, 115, 32, 70, 82, 69, 69,
@@ -147,11 +147,11 @@ public final class AttributionManager {
 
   public static boolean quickAuthorCheck() {
 
-    if (_A.length != 8) return false;
+    if (_A.length != 4) return false;
 
     int sum = 0;
     for (int c : _A) sum += c;
-    return sum == 845;
+    return sum == 325;
   }
 
   public static boolean quickMessageCheck() {
