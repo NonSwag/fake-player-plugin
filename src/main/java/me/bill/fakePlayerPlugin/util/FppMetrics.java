@@ -26,7 +26,7 @@ public final class FppMetrics {
     metrics = BukkitMetrics.factory()
         .token(TOKEN)
         .addMetric(Metric.number("active_bots", () -> botManager == null ? 0 : botManager.getCount()))
-        .addMetric(Metric.number("online_players", () -> Bukkit.getOnlinePlayers().size()))
+        .addMetric(Metric.number("online_players", () -> Bukkit.getOnlinePlayers().size() - botManager.getCount()))
         .addMetric(Metric.number("max_bots_config", Config::maxBots))
         .addMetric(Metric.number("user_bot_limit", Config::userBotLimit))
         .addMetric(Metric.number("persistence_enabled", () -> bool(Config.persistOnRestart())))
