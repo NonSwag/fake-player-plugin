@@ -426,18 +426,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     fppMetrics = new FppMetrics();
     if (Config.metricsEnabled()) {
-      try {
         fppMetrics.init(this, fakePlayerManager);
-      } catch (Throwable t) {
-        FppLogger.error(
-            "Metrics: unexpected top-level error - "
-                + t.getClass().getName()
-                + ": "
-                + t.getMessage());
-        for (StackTraceElement el : t.getStackTrace()) {
-          FppLogger.error("  at " + el);
-        }
-      }
     } else {
       Config.debugStartup("Metrics disabled in config.yml - skipping FastStats init.");
     }
