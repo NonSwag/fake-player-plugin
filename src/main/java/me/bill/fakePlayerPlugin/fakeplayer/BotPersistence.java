@@ -169,6 +169,15 @@ public final class BotPersistence {
   private void fireSaveEvents(Iterable<FakePlayer> players) {
     for (FakePlayer fp : players) {
       Bukkit.getPluginManager().callEvent(new FppBotSaveEvent(new FppBotImpl(fp)));
+      persistSkinCheckpoint(fp);
+    }
+  }
+
+  private void persistSkinCheckpoint(FakePlayer fp) {
+    if (fp == null || plugin.getDatabaseManager() == null) return;
+    SkinProfile skin = fp.getResolvedSkin();
+    if (skin != null && skin.isValid()) {
+      plugin.getDatabaseManager().updateBotSkin(fp.getUuid().toString(), skin.getValue(), skin.getSignature());
     }
   }
 
@@ -802,6 +811,7 @@ public final class BotPersistence {
       List<me.bill.fakePlayerPlugin.database.DatabaseManager.ActiveBotRow> rows =
           db.getActiveBotsForThisServer();
       if (!rows.isEmpty()) {
+        Map<String, SkinProfile> yamlSkinFallback = loadYamlSkinFallback();
         FppLogger.info(
             "Restoring "
                 + rows.size()
@@ -820,6 +830,16 @@ public final class BotPersistence {
             UUID storedUuid = parseUuidOrNull(row.botUuid());
             UUID effectiveUuid = resolveRestoredUuid(row.botName(), storedUuid);
             if (effectiveUuid == null) continue;
+            SkinProfile fallbackSkin = yamlSkinFallback.get(row.botName().toLowerCase(java.util.Locale.ROOT));
+            String skinTexture = skinExtensionLoaded ? row.skinTexture() : null;
+            String skinSignature = skinExtensionLoaded ? row.skinSignature() : null;
+            if (skinExtensionLoaded
+                && (skinTexture == null || skinTexture.isBlank())
+                && fallbackSkin != null
+                && fallbackSkin.isValid()) {
+              skinTexture = fallbackSkin.getValue();
+              skinSignature = fallbackSkin.getSignature();
+            }
             saved.add(
                 new SavedBot(
                     row.botName(),
@@ -859,8 +879,8 @@ public final class BotPersistence {
                     row.pveRange(),
                     row.pvePriority(),
                     row.pveMobType(),
-                    skinExtensionLoaded ? row.skinTexture() : null,
-                    skinExtensionLoaded ? row.skinSignature() : null,
+                    skinTexture,
+                    skinSignature,
                     Set.of(),
                     Config.autoEatEnabled(),
                     Config.autoPlaceBedEnabled(),
@@ -1077,6 +1097,34 @@ public final class BotPersistence {
 
     FppLogger.info("Restoring " + saved.size() + " bot(s) from YAML fallback...");
     FppScheduler.runSyncLater(plugin, () -> restoreChain(manager, saved, 0), 40L);
+  }
+
+  private Map<String, SkinProfile> loadYamlSkinFallback() {
+    Map<String, SkinProfile> fallback = new HashMap<>();
+    try {
+      YamlConfiguration unified = BotDataYaml.load(plugin);
+      List<?> raw = unified.getList(ROOT_BOTS + ".bots");
+      if ((raw == null || raw.isEmpty()) && dataFile.exists()) {
+        raw = YamlConfiguration.loadConfiguration(dataFile).getList("bots");
+      }
+      if (raw == null) return fallback;
+      for (Object obj : raw) {
+        if (!(obj instanceof Map<?, ?> map)) continue;
+        Object nameRaw = map.get("name");
+        Object textureRaw = map.get("skin-texture");
+        if (!(nameRaw instanceof String name) || !(textureRaw instanceof String texture) || texture.isBlank()) {
+          continue;
+        }
+        Object signatureRaw = map.get("skin-signature");
+        String signature = signatureRaw instanceof String sig ? sig : null;
+        fallback.put(
+            name.toLowerCase(java.util.Locale.ROOT),
+            new SkinProfile(texture, signature, "yaml-fallback:" + name));
+      }
+    } catch (Exception e) {
+      FppLogger.warn("BotPersistence: failed to read YAML skin fallback: " + e.getMessage());
+    }
+    return fallback;
   }
 
   private void restoreChain(FakePlayerManager manager, List<SavedBot> saved, int index) {
@@ -1433,22 +1481,7 @@ public final class BotPersistence {
       }
     }
 
-    int delayMinTicks = Config.joinDelayMin();
-    int delayMaxTicks = Math.max(delayMinTicks, Config.joinDelayMax());
-    long delayTicks;
-    if (delayMaxTicks <= 0) {
-      delayTicks = 1L;
-    } else {
-      int spread = delayMaxTicks - delayMinTicks;
-      int t =
-          delayMinTicks
-              + (spread > 0
-                  ? java.util.concurrent.ThreadLocalRandom.current().nextInt(spread + 1)
-                  : 0);
-      delayTicks = Math.max(1L, (long) t);
-    }
-
-    FppScheduler.runSyncLater(plugin, () -> restoreChain(manager, saved, index + 1), delayTicks);
+    FppScheduler.runSync(plugin, () -> restoreChain(manager, saved, index + 1));
   }
 
   private void restoreExtensionMetadata(FakePlayer fp) {

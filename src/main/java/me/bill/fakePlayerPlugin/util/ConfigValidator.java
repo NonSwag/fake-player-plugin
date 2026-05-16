@@ -11,27 +11,6 @@ public final class ConfigValidator {
   public static int validate() {
     int issues = 0;
 
-    if (Config.joinDelayMin() > Config.joinDelayMax()) {
-      FppLogger.warn(
-          "[Config] join-delay.min ("
-              + Config.joinDelayMin()
-              + ") > "
-              + "join-delay.max ("
-              + Config.joinDelayMax()
-              + ") - swapping values in memory.");
-      issues++;
-    }
-    if (Config.leaveDelayMin() > Config.leaveDelayMax()) {
-      FppLogger.warn(
-          "[Config] leave-delay.min ("
-              + Config.leaveDelayMin()
-              + ") > "
-              + "leave-delay.max ("
-              + Config.leaveDelayMax()
-              + ") - swapping values in memory.");
-      issues++;
-    }
-
     if (Config.chunkLoadingEnabled()) {
       int radius = Config.chunkLoadingRadius();
       if (radius == 0) {

@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="fpp-bungee:jar">
+    <output-path>$USER_HOME$/Desktop/FPPT/Plugins</output-path>
+    <root id="archive" name="fpp-bungee.jar">
+      <element id="module-output" name="fpp-bungee" />
+    </root>
+  </artifact>
+</component>

@@ -4,6 +4,7 @@ import me.bill.fakePlayerPlugin.command.*;
 import me.bill.fakePlayerPlugin.config.BotNameConfig;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
+import me.bill.fakePlayerPlugin.database.NetworkDatabase;
 import me.bill.fakePlayerPlugin.fakeplayer.BotChatController;
 import me.bill.fakePlayerPlugin.fakeplayer.BotPersistence;
 import me.bill.fakePlayerPlugin.fakeplayer.ChunkLoader;
@@ -55,6 +56,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
   private me.bill.fakePlayerPlugin.gui.BotSettingGui botSettingGui;
   private me.bill.fakePlayerPlugin.gui.HelpGui helpGui;
   private me.bill.fakePlayerPlugin.fakeplayer.BotIdentityCache botIdentityCache;
+  private me.bill.fakePlayerPlugin.network.NetworkHeartbeatManager networkHeartbeat;
   private XpCommand xpCommand;
   private me.bill.fakePlayerPlugin.command.MoveCommand moveCommand;
   private me.bill.fakePlayerPlugin.command.MineCommand mineCommand;
@@ -180,9 +182,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     remoteBotCache = new me.bill.fakePlayerPlugin.fakeplayer.RemoteBotCache();
     if (Config.isNetworkMode() && databaseManager != null) {
-
-      java.util.List<me.bill.fakePlayerPlugin.database.DatabaseManager.ActiveBotRow> remoteRows =
-          databaseManager.getActiveBotsFromOtherServers();
+      var remoteRows = databaseManager.getNetworkBotsFromOtherServers();
       for (var row : remoteRows) {
         try {
           java.util.UUID uuid = java.util.UUID.fromString(row.botUuid());
@@ -228,6 +228,11 @@ public final class FakePlayerPlugin extends JavaPlugin {
     botPersistence = new BotPersistence(this);
     fakePlayerManager.setBotPersistence(botPersistence);
 
+    networkHeartbeat = new me.bill.fakePlayerPlugin.network.NetworkHeartbeatManager(this, fakePlayerManager);
+    if (Config.isNetworkMode() && databaseManager != null) {
+      networkHeartbeat.start();
+    }
+
     pathfindingService = new PathfindingService();
     commandManager = new CommandManager(this);
     commandManager.register(new SpawnCommand(fakePlayerManager));
@@ -243,6 +248,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
     commandManager.register(
         new me.bill.fakePlayerPlugin.command.BadwordCommand(this, fakePlayerManager));
     commandManager.register(new StatsCommand(fakePlayerManager, databaseManager));
+    commandManager.register(new ExtensionCommand(this));
     commandManager.register(new FreezeCommand(fakePlayerManager));
     commandManager.register(
         new me.bill.fakePlayerPlugin.command.RenameCommand(this, fakePlayerManager));
@@ -372,8 +378,11 @@ public final class FakePlayerPlugin extends JavaPlugin {
     getServer()
         .getMessenger()
         .registerIncomingPluginChannel(this, VelocityChannel.CHANNEL, velocityChannel);
+    getServer()
+        .getMessenger()
+        .registerIncomingPluginChannel(this, VelocityChannel.PROXY_CHANNEL, velocityChannel);
     Config.debugNetwork(
-        "Plugin messaging channels registered: " + VelocityChannel.CHANNEL + " + BungeeCord.");
+        "Plugin messaging channels registered: " + VelocityChannel.CHANNEL + " + " + VelocityChannel.PROXY_CHANNEL + " + BungeeCord.");
 
     FppScheduler.runSyncRepeating(
         this,
@@ -449,7 +458,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
     String configVersion =
         "v" + cfgVer + (cfgVer >= ConfigMigrator.CURRENT_VERSION ? " ✔" : " (migrated)");
     int backupCount = BackupManager.listBackups(this).size();
-    int extensionsLoaded = extensionLoader != null ? extensionLoader.getLoadedExtensionCount() : 0;
 
     FppLogger.printStartupBanner(
         getPluginMeta().getVersion(),
@@ -467,7 +475,6 @@ public final class FakePlayerPlugin extends JavaPlugin {
         fppMetrics.isActive(),
         configVersion,
         backupCount,
-        extensionsLoaded,
         startupMs);
 
     botPersistence.purgeOrphanedBodiesAndRestore(fakePlayerManager);
@@ -516,10 +523,12 @@ public final class FakePlayerPlugin extends JavaPlugin {
     }
 
     if (heartbeatSender != null) heartbeatSender.stop();
+    if (networkHeartbeat != null) networkHeartbeat.stop();
 
     if (fppMetrics != null) fppMetrics.shutdown();
 
     getServer().getMessenger().unregisterIncomingPluginChannel(this, VelocityChannel.CHANNEL);
+    getServer().getMessenger().unregisterIncomingPluginChannel(this, VelocityChannel.PROXY_CHANNEL);
     getServer().getMessenger().unregisterOutgoingPluginChannel(this, VelocityChannel.CHANNEL);
     getServer().getMessenger().unregisterOutgoingPluginChannel(this, VelocityChannel.PROXY_CHANNEL);
     getServer().getMessenger().unregisterOutgoingPluginChannel(this, "BungeeCord");

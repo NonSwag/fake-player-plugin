@@ -51,10 +51,7 @@ public final class FakePlayerBody {
     }
   }
 
-  /**
-   * Folia-safe async body spawn. Dispatches NMS placement to the destination chunk's region
-   * thread, then invokes the callback with the resulting Bukkit Player (or null on failure).
-   */
+  /** Callback-based body spawn compatibility wrapper. */
   public static void spawnAsync(FakePlayer fp, Location loc, java.util.function.Consumer<Player> callback) {
     spawnAsync(fp, loc, -1, callback);
   }
@@ -200,6 +197,26 @@ public final class FakePlayerBody {
     if (skinManager == null) {
       onReady.run();
       if (onSkinApplied != null) onSkinApplied.run();
+      return;
+    }
+
+    SkinProfile resolved = fp.getResolvedSkin();
+    if (resolved == null || !resolved.isValid()) {
+      onReady.run();
+      skinManager.resolveEffectiveSkin(
+          fp,
+          skin ->
+              FppScheduler.runSync(
+                  plugin,
+                  () -> {
+                    Player body = fp.getPlayer();
+                    if (body != null && body.isOnline()) {
+                      applyResolvedSkin(plugin, fp, body);
+                    }
+                    if (skin != null && skin.isValid() && onSkinApplied != null) {
+                      onSkinApplied.run();
+                    }
+                  }));
       return;
     }
 

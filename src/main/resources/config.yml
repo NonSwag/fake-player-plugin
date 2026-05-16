@@ -1,11 +1,11 @@
 # ─────────────────────────────────────────────────────────────────────────────
-#  ꜰᴀᴋᴇ ᴘʟᴀʏᴇʀ ᴘʟᴜɢɪɴ  ·  config.yml
+#  ꜰᴀᴋᴇ ᴘʟᴀʏᴇʀ ᴘʟᴜɢɪɴ  ·  config.yml  ·  v1.6.2
 #  Run /fpp reload to apply most changes without restarting the server.
 #  Colors use MiniMessage: <#0079FF>text</#0079FF>  or  <gray>text</gray>
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Internal — managed automatically. Do NOT edit.
-config-version: 71
+config-version: 73
 language: en
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -27,20 +27,6 @@ spawn-cooldown: 0
 # Active tasks (mine/place/patrol) also survive restarts via the database.
 persistence:
   enabled: true
-
-# ── Join & Leave Timing ───────────────────────────────────────────────────────
-# Stagger batch spawns/despawns over a random delay so they look like natural
-# player activity rather than an instant flood.
-# Values are in TICKS — 20 ticks = 1 second.
-# Quick reference:  0 = instant · 20 = 1 s · 40 = 2 s · 100 = 5 s
-join-delay:
-  min: 0   # ticks
-  max: 1   # ticks
-
-leave-delay:
-  min: 0   # ticks
-  max: 1   # ticks
-
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  2 · APPEARANCE

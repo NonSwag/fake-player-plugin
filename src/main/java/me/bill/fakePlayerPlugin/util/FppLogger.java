@@ -172,7 +172,6 @@ public final class FppLogger {
       boolean metricsActive,
       String configVersion,
       int backupCount,
-      int extensionsLoaded,
       long startupMs) {
     boldRule();
     info("  " + BOLD + BLUE + "FakePlayerPlugin" + RESET + WHITE + " v" + version + RESET);
@@ -196,7 +195,6 @@ public final class FppLogger {
     stateRow(chunkLoading ? RowState.OK : RowState.OFF, "Chunk loading", onOff(chunkLoading));
 
     section("Integrations");
-    stateRow(extensionsLoaded > 0 ? RowState.OK : RowState.OFF, "Extensions", extensionsLoaded + " loaded");
     stateRow(luckPermsFound ? RowState.OK : RowState.OFF, "LuckPerms", onOff(luckPermsFound));
     stateRow(worldGuardFound ? RowState.OK : RowState.OFF, "WorldGuard", onOff(worldGuardFound));
     stateRow(metricsActive ? RowState.OK : RowState.OFF, "Metrics", onOff(metricsActive));

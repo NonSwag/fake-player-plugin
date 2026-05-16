@@ -5,9 +5,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.fakeplayer.network.FakeConnection;
 import me.bill.fakePlayerPlugin.fakeplayer.network.FakeServerGamePacketListenerImpl;
@@ -20,9 +17,11 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.BlockHitResult;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
 public final class NmsPlayerSpawner {
@@ -85,11 +84,6 @@ public final class NmsPlayerSpawner {
   private static Method synchedEntityDataSetMethod = null;
 
   private static Field entityDataFieldForSkinParts = null;
-
-  private static volatile boolean foliaSchedulerResolved = false;
-  private static volatile boolean foliaSchedulerAvailable = false;
-  private static Method bukkitGetRegionSchedulerMethod = null;
-  private static Method regionSchedulerExecuteMethod = null;
 
   private NmsPlayerSpawner() {}
 
@@ -445,16 +439,12 @@ public final class NmsPlayerSpawner {
         FppLogger.warn("NmsPlayerSpawner: failed to create fake connection for " + name);
         return null;
       }
+      prepareJoinCompatibility(conn, serverPlayer, uuid, name);
 
       FppLogger.debug("NmsPlayerSpawner: spawning '" + name + "' uuid=" + uuid);
       ensurePlayerDataExists(minecraftServer, serverPlayer, name, uuid);
 
       boolean placed = placePlayer(minecraftServer, conn, serverPlayer, gameProfile, clientInfo);
-      if (!placed) {
-        placed =
-            placePlayerOnRegionThread(
-                world, x, z, minecraftServer, conn, serverPlayer, gameProfile, clientInfo);
-      }
       if (!placed) {
         cleanupFailedSpawn(minecraftServer, serverPlayer, name);
         FppLogger.warn("NmsPlayerSpawner: placeNewPlayer failed for " + name);
@@ -530,55 +520,7 @@ public final class NmsPlayerSpawner {
   }
 
   private static boolean dispatchTickPhysicsToRegionThread(Player bot) {
-    try {
-      if (!foliaSchedulerResolved) {
-        synchronized (NmsPlayerSpawner.class) {
-          if (!foliaSchedulerResolved) {
-            try {
-              bukkitGetRegionSchedulerMethod = Bukkit.getServer().getClass().getMethod("getRegionScheduler");
-              Object rs = bukkitGetRegionSchedulerMethod.invoke(Bukkit.getServer());
-              if (rs != null) {
-                regionSchedulerExecuteMethod =
-                    rs.getClass().getMethod(
-                        "execute", Plugin.class, World.class, int.class, int.class, Runnable.class);
-                foliaSchedulerAvailable = true;
-              }
-            } catch (Throwable ignored) {
-              foliaSchedulerAvailable = false;
-            }
-            foliaSchedulerResolved = true;
-          }
-        }
-      }
-
-      if (!foliaSchedulerAvailable || bukkitGetRegionSchedulerMethod == null || regionSchedulerExecuteMethod == null) {
-        return false;
-      }
-
-      Plugin plugin = FakePlayerPlugin.getInstance();
-      if (plugin == null) return false;
-
-      Location loc = bot.getLocation();
-      World world = loc.getWorld();
-      if (world == null) return false;
-      int cx = loc.getBlockX() >> 4;
-      int cz = loc.getBlockZ() >> 4;
-
-      Object regionScheduler = bukkitGetRegionSchedulerMethod.invoke(Bukkit.getServer());
-      if (regionScheduler == null) return false;
-
-      regionSchedulerExecuteMethod.invoke(
-          regionScheduler,
-          plugin,
-          world,
-          cx,
-          cz,
-          (Runnable) () -> tickPhysicsInternal(bot));
-      return true;
-    } catch (Throwable e) {
-      FppLogger.debug("NmsPlayerSpawner: region-thread dispatch failed: " + e.getMessage());
-      return false;
-    }
+    return false;
   }
 
   public static void setPosition(Player bot, double x, double y, double z) {
@@ -1408,149 +1350,7 @@ public final class NmsPlayerSpawner {
     }
   }
 
-  private static boolean placePlayerOnRegionThread(
-      World world,
-      double x,
-      double z,
-      Object minecraftServer,
-      Object conn,
-      Object serverPlayer,
-      Object gameProfile,
-      Object clientInfo) {
-    try {
-      Plugin plugin = FakePlayerPlugin.getInstance();
-      if (plugin == null) return false;
-      if (world == null) return false;
-
-      Method getRegionScheduler = Bukkit.getServer().getClass().getMethod("getRegionScheduler");
-      Object regionScheduler = getRegionScheduler.invoke(Bukkit.getServer());
-      if (regionScheduler == null) return false;
-
-      int cx = ((int) Math.floor(x)) >> 4;
-      int cz = ((int) Math.floor(z)) >> 4;
-
-      // We can't safely block a Folia scheduler thread waiting for another region.
-      // Callers on a Folia scheduler thread must use dispatchPlacePlayerAsync() instead.
-      String threadName = Thread.currentThread().getName();
-      boolean onSchedulerThread =
-          threadName != null
-              && (threadName.startsWith("Folia Region Scheduler Thread")
-                  || threadName.startsWith("Folia Async Scheduler Thread"));
-      if (onSchedulerThread) {
-        return false;
-      }
-
-      AtomicBoolean placed = new AtomicBoolean(false);
-      CountDownLatch latch = new CountDownLatch(1);
-
-      Runnable task =
-          () -> {
-            try {
-              placed.set(placePlayer(minecraftServer, conn, serverPlayer, gameProfile, clientInfo));
-            } finally {
-              latch.countDown();
-            }
-          };
-
-      Method execute =
-          regionScheduler
-              .getClass()
-              .getMethod("execute", Plugin.class, World.class, int.class, int.class, Runnable.class);
-      execute.invoke(regionScheduler, plugin, world, cx, cz, task);
-
-      if (!latch.await(5, TimeUnit.SECONDS)) {
-        FppLogger.warn("NmsPlayerSpawner: region-thread placeNewPlayer timed out");
-        return false;
-      }
-      if (placed.get()) {
-        FppLogger.debug("NmsPlayerSpawner: placeNewPlayer succeeded on region thread");
-      }
-      return placed.get();
-    } catch (NoSuchMethodException ignored) {
-      return false;
-    } catch (Exception e) {
-      Throwable cause = e.getCause() != null ? e.getCause() : e;
-      FppLogger.warn(
-          "NmsPlayerSpawner: region-thread placeNewPlayer failed: "
-              + cause.getClass().getSimpleName()
-              + ": "
-              + cause.getMessage());
-      return false;
-    }
-  }
-
-  /**
-   * Async Folia-compatible placement. Dispatches placeNewPlayer to the destination chunk's
-   * region thread and invokes the callback once placement has been attempted. Must be used
-   * when the caller is already on a Folia scheduler thread.
-   */
-  private static boolean dispatchPlacePlayerAsync(
-      World world,
-      double x,
-      double z,
-      Object minecraftServer,
-      Object conn,
-      Object serverPlayer,
-      Object gameProfile,
-      Object clientInfo,
-      java.util.function.Consumer<Boolean> onComplete) {
-    try {
-      Plugin plugin = FakePlayerPlugin.getInstance();
-      if (plugin == null || world == null) return false;
-      Method getRegionScheduler = Bukkit.getServer().getClass().getMethod("getRegionScheduler");
-      Object regionScheduler = getRegionScheduler.invoke(Bukkit.getServer());
-      if (regionScheduler == null) return false;
-
-      int cx = ((int) Math.floor(x)) >> 4;
-      int cz = ((int) Math.floor(z)) >> 4;
-      Method execute =
-          regionScheduler
-              .getClass()
-              .getMethod("execute", Plugin.class, World.class, int.class, int.class, Runnable.class);
-
-      Runnable task =
-          () -> {
-            boolean ok = false;
-            try {
-              ok = placePlayer(minecraftServer, conn, serverPlayer, gameProfile, clientInfo);
-            } catch (Throwable t) {
-              FppLogger.warn(
-                  "NmsPlayerSpawner: async region-thread placeNewPlayer failed: " + t.getMessage());
-            }
-            onComplete.accept(ok);
-          };
-      execute.invoke(regionScheduler, plugin, world, cx, cz, task);
-      return true;
-    } catch (NoSuchMethodException ignored) {
-      return false;
-    } catch (Exception e) {
-      FppLogger.debug(
-          "NmsPlayerSpawner: dispatchPlacePlayerAsync failed: " + e.getMessage());
-      return false;
-    }
-  }
-
-  /** True when running under Folia (RegionScheduler exists). */
-  private static volatile Boolean cachedFoliaDetected;
-
-  public static boolean isFolia() {
-    Boolean cached = cachedFoliaDetected;
-    if (cached != null) return cached;
-    try {
-      Bukkit.getServer().getClass().getMethod("getRegionScheduler");
-      cachedFoliaDetected = Boolean.TRUE;
-    } catch (NoSuchMethodException e) {
-      cachedFoliaDetected = Boolean.FALSE;
-    }
-    return cachedFoliaDetected;
-  }
-
-  /**
-   * Async spawn entry point for Folia. Dispatches placement to the destination chunk's region
-   * thread and calls {@code callback} with the resulting Bukkit Player on the global scheduler
-   * thread (or null on failure). On Paper/Spigot, runs fully synchronously and invokes the
-   * callback directly.
-   */
+  /** Compatibility entry point for callers that expect a callback-based spawn API. */
   public static void spawnFakePlayerAsync(
       UUID uuid,
       String name,
@@ -1593,110 +1393,7 @@ public final class NmsPlayerSpawner {
       callback.accept(null);
       return;
     }
-    if (!isFolia()) {
-      callback.accept(spawnFakePlayer(uuid, name, skin, world, x, y, z, yaw, pitch, initialPing));
-      return;
-    }
-
-    try {
-      Object gameProfile = gameProfileConstructor.newInstance(uuid, name);
-      if (skin != null && skin.isValid()) {
-        try {
-          gameProfile = SkinProfileInjector.createGameProfile(gameProfileClass, uuid, name, skin);
-        } catch (Exception e) {
-          FppLogger.warn("NmsPlayerSpawner: skin injection failed: " + e.getMessage());
-        }
-      }
-
-      Object minecraftServer = craftServerGetServerMethod.invoke(Bukkit.getServer());
-      Object serverLevel = craftWorldGetHandleMethod.invoke(world);
-      Object clientInfo = getClientInformation();
-
-      Object serverPlayer =
-          createServerPlayer(minecraftServer, serverLevel, gameProfile, clientInfo);
-      if (serverPlayer == null) {
-        FppLogger.warn("NmsPlayerSpawner: failed to create ServerPlayer for " + name);
-        callback.accept(null);
-        return;
-      }
-
-      if (setPosMethod != null) setPosMethod.invoke(serverPlayer, x, y, z);
-      initPreviousPosition(serverPlayer, x, y, z);
-
-      if (initialPing >= 0) {
-        setPingNms(serverPlayer, initialPing);
-      }
-
-      Object conn = createFakeConnection();
-      if (conn == null) {
-        FppLogger.warn("NmsPlayerSpawner: failed to create fake connection for " + name);
-        callback.accept(null);
-        return;
-      }
-
-      ensurePlayerDataExists(minecraftServer, serverPlayer, name, uuid);
-
-      final Object fMinecraftServer = minecraftServer;
-      final Object fConn = conn;
-      final Object fServerPlayer = serverPlayer;
-      final Object fGameProfile = gameProfile;
-      final Object fClientInfo = clientInfo;
-
-      boolean dispatched =
-          dispatchPlacePlayerAsync(
-              world,
-              x,
-              z,
-              minecraftServer,
-              conn,
-              serverPlayer,
-              gameProfile,
-              clientInfo,
-              placed -> {
-                if (!placed) {
-                  cleanupFailedSpawn(fMinecraftServer, fServerPlayer, name);
-                  FppLogger.warn("NmsPlayerSpawner: placeNewPlayer failed for " + name);
-                  callback.accept(null);
-                  return;
-                }
-                try {
-                  if (setPosMethod != null) setPosMethod.invoke(fServerPlayer, x, y, z);
-                  initPreviousPosition(fServerPlayer, x, y, z);
-                  injectFakeListener(
-                      fMinecraftServer, fConn, fServerPlayer, fGameProfile, fClientInfo);
-                  Method getBukkitEntity = serverPlayerClass.getMethod("getBukkitEntity");
-                  Object entity = getBukkitEntity.invoke(fServerPlayer);
-                  if (entity instanceof Player result) {
-                    applyRotation(result, yaw, pitch);
-                    result.setGameMode(org.bukkit.GameMode.SURVIVAL);
-                    setListed(result, true);
-                    forceAllSkinParts(result);
-                    firstTickSet.add(uuid);
-                    FppLogger.debug(
-                        "NmsPlayerSpawner: spawned " + name + " (" + uuid + ") async");
-                    callback.accept(result);
-                  } else {
-                    callback.accept(null);
-                  }
-                } catch (Exception e) {
-                  FppLogger.error(
-                      "NmsPlayerSpawner: async post-placement failed for "
-                          + name
-                          + ": "
-                          + e.getMessage());
-                  callback.accept(null);
-                }
-              });
-
-      if (!dispatched) {
-        cleanupFailedSpawn(minecraftServer, serverPlayer, name);
-        callback.accept(null);
-      }
-    } catch (Exception e) {
-      FppLogger.error(
-          "NmsPlayerSpawner.spawnFakePlayerAsync failed for " + name + ": " + e.getMessage());
-      callback.accept(null);
-    }
+    callback.accept(spawnFakePlayer(uuid, name, skin, world, x, y, z, yaw, pitch, initialPing));
   }
 
   private static Object createCookieDynamic(Object gameProfile, Object clientInfo) {
@@ -1735,6 +1432,364 @@ public final class NmsPlayerSpawner {
     }
     FppLogger.debug("NmsPlayerSpawner: no CommonListenerCookie constructor succeeded");
     return null;
+  }
+
+  private static void prepareJoinCompatibility(Object conn, Object serverPlayer, UUID uuid, String name) {
+    Player bukkitPlayer = resolveBukkitPlayer(serverPlayer);
+    markFakePlayerMetadata(bukkitPlayer);
+    initialiseCmiUser(bukkitPlayer, uuid, name);
+    registerPacketEventsUser(conn, bukkitPlayer, uuid, name);
+  }
+
+  private static Player resolveBukkitPlayer(Object serverPlayer) {
+    if (serverPlayer == null || serverPlayerClass == null) return null;
+    try {
+      Method getBukkitEntity = serverPlayerClass.getMethod("getBukkitEntity");
+      Object entity = getBukkitEntity.invoke(serverPlayer);
+      return entity instanceof Player player ? player : null;
+    } catch (Exception ignored) {
+      return null;
+    }
+  }
+
+  private static void markFakePlayerMetadata(Player player) {
+    Plugin plugin = FakePlayerPlugin.getInstance();
+    if (plugin == null || player == null) return;
+    try {
+      player.getPersistentDataContainer().set(new NamespacedKey(plugin, "npc"), PersistentDataType.BYTE, (byte) 1);
+      player.getPersistentDataContainer().set(new NamespacedKey(plugin, "fpp"), PersistentDataType.BYTE, (byte) 1);
+      player.getPersistentDataContainer().set(new NamespacedKey(plugin, "fakeplayerplugin"), PersistentDataType.BYTE, (byte) 1);
+    } catch (Throwable t) {
+      FppLogger.debug("NmsPlayerSpawner: fake-player metadata failed: " + t.getMessage());
+    }
+  }
+
+  private static void initialiseCmiUser(Player player, UUID uuid, String name) {
+    Plugin cmiPlugin = Bukkit.getPluginManager().getPlugin("CMI");
+    if (cmiPlugin == null || player == null || uuid == null || name == null) return;
+    try {
+      ClassLoader loader = cmiPlugin.getClass().getClassLoader();
+      Class<?> cmiUserClass = Class.forName("com.Zrips.CMI.Containers.CMIUser", false, loader);
+      Object existing = tryStaticCmiGetUser(cmiUserClass, player);
+      if (existing != null) return;
+
+      Object cmiInstance = resolveCmiInstance(cmiPlugin, loader);
+      if (cmiInstance == null) return;
+
+      List<Object> managers = new ArrayList<>();
+      managers.add(cmiInstance);
+      for (String methodName :
+          new String[] {"getPlayerManager", "getUserManager", "getCmiUserManager", "getPlayerDataManager"}) {
+        Object manager = tryInvokeNoArg(cmiInstance, methodName);
+        if (manager != null && !managers.contains(manager)) managers.add(manager);
+      }
+
+      Object user = null;
+      for (Object manager : managers) {
+        user = tryCreateOrGetCmiUser(manager, player, uuid, name);
+        if (user != null) {
+          addUserToCmiMaps(manager, user, player, uuid, name);
+          break;
+        }
+      }
+
+      if (user != null) {
+        addUserToCmiMaps(cmiUserClass, user, player, uuid, name);
+        FppLogger.debug("NmsPlayerSpawner: CMI fake user initialised for " + name);
+      }
+    } catch (Throwable t) {
+      FppLogger.debug("NmsPlayerSpawner: CMI user init skipped: " + t.getMessage());
+    }
+  }
+
+  private static Object resolveCmiInstance(Plugin cmiPlugin, ClassLoader loader) {
+    try {
+      Class<?> cmiClass = Class.forName("com.Zrips.CMI.CMI", false, loader);
+      Object instance = tryInvokeStaticNoArg(cmiClass, "getInstance");
+      return instance != null ? instance : cmiPlugin;
+    } catch (Throwable ignored) {
+      return cmiPlugin;
+    }
+  }
+
+  private static Object tryStaticCmiGetUser(Class<?> cmiUserClass, Player player) {
+    try {
+      Method method = cmiUserClass.getMethod("getUser", Player.class);
+      method.setAccessible(true);
+      return method.invoke(null, player);
+    } catch (Throwable ignored) {
+      return null;
+    }
+  }
+
+  private static Object tryCreateOrGetCmiUser(Object target, Player player, UUID uuid, String name) {
+    for (String methodName :
+        new String[] {
+          "getUser", "getCMIUser", "getByName", "getByUUID", "loadUser", "addUser", "createUser"
+        }) {
+      Object user = tryInvokeUserMethod(target, methodName, player, uuid, name);
+      if (user != null) return user;
+    }
+    return null;
+  }
+
+  private static Object tryInvokeUserMethod(Object target, String methodName, Player player, UUID uuid, String name) {
+    for (Method method : getAllDeclaredMethods(target.getClass())) {
+      if (!method.getName().equals(methodName)) continue;
+      Object[] args = buildCmiUserArgs(method.getParameterTypes(), player, uuid, name);
+      if (args == null) continue;
+      try {
+        method.setAccessible(true);
+        return method.invoke(target, args);
+      } catch (Throwable ignored) {
+      }
+    }
+    return null;
+  }
+
+  private static Object[] buildCmiUserArgs(Class<?>[] types, Player player, UUID uuid, String name) {
+    Object[] args = new Object[types.length];
+    for (int i = 0; i < types.length; i++) {
+      Class<?> type = types[i];
+      if (Player.class.isAssignableFrom(type)) args[i] = player;
+      else if (org.bukkit.OfflinePlayer.class.isAssignableFrom(type)) args[i] = player;
+      else if (UUID.class.isAssignableFrom(type)) args[i] = uuid;
+      else if (String.class.isAssignableFrom(type)) args[i] = name;
+      else if (type == boolean.class || type == Boolean.class) args[i] = Boolean.TRUE;
+      else return null;
+    }
+    return args;
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static void addUserToCmiMaps(Object owner, Object user, Player player, UUID uuid, String name) {
+    Class<?> type = owner instanceof Class<?> clazz ? clazz : owner.getClass();
+    Object target = owner instanceof Class<?> ? null : owner;
+    for (Field field : getAllDeclaredFields(type)) {
+      if (!Map.class.isAssignableFrom(field.getType())) continue;
+      try {
+        field.setAccessible(true);
+        Object value = field.get(target);
+        if (!(value instanceof Map map)) continue;
+        putIfKeyWorks(map, uuid, user);
+        putIfKeyWorks(map, player.getUniqueId(), user);
+        putIfKeyWorks(map, name, user);
+        putIfKeyWorks(map, name.toLowerCase(Locale.ROOT), user);
+        putIfKeyWorks(map, player, user);
+      } catch (Throwable ignored) {
+      }
+    }
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static void putIfKeyWorks(Map map, Object key, Object user) {
+    try {
+      map.putIfAbsent(key, user);
+    } catch (Throwable ignored) {
+    }
+  }
+
+  private static Object tryInvokeNoArg(Object target, String methodName) {
+    try {
+      return invokeNoArg(target.getClass(), target, methodName);
+    } catch (Throwable ignored) {
+      return null;
+    }
+  }
+
+  private static Object tryInvokeStaticNoArg(Class<?> owner, String methodName) {
+    try {
+      return invokeNoArg(owner, null, methodName);
+    } catch (Throwable ignored) {
+      return null;
+    }
+  }
+
+  private static void registerPacketEventsUser(
+      Object conn, Player bukkitPlayer, UUID uuid, String name) {
+    Object channel = resolveConnectionChannel(conn);
+    if (channel == null || bukkitPlayer == null || uuid == null || name == null) return;
+
+    Set<ClassLoader> tried = Collections.newSetFromMap(new IdentityHashMap<>());
+    for (Plugin plugin : Bukkit.getPluginManager().getPlugins()) {
+      String pluginName = plugin.getName().toLowerCase(Locale.ROOT);
+      if (!pluginName.contains("grim") && !pluginName.contains("packetevents")) continue;
+      ClassLoader loader = plugin.getClass().getClassLoader();
+      if (!tried.add(loader)) continue;
+      if (tryRegisterPacketEventsUser(loader, channel, bukkitPlayer, uuid, name)) return;
+    }
+  }
+
+  private static Object resolveConnectionChannel(Object conn) {
+    if (conn == null) return null;
+    try {
+      Field channelField = findFieldByName(conn.getClass(), "channel");
+      return channelField != null ? channelField.get(conn) : null;
+    } catch (Throwable ignored) {
+      return null;
+    }
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static boolean tryRegisterPacketEventsUser(
+      ClassLoader loader, Object channel, Player bukkitPlayer, UUID uuid, String name) {
+    for (String prefix :
+        new String[] {
+          "com.github.retrooper.packetevents",
+          "ac.grim.grimac.shaded.com.github.retrooper.packetevents"
+        }) {
+      try {
+        Class<?> packetEventsClass = Class.forName(prefix + ".PacketEvents", false, loader);
+        Object api = invokeNoArg(packetEventsClass, null, "getAPI");
+        if (api == null) continue;
+
+        try {
+          if (!Boolean.TRUE.equals(invokeNoArg(api.getClass(), api, "isInitialized"))) continue;
+        } catch (NoSuchMethodException ignored) {
+        }
+
+        Object injector = invokeNoArg(api.getClass(), api, "getInjector");
+        if (injector == null) continue;
+
+        Class<?> connectionStateClass = Class.forName(prefix + ".protocol.ConnectionState", false, loader);
+        Class<?> clientVersionClass = Class.forName(prefix + ".protocol.player.ClientVersion", false, loader);
+        Class<?> userProfileClass = Class.forName(prefix + ".protocol.player.UserProfile", false, loader);
+        Class<?> userClass = Class.forName(prefix + ".protocol.player.User", false, loader);
+
+        Object playState = Enum.valueOf(connectionStateClass.asSubclass(Enum.class), "PLAY");
+        Object clientVersion = resolvePacketEventsClientVersion(api, clientVersionClass);
+        Object profile = userProfileClass.getConstructor(UUID.class, String.class).newInstance(uuid, name);
+
+        tryInitialisePacketEventsChannel(loader, prefix, channel, playState, connectionStateClass);
+
+        Object user =
+            userClass
+                .getConstructor(Object.class, connectionStateClass, clientVersionClass, userProfileClass)
+                .newInstance(channel, playState, clientVersion, profile);
+
+        try {
+          userClass.getMethod("setEntityId", int.class).invoke(user, bukkitPlayer.getEntityId());
+        } catch (NoSuchMethodException ignored) {
+        }
+
+        Object protocolManager = invokeNoArg(api.getClass(), api, "getProtocolManager");
+        invokeMethod(protocolManager, "setChannel", new Class<?>[] {UUID.class, Object.class}, uuid, channel);
+        invokeMethod(protocolManager, "setUser", new Class<?>[] {Object.class, userClass}, channel, user);
+        putPacketEventsProtocolMaps(loader, prefix, channel, uuid, user);
+        patchPacketEventsHandlerUser(loader, prefix, channel, user, bukkitPlayer);
+
+        try {
+          invokeMethod(injector, "updateUser", new Class<?>[] {Object.class, userClass}, channel, user);
+        } catch (NoSuchMethodException ignored) {
+        }
+
+        try {
+          invokeMethod(injector, "setPlayer", new Class<?>[] {Object.class, Object.class}, channel, bukkitPlayer);
+        } catch (NoSuchMethodException ignored) {
+        }
+
+        FppLogger.debug("NmsPlayerSpawner: PacketEvents fake user registered for " + name);
+        return true;
+      } catch (ClassNotFoundException ignored) {
+      } catch (Throwable t) {
+        FppLogger.warn("NmsPlayerSpawner: PacketEvents fake user registration skipped: " + t.getMessage());
+      }
+    }
+    return false;
+  }
+
+  private static Object invokeNoArg(Class<?> owner, Object target, String name) throws Exception {
+    Method method = owner.getMethod(name);
+    method.setAccessible(true);
+    return method.invoke(target);
+  }
+
+  private static Object invokeMethod(Object target, String name, Class<?>[] parameterTypes, Object... args)
+      throws Exception {
+    Method method = target.getClass().getMethod(name, parameterTypes);
+    method.setAccessible(true);
+    return method.invoke(target, args);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void putPacketEventsProtocolMaps(
+      ClassLoader loader, String prefix, Object channel, UUID uuid, Object user) throws Exception {
+    Class<?> protocolManagerClass = Class.forName(prefix + ".manager.protocol.ProtocolManager", false, loader);
+    Field channelsField = protocolManagerClass.getField("CHANNELS");
+    Field usersField = protocolManagerClass.getField("USERS");
+    Object channels = channelsField.get(null);
+    Object users = usersField.get(null);
+    if (channels instanceof Map channelsMap) channelsMap.put(uuid, channel);
+    if (users instanceof Map usersMap) usersMap.put(channel, user);
+  }
+
+  private static void patchPacketEventsHandlerUser(
+      ClassLoader loader, String prefix, Object channel, Object user, Player bukkitPlayer) {
+    String injectorPrefix =
+        prefix.startsWith("ac.grim.grimac.shaded")
+            ? "ac.grim.grimac.shaded.io.github.retrooper.packetevents"
+            : "io.github.retrooper.packetevents";
+    try {
+      Class<?> encoderClass =
+          Class.forName(injectorPrefix + ".injector.handlers.PacketEventsEncoder", false, loader);
+      Class<?> decoderClass =
+          Class.forName(injectorPrefix + ".injector.handlers.PacketEventsDecoder", false, loader);
+      Object pipeline = channel.getClass().getMethod("pipeline").invoke(channel);
+      patchPacketEventsHandler(pipeline, encoderClass, user, bukkitPlayer);
+      patchPacketEventsHandler(pipeline, decoderClass, user, bukkitPlayer);
+    } catch (Throwable ignored) {
+    }
+  }
+
+  private static void patchPacketEventsHandler(
+      Object pipeline, Class<?> handlerClass, Object user, Player bukkitPlayer) {
+    try {
+      Object handler = pipeline.getClass().getMethod("get", Class.class).invoke(pipeline, handlerClass);
+      if (handler == null) return;
+      Field userField = findFieldByName(handler.getClass(), "user");
+      if (userField != null) userField.set(handler, user);
+      Field playerField = findFieldByName(handler.getClass(), "player");
+      if (playerField != null) playerField.set(handler, bukkitPlayer);
+    } catch (Throwable ignored) {
+    }
+  }
+
+  private static void tryInitialisePacketEventsChannel(
+      ClassLoader loader,
+      String packetEventsPrefix,
+      Object channel,
+      Object playState,
+      Class<?> connectionStateClass) {
+    String injectorPrefix =
+        packetEventsPrefix.startsWith("ac.grim.grimac.shaded")
+            ? "ac.grim.grimac.shaded.io.github.retrooper.packetevents"
+            : "io.github.retrooper.packetevents";
+    try {
+      Class<?> initializerClass =
+          Class.forName(injectorPrefix + ".injector.connection.ServerConnectionInitializer", false, loader);
+      initializerClass
+          .getMethod("initChannel", Object.class, connectionStateClass)
+          .invoke(null, channel, playState);
+    } catch (Throwable t) {
+      FppLogger.debug("NmsPlayerSpawner: PacketEvents channel init skipped: " + t.getMessage());
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Object resolvePacketEventsClientVersion(Object api, Class<?> clientVersionClass) {
+    try {
+      Object serverManager = invokeNoArg(api.getClass(), api, "getServerManager");
+      Object serverVersion = invokeNoArg(serverManager.getClass(), serverManager, "getVersion");
+      Object clientVersion = invokeNoArg(serverVersion.getClass(), serverVersion, "toClientVersion");
+      if (clientVersionClass.isInstance(clientVersion)) return clientVersion;
+    } catch (Throwable ignored) {
+    }
+
+    try {
+      return clientVersionClass.getMethod("getLatest").invoke(null);
+    } catch (Throwable ignored) {
+    }
+    return Enum.valueOf(clientVersionClass.asSubclass(Enum.class), "UNKNOWN");
   }
 
   private static void initPreviousPosition(Object nmsPlayer, double x, double y, double z) {
@@ -1841,6 +1896,16 @@ public final class NmsPlayerSpawner {
       cur = cur.getSuperclass();
     }
     return fields;
+  }
+
+  private static List<Method> getAllDeclaredMethods(Class<?> clazz) {
+    List<Method> methods = new ArrayList<>();
+    Class<?> cur = clazz;
+    while (cur != null && cur != Object.class) {
+      Collections.addAll(methods, cur.getDeclaredMethods());
+      cur = cur.getSuperclass();
+    }
+    return methods;
   }
 
   // ── Version-safe NMS helpers (Paper 26.1.x / MC 1.21.2+ compatibility) ──

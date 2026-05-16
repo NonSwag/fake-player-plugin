@@ -1,28 +1,52 @@
 # Changelog
 
-## v1.6.6.9 (Current)
-- Fall damage implemented (configurable via `combat.fall-damage`)
-- Fall damage tracking fixed in `FakePlayerManager` tick loop
-- Skin injector fixes for skin extension compatibility
-- Config migrator improvements (v71→v72 cleanup)
-- Extension bundle support
-- Config YML extension removal & migration handling
-- Further API additions for extensions
-- Database/config migration improvements
-- Wiki updated with new marketplace links for extensions and proxy companions
+## v1.6.6.10 (Current)
+
+**Requires MySQL for cross-server features.**
+
+### Network Architecture  
+**Proxy-merged database** — all backends share live bot registry and player counts via MySQL.
+- Schema v25: `fpp_network_bots`, `fpp_server_heartbeat`, `fpp_network_tasks`
+- **NetworkHeartbeatManager** — publishes local bots / reads remote bots every 5s, stale pruning every 60s
+- Proxy companions (Velocity + Bungee) push `NETWORK_STATS` to all backends independently of players
+- `RemoteBotCache` now survives restarts via DB (no longer messaging-only)
+
+### PlaceholderAPI — 70+ placeholders  
+New cross-server placeholders: `%fpp_network_total%`, `%fpp_network_real%`, `%fpp_network_bots%`  
+Also added: server performance, extensions, 30+ config toggles, player-relative per-world, per-bot dynamic lookups.
+
+### Extension System  
+- `/fpp extension` bare command → marketplace link  
+- `/fpp extension --list` → loaded extensions detail table  
+- Extension data folders fixed (`getName()` instead of JAR filename)
+
+### Deprecations & Fixes  
+- `getServers()` → `getServersCopy()`, `FixedMetadataValue` → `PersistentDataContainer`, unchecked warnings cleaned
+- Startup banner shows extension count  
+- Authors updated to `F_PP` and `Kyttu`
+
+### Legal  
+Added `frontend/legal/` pages (copyright, extension policy, privacy, ToS)
+
+---
+
+## v1.6.6.9
+- Fall damage tracking + config
+- Skin injector fixes
+- Config migrator v71→v72
+- Extension bundles, API additions
+- Wiki marketplace links
 
 ## v1.6.6.8
-- **Spoofing features moved to `fpp-spoof.jar` extension** — fake chat, AI conversations, swap system, peak-hours scheduler, ping command, bot groups, and stored commands are no longer in core; they now ship as the `fpp-spoof.jar` extension
-- **PvE Smart Attack Mode**: tri-state per-bot setting (OFF / ON_NO_MOVE / ON_MOVE)
-- Hunt mode (`--hunt`) for roaming mob hunting
-- New commands: `/fpp save`, `/fpp setowner`
-- Per-bot overrides: `respawn-on-death`, `auto-eat`, `auto-place-bed`
-- `BotSettingGui` overhaul: new PvE tab, Pathfinding tab, share control
-- Extension config & resources support (`extension-resources/` in JAR)
-- DB schema v22: new columns for PvE, automation, ping, LuckPerms
+- Spoofing moved to `fpp-spoof.jar` extension (chat, AI, swap, peak-hours, ping, groups, stored cmds)
+- PvE Smart Attack Mode (OFF / ON_NO_MOVE / ON_MOVE)
+- `/fpp save`, `/fpp setowner`
+- Per-bot overrides: respawn-on-death, auto-eat, auto-place-bed
+- BotSettingGui PvE + Pathfinding tabs, share control
+- DB schema v22: PvE, automation, ping, LuckPerms
 
 ## v1.6.6.6
-- Folia scheduling guard improvements
+- Folia scheduling guards
 - Water-path stability fixes
 - Spawn grace-period protection
 
@@ -31,24 +55,21 @@
 - `AttributeCompat` fix
 
 ## v1.6.6
-- `/fpp follow` command
-- Skin persistence across restarts
+- `/fpp follow`
+- Skin persistence
 - Server-list config additions
-- `pathfinding.max-fall` tuning
 - DB schema v17
 
 ## v1.6.5
-- `/fpp ping` command
-- `/fpp attack` command
+- `/fpp ping`
+- `/fpp attack`
 - Permission restructure
 - Skin mode rename
 - `FlagParser` utility
 
 ## Older Versions
-
-For versions prior to v1.6.5, see the Git history:
 https://github.com/Pepe-tf/fake-player-plugin/commits/main
 
 ---
 
-> **Note:** The built-in ConfigMigrator handles upgrades transparently. Current config version: **71**. Always back up `plugins/FakePlayerPlugin/` before updating to a new major version.
+> **Note:** The built-in ConfigMigrator handles upgrades transparently. Current config version: **72**. Always back up `plugins/FakePlayerPlugin/` before major updates.

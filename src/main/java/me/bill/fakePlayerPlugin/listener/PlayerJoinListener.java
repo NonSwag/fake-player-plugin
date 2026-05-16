@@ -79,7 +79,7 @@ public class PlayerJoinListener implements Listener {
     FakePlayer fp = manager.getByUuid(uuid);
     if (fp == null) return;
 
-    event.quitMessage(Config.leaveMessage() ? BotBroadcast.leaveComponent(fp.getDisplayName()) : null);
+    event.quitMessage(Config.leaveMessage() ? BotBroadcast.leaveComponent(fp) : null);
   }
 
   private static void forceHasPlayedBefore(Player player) {
@@ -191,6 +191,14 @@ public class PlayerJoinListener implements Listener {
               }
             },
             10L);
+      }
+    } catch (Throwable ignored) {
+    }
+
+    try {
+      var vc = plugin.getVelocityChannel();
+      if (vc != null) {
+        vc.flushPendingServerStats();
       }
     } catch (Throwable ignored) {
     }

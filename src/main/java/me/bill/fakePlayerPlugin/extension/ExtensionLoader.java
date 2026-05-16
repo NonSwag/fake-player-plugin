@@ -239,6 +239,12 @@ public final class ExtensionLoader {
     }
   }
 
+  public @NotNull List<me.bill.fakePlayerPlugin.api.FppAddon> getLoadedExtensions() {
+    return activeWrappers.stream()
+        .map(w -> (me.bill.fakePlayerPlugin.api.FppAddon) w)
+        .toList();
+  }
+
   public void reloadExtensionConfigs() {
     for (var entry : EXTENSIONS.entrySet()) {
       try {
@@ -292,10 +298,6 @@ public final class ExtensionLoader {
     activeWrappers.addAll(wrappers);
 
     FppLogger.info("[Extensions] Loaded " + wrappers.size() + " extension(s) from jar file(s).");
-  }
-
-  public int getLoadedExtensionCount() {
-    return activeWrappers.size();
   }
 
   public void reload() {
@@ -417,13 +419,7 @@ public final class ExtensionLoader {
         try (InputStream in = jarFile.getInputStream(nestedJar)) {
           Files.copy(in, extractedJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
-        File bundledDataRoot =
-            new File(
-                plugin.getDataFolder(),
-                "extensions"
-                    + File.separator
-                    + sanitizeFileName(stripJarSuffix(bundleJar.getName())));
-        found += loadJar(extractedJar, wrappers, bundledDataRoot);
+        found += loadJar(extractedJar, wrappers, null);
       }
     } catch (IOException e) {
       FppLogger.warn(
