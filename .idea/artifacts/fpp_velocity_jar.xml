@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="fpp-velocity:jar">
-    <output-path>$USER_HOME$/Desktop/FPPT/Plugins</output-path>
-    <root id="archive" name="fpp-velocity.jar">
-      <element id="module-output" name="fpp-velocity" />
-    </root>
-  </artifact>
-</component>
