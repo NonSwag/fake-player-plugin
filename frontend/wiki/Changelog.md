@@ -1,6 +1,28 @@
 # Changelog
 
-## v1.6.6.10 (Current)
+## v1.6.6.10.1 (Current)
+
+### Attribution & Author Updates
+- Hardcoded original author updated from `el_pepes` to `F_PP` across codebase
+
+### FastStats Metrics System Overhaul
+- **ErrorTracker** — context-aware error tracking via FastStats API
+- **Debug toggle** — `metrics.debug` option in `config.yml` (default `false`)
+- **onFlush callback** — logs at debug level when metrics are flushed to FastStats
+- **New metrics added**: `active_features` (string array), feature flags, installed plugins (LuckPerms, PlaceholderAPI, WorldGuard, WorldEdit, NameTag), server info, PvE settings, automation toggles
+- **trackError() helpers** — two public overloads (`Throwable` and `String`) for external error reporting
+- Added `getFppMetrics()` public getter on `FakePlayerPlugin.java`
+
+### Bug Fixes
+- **PluginRemapper duplicate entries** — `pom.xml` now properly excludes Mojang-mapped `paper-server` NMS classes from shaded JAR, fixing Paper 1.21.11 runtime remapping crash
+- **SQLite AUTO_INCREMENT syntax** — split `fpp_network_tasks` table creation into SQLite (`INTEGER PRIMARY KEY AUTOINCREMENT`) and MySQL (`BIGINT AUTO_INCREMENT`) variants, fixing `SQLITE_ERROR near "AUTO_INCREMENT": syntax error`
+
+### Deprecations & Removals
+- None
+
+---
+
+## v1.6.6.10
 
 **Requires MySQL for cross-server features.**
 
