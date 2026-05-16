@@ -41,6 +41,8 @@ dependencies {
     compileOnly("me.clip:placeholderapi:2.11.6")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.12") {
         exclude("com.google.code.gson", "gson")
+        exclude("com.google.guava", "guava")
+        exclude("it.unimi.dsi", "fastutil")
     }
 }
 
