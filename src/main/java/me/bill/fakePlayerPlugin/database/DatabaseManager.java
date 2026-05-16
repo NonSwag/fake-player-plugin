@@ -13,7 +13,7 @@ import me.bill.fakePlayerPlugin.util.FppLogger;
 
 public class DatabaseManager {
 
-  private static final int SCHEMA_VERSION = 24;
+  private static final int SCHEMA_VERSION = 25;
 
   public static int getCurrentSchemaVersion() {
     return SCHEMA_VERSION;
@@ -271,6 +271,45 @@ public class DatabaseManager {
           + "  PRIMARY KEY (bot_uuid, extension_key, data_key)"
           + ")";
 
+  private static final String CREATE_NETWORK_BOTS =
+      "CREATE TABLE IF NOT EXISTS fpp_network_bots ("
+          + "  bot_uuid     VARCHAR(36)  NOT NULL PRIMARY KEY,"
+          + "  bot_name     VARCHAR(16)  NOT NULL,"
+          + "  bot_display  VARCHAR(128) DEFAULT NULL,"
+          + "  server_id    VARCHAR(64)  NOT NULL,"
+          + "  spawned_by   VARCHAR(16)  NOT NULL,"
+          + "  world_name   VARCHAR(64)  DEFAULT NULL,"
+          + "  pos_x        DOUBLE       DEFAULT 0,"
+          + "  pos_y        DOUBLE       DEFAULT 0,"
+          + "  pos_z        DOUBLE       DEFAULT 0,"
+          + "  ping         INT          DEFAULT 0,"
+          + "  frozen       BOOLEAN      DEFAULT 0,"
+          + "  updated_at   BIGINT       NOT NULL"
+          + ")";
+
+  private static final String CREATE_SERVER_HEARTBEAT =
+      "CREATE TABLE IF NOT EXISTS fpp_server_heartbeat ("
+          + "  server_id     VARCHAR(64)  NOT NULL PRIMARY KEY,"
+          + "  real_players  INT          DEFAULT 0,"
+          + "  bot_count     INT          DEFAULT 0,"
+          + "  last_seen     BIGINT       NOT NULL"
+          + ")";
+
+  private static final String CREATE_NETWORK_TASKS =
+      "CREATE TABLE IF NOT EXISTS fpp_network_tasks ("
+          + "  id            BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
+          + "  target_bot    VARCHAR(36)  NOT NULL,"
+          + "  source_server VARCHAR(64)  NOT NULL,"
+          + "  target_server VARCHAR(64)  NOT NULL,"
+          + "  task_type     VARCHAR(16)  NOT NULL,"
+          + "  task_data     TEXT         DEFAULT NULL,"
+          + "  created_at    BIGINT       NOT NULL,"
+          + "  claimed_at    BIGINT       DEFAULT NULL,"
+          + "  claimed_by    VARCHAR(64)  DEFAULT NULL,"
+          + "  status        VARCHAR(16)  DEFAULT 'PENDING',"
+          + "  result        TEXT         DEFAULT NULL"
+          + ")";
+
   private static final String CREATE_SKIN_CACHE_SQLITE =
       "CREATE TABLE IF NOT EXISTS fpp_skin_cache ("
           + "  skin_name         VARCHAR(16)  NOT NULL PRIMARY KEY,"
@@ -428,6 +467,46 @@ public class DatabaseManager {
     {
       "ALTER TABLE fpp_despawn_snapshots ADD COLUMN skin_texture   TEXT DEFAULT NULL",
       "ALTER TABLE fpp_despawn_snapshots ADD COLUMN skin_signature TEXT DEFAULT NULL"
+    },
+    {
+      "CREATE TABLE IF NOT EXISTS fpp_network_bots ("
+          + "  bot_uuid     VARCHAR(36)  NOT NULL PRIMARY KEY,"
+          + "  bot_name     VARCHAR(16)  NOT NULL,"
+          + "  bot_display  VARCHAR(128) DEFAULT NULL,"
+          + "  server_id    VARCHAR(64)  NOT NULL,"
+          + "  spawned_by   VARCHAR(16)  NOT NULL,"
+          + "  world_name   VARCHAR(64)  DEFAULT NULL,"
+          + "  pos_x        DOUBLE       DEFAULT 0,"
+          + "  pos_y        DOUBLE       DEFAULT 0,"
+          + "  pos_z        DOUBLE       DEFAULT 0,"
+          + "  ping         INT          DEFAULT 0,"
+          + "  frozen       BOOLEAN      DEFAULT 0,"
+          + "  updated_at   BIGINT       NOT NULL,"
+          + "  INDEX idx_server_id (server_id),"
+          + "  INDEX idx_updated_at (updated_at)"
+          + ")",
+      "CREATE TABLE IF NOT EXISTS fpp_server_heartbeat ("
+          + "  server_id     VARCHAR(64)  NOT NULL PRIMARY KEY,"
+          + "  real_players  INT          DEFAULT 0,"
+          + "  bot_count     INT          DEFAULT 0,"
+          + "  last_seen     BIGINT       NOT NULL"
+          + ")",
+      "CREATE TABLE IF NOT EXISTS fpp_network_tasks ("
+          + "  id           BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
+          + "  target_bot   VARCHAR(36)  NOT NULL,"
+          + "  source_server VARCHAR(64) NOT NULL,"
+          + "  target_server VARCHAR(64) NOT NULL,"
+          + "  task_type    VARCHAR(16)  NOT NULL,"
+          + "  task_data    TEXT         DEFAULT NULL,"
+          + "  created_at   BIGINT       NOT NULL,"
+          + "  claimed_at   BIGINT       DEFAULT NULL,"
+          + "  claimed_by   VARCHAR(64)  DEFAULT NULL,"
+          + "  status       VARCHAR(16)  DEFAULT 'PENDING',"
+          + "  result       TEXT         DEFAULT NULL,"
+          + "  INDEX idx_target_bot (target_bot),"
+          + "  INDEX idx_status (status),"
+          + "  INDEX idx_target_server (target_server)"
+          + ")"
     }
   };
 
@@ -565,6 +644,9 @@ public class DatabaseManager {
     exec(CREATE_DESPAWN_SNAPSHOTS);
     exec(CREATE_EXTENSION_DATA);
     exec(CREATE_META);
+    exec(CREATE_NETWORK_BOTS);
+    exec(CREATE_SERVER_HEARTBEAT);
+    exec(CREATE_NETWORK_TASKS);
   }
 
   private void migrate() {
@@ -1126,6 +1208,33 @@ public class DatabaseManager {
     }
     return list;
   }
+
+  /**
+   * Returns remote bots from the shared fpp_network_bots table.
+   * Used at startup to pre-populate RemoteBotCache in proxy-merged setups.
+   */
+  public List<NetworkBotPreview> getNetworkBotsFromOtherServers() {
+    List<NetworkBotPreview> list = new ArrayList<>();
+    if (!Config.isNetworkMode() || !isAlive()) return list;
+    String sql = "SELECT bot_uuid, bot_name, bot_display, server_id FROM fpp_network_bots WHERE server_id != ?";
+    try (PreparedStatement ps = connection.prepareStatement(sql)) {
+      ps.setString(1, Config.serverId());
+      try (ResultSet rs = ps.executeQuery()) {
+        while (rs.next()) {
+          list.add(new NetworkBotPreview(
+              rs.getString("bot_uuid"),
+              rs.getString("bot_name"),
+              rs.getString("bot_display"),
+              rs.getString("server_id")));
+        }
+      }
+    } catch (SQLException e) {
+      FppLogger.error("DB getNetworkBotsFromOtherServers: " + e.getMessage());
+    }
+    return list;
+  }
+
+  public record NetworkBotPreview(String botUuid, String botName, String botDisplay, String serverId) {}
 
   private ActiveBotRow mapActiveBotRow(ResultSet rs) throws SQLException {
     String lpGroup = null;

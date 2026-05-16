@@ -37,6 +37,8 @@ public final class VelocityChannel implements PluginMessageListener {
   public static final String SUBCHANNEL_SYNC = "SYNC";
   public static final String SUBCHANNEL_RESYNC = "RESYNC";
   public static final String SUBCHANNEL_SERVER_OFFLINE = "SERVER_OFFLINE";
+  public static final String SUBCHANNEL_SERVER_STATS = "SERVER_STATS";
+  public static final String SUBCHANNEL_NETWORK_STATS = "NETWORK_STATS";
 
   public static final String CHANNEL = "fpp:main";
 
@@ -56,11 +58,35 @@ public final class VelocityChannel implements PluginMessageListener {
 
   private volatile boolean pendingProxyBroadcast = false;
 
+  private volatile boolean pendingServerStats = false;
+
   private volatile boolean retryTaskRunning = false;
 
   public VelocityChannel(FakePlayerPlugin plugin, FakePlayerManager manager) {
     this.plugin = plugin;
     this.manager = manager;
+  }
+
+  public void broadcastServerStats() {
+    if (!Config.isNetworkMode() || !plugin.isEnabled()) return;
+    int realPlayers = Math.max(0, Bukkit.getOnlinePlayers().size() - manager.getCount());
+    String msgId = generateAndTrackId();
+    boolean sent = sendPluginMessage(SUBCHANNEL_SERVER_STATS, msgId, Config.serverId(), String.valueOf(realPlayers));
+    if (sent) {
+      Config.debugNetwork(
+          "[VelocityChannel] SERVER_STATS sent: " + realPlayers + " real players.");
+    } else {
+      pendingServerStats = true;
+      scheduleProxyRetryIfNeeded();
+      Config.debugNetwork(
+          "[VelocityChannel] SERVER_STATS queued (no real player): " + realPlayers + " real players.");
+    }
+  }
+
+  public void flushPendingServerStats() {
+    if (!pendingServerStats) return;
+    pendingServerStats = false;
+    broadcastServerStats();
   }
 
   private String generateAndTrackId() {
@@ -95,11 +121,11 @@ public final class VelocityChannel implements PluginMessageListener {
     return null;
   }
 
-  public void sendPluginMessage(String subchannel, String... data) {
+  public boolean sendPluginMessage(String subchannel, String... data) {
     Player carrier = findRealCarrierPlayer();
     if (carrier == null) {
       Config.debugNetwork("[VelocityChannel] dropped (no real player online): " + subchannel);
-      return;
+      return false;
     }
     try {
       ByteArrayOutputStream innerBuf = new ByteArrayOutputStream();
@@ -125,8 +151,10 @@ public final class VelocityChannel implements PluginMessageListener {
               + " bytes) via real player: "
               + carrier.getName()
               + ".");
+      return true;
     } catch (IOException e) {
       FppLogger.warn("[VelocityChannel] send failed: " + e.getMessage());
+      return false;
     }
   }
 
@@ -325,7 +353,7 @@ public final class VelocityChannel implements PluginMessageListener {
         FppScheduler.runSyncRepeatingWithId(
             plugin,
             () -> {
-              boolean nothingToDo = !pendingProxyBroadcast && pendingProxyDespawnUuids.isEmpty();
+              boolean nothingToDo = !pendingProxyBroadcast && pendingProxyDespawnUuids.isEmpty() && !pendingServerStats;
               if (nothingToDo) {
                 FppScheduler.cancelTask(retryTaskId[0]);
                 retryTaskRunning = false;
@@ -356,7 +384,13 @@ public final class VelocityChannel implements PluginMessageListener {
                 }
               }
 
-              if (pendingProxyDespawnUuids.isEmpty() && !pendingProxyBroadcast) {
+              // Then flush pending stats
+              if (pendingServerStats) {
+                pendingServerStats = false;
+                broadcastServerStats();
+              }
+
+              if (pendingProxyDespawnUuids.isEmpty() && !pendingProxyBroadcast && !pendingServerStats) {
                 FppScheduler.cancelTask(retryTaskId[0]);
                 retryTaskRunning = false;
               }
@@ -367,7 +401,7 @@ public final class VelocityChannel implements PluginMessageListener {
 
   @Override
   public void onPluginMessageReceived(@NotNull String channel, @NotNull Player player, @NotNull byte[] message) {
-    if (!CHANNEL.equals(channel)) return;
+    if (!CHANNEL.equals(channel) && !PROXY_CHANNEL.equals(channel)) return;
     try {
       DataInputStream in = new DataInputStream(new ByteArrayInputStream(message));
       String subchannel = in.readUTF();
@@ -383,6 +417,8 @@ public final class VelocityChannel implements PluginMessageListener {
         case SUBCHANNEL_SYNC -> handleSync(in);
         case SUBCHANNEL_RESYNC -> handleResync(in);
         case SUBCHANNEL_SERVER_OFFLINE -> handleServerOffline(in);
+        case SUBCHANNEL_SERVER_STATS -> handleServerStats(in);
+        case SUBCHANNEL_NETWORK_STATS -> handleNetworkStats(in);
         default -> FppLogger.warn("[VelocityChannel] Unknown subchannel: '" + subchannel + "'.");
       }
     } catch (IOException e) {
@@ -655,6 +691,54 @@ public final class VelocityChannel implements PluginMessageListener {
                     + "'.");
           });
     }
+  }
+
+  private void handleServerStats(DataInputStream in) throws IOException {
+    String msgId = in.readUTF();
+    String originServer = in.readUTF();
+    String countStr = in.readUTF();
+
+    if (isDuplicate(msgId, originServer)) {
+      Config.debugNetwork("[VelocityChannel] SERVER_STATS echo suppressed.");
+      return;
+    }
+    trackIncoming(msgId);
+
+    int realPlayers = 0;
+    try {
+      realPlayers = Integer.parseInt(countStr);
+    } catch (NumberFormatException ignored) {
+    }
+
+    RemoteBotCache cache = plugin.getRemoteBotCache();
+    if (cache != null) {
+      cache.setServerRealPlayerCount(originServer, realPlayers);
+    }
+
+    Config.debugNetwork(
+        "[VelocityChannel] SERVER_STATS from '"
+            + originServer
+            + "' — real players: "
+            + realPlayers
+            + ".");
+  }
+
+  private void handleNetworkStats(DataInputStream in) throws IOException {
+    int totalPlayers = in.readInt();
+    int totalBots = in.readInt();
+
+    RemoteBotCache cache = plugin.getRemoteBotCache();
+    if (cache != null) {
+      cache.setNetworkTotalPlayers(totalPlayers);
+      cache.setNetworkTotalBots(totalBots);
+    }
+
+    Config.debugNetwork(
+        "[VelocityChannel] NETWORK_STATS — total players: "
+            + totalPlayers
+            + ", total bots: "
+            + totalBots
+            + ".");
   }
 
   private void reloadSubsystemForFile(String fileName) {

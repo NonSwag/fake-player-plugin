@@ -2,12 +2,17 @@ package me.bill.fakePlayerPlugin.fakeplayer;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class RemoteBotCache {
 
   private final ConcurrentHashMap<UUID, RemoteBotEntry> entries = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, Integer> serverRealPlayerCounts = new ConcurrentHashMap<>();
+
+  private volatile int networkTotalPlayers = -1;
+  private volatile int networkTotalBots = -1;
 
   public void add(RemoteBotEntry entry) {
     entries.put(entry.uuid(), entry);
@@ -19,10 +24,12 @@ public final class RemoteBotCache {
 
   public void removeAllFromServer(String serverId) {
     entries.values().removeIf(e -> serverId.equals(e.serverId()));
+    serverRealPlayerCounts.remove(serverId);
   }
 
   public void clear() {
     entries.clear();
+    serverRealPlayerCounts.clear();
   }
 
   public RemoteBotEntry get(UUID uuid) {
@@ -35,5 +42,51 @@ public final class RemoteBotCache {
 
   public int count() {
     return entries.size();
+  }
+
+  public void setServerRealPlayerCount(String serverId, int count) {
+    serverRealPlayerCounts.put(serverId, Math.max(0, count));
+  }
+
+  public int getServerRealPlayerCount(String serverId) {
+    return serverRealPlayerCounts.getOrDefault(serverId, 0);
+  }
+
+  public Map<String, Integer> getAllServerRealPlayerCounts() {
+    return Collections.unmodifiableMap(new ConcurrentHashMap<>(serverRealPlayerCounts));
+  }
+
+  public int totalRealPlayersAcrossNetwork() {
+    return serverRealPlayerCounts.values().stream().mapToInt(Integer::intValue).sum();
+  }
+
+  public int totalBotsAcrossNetwork() {
+    return entries.size();
+  }
+
+  public int totalPlayersAcrossNetwork() {
+    return totalRealPlayersAcrossNetwork() + totalBotsAcrossNetwork();
+  }
+
+  // ── Proxy-pushed totals ────────────────────────────────────────────────────
+
+  public void setNetworkTotalPlayers(int count) {
+    this.networkTotalPlayers = Math.max(0, count);
+  }
+
+  public void setNetworkTotalBots(int count) {
+    this.networkTotalBots = Math.max(0, count);
+  }
+
+  public int getNetworkTotalPlayers() {
+    return networkTotalPlayers;
+  }
+
+  public int getNetworkTotalBots() {
+    return networkTotalBots;
+  }
+
+  public boolean hasNetworkStats() {
+    return networkTotalPlayers >= 0;
   }
 }

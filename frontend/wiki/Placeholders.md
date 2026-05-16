@@ -1,6 +1,6 @@
 # Placeholders
 
-FPP provides **29+ placeholders** via PlaceholderAPI (requires the PlaceholderAPI plugin).
+FPP provides **70+ placeholders** via PlaceholderAPI (requires the PlaceholderAPI plugin).
 
 All identifiers are prefixed with `%fpp_`.
 
@@ -10,67 +10,122 @@ All identifiers are prefixed with `%fpp_`.
 |-------------|-------------|
 | `%fpp_count%` | Total bots (local + remote in NETWORK mode) |
 | `%fpp_local_count%` | Bots on this server only |
-| `%fpp_network_count%` | Bots on other proxy servers |
+| `%fpp_network_count%` | Bots on other proxy servers (NETWORK mode only) |
 | `%fpp_max%` | Global bot cap (`∞` if unlimited) |
 | `%fpp_real%` | Real players online |
-| `%fpp_total%` | Total players (real + bots) |
+| `%fpp_total%` | Total players (real + bots) on this server |
 | `%fpp_online%` | Same as `%fpp_total%` |
+| `%fpp_network_total%` | **Total players (real + bots) across ALL servers** (NETWORK mode only; includes local + remote real players + all bots) |
+| `%fpp_network_real%` | Total real players across ALL servers (NETWORK mode only) |
+| `%fpp_network_bots%` | Total bots across ALL servers (NETWORK mode only) |
 | `%fpp_frozen%` | Number of frozen bots |
-| `%fpp_names%` | Comma-separated bot names |
+| `%fpp_names%` | Comma-separated bot names (includes remote in NETWORK mode) |
 | `%fpp_network_names%` | Comma-separated remote bot names |
 | `%fpp_version%` | Plugin version string |
 
-## State / Toggle
+## Plugin Settings / Toggles
 
 | Placeholder | Description |
 |-------------|-------------|
 | `%fpp_chat%` | `on` or `off` (fake chat enabled) |
-| `%fpp_skin%` | Current skin mode |
+| `%fpp_skin%` | Current skin mode (e.g. `random`, `file`, `url`) |
 | `%fpp_body%` | `on` or `off` (body enabled) |
 | `%fpp_pushable%` | `on` or `off` |
 | `%fpp_damageable%` | `on` or `off` |
 | `%fpp_tab%` | `on` or `off` (tab list enabled) |
-| `%fpp_ping%` | `on` or `off` (ping enabled) |
+| `%fpp_ping%` | `on` or `off` (random fake ping enabled) |
 | `%fpp_max_health%` | Bot max health value |
 | `%fpp_network%` | `on` or `off` (NETWORK mode) |
+| `%fpp_network_mode%` | Same as `%fpp_network%` |
 | `%fpp_server_id%` | Current server ID |
-| `%fpp_persistence%` | `on` or `off` |
-| `%fpp_spawn_cooldown%` | Spawn cooldown seconds |
+| `%fpp_persistence%` | `on` or `off` (persist on restart) |
+| `%fpp_spawn_cooldown%` | Spawn cooldown in seconds |
+| `%fpp_chunk_loading%` | `on` or `off` |
+| `%fpp_head_ai%` | `on` or `off` |
+| `%fpp_swim_ai%` | `on` or `off` |
+| `%fpp_auto_eat%` | `on` or `off` |
+| `%fpp_auto_place_bed%` | `on` or `off` |
+| `%fpp_auto_milk%` | `on` or `off` |
+| `%fpp_prevent_bad_omen%` | `on` or `off` |
+| `%fpp_fall_damage%` | `on` or `off` |
+| `%fpp_respawn_on_death%` | `on` or `off` |
+| `%fpp_hurt_sound%` | `on` or `off` |
+| `%fpp_join_message%` | `on` or `off` |
+| `%fpp_leave_message%` | `on` or `off` |
+| `%fpp_death_message%` | `on` or `off` |
+| `%fpp_peak_hours%` | `on` or `off` |
+| `%fpp_swap%` | `on` or `off` |
+| `%fpp_metrics%` | `on` or `off` |
+| `%fpp_update_checker%` | `on` or `off` |
+
+## Server Performance
+
+| Placeholder | Description |
+|-------------|-------------|
+| `%fpp_server_tps%` | Server TPS (current) |
+| `%fpp_server_uptime%` | Server uptime (e.g. `4h 12m`) |
+
+## Extensions
+
+| Placeholder | Description |
+|-------------|-------------|
+| `%fpp_extensions%` | Number of loaded extensions |
+| `%fpp_extensions_names%` | Comma-separated extension names |
+
+## Ping
+
+| Placeholder | Description |
+|-------------|-------------|
+| `%fpp_ping_all%` | If sender is a bot, returns bot's ping; otherwise sender's real ping |
+| `%fpp_avg_ping%` | Average ping across all local bots |
+| `%fpp_player_ping%` | Sender's real player ping |
 
 ## Per-World
 
 | Placeholder | Description |
 |-------------|-------------|
-| `%fpp_count_<world>%` | Bots in specific world |
-| `%fpp_real_<world>%` | Real players in specific world |
-| `%fpp_total_<world>%` | Total (real + bots) in specific world |
+| `%fpp_count_<world>%` | Bots in a specific world |
+| `%fpp_real_<world>%` | Real players in a specific world |
+| `%fpp_total_<world>%` | Total (real + bots) in a specific world |
 
 ## Player-Relative
 
 | Placeholder | Description |
 |-------------|-------------|
 | `%fpp_user_count%` | Player's bot count |
-| `%fpp_user_max%` | Player's bot limit |
+| `%fpp_user_max%` | Player's bot limit (respects permission overrides) |
 | `%fpp_user_names%` | Comma-separated names of player's bots |
 | `%fpp_user_ping%` | Ping of player's first bot |
 | `%fpp_user_ping_avg%` | Average ping of player's bots |
+| `%fpp_user_frozen%` | Number of player's frozen bots |
+| `%fpp_user_oldest%` | Name of player's oldest bot |
+| `%fpp_user_newest%` | Name of player's newest bot |
+| `%fpp_user_uptime%` | Combined uptime of player's bots (e.g. `1h 23m`) |
+| `%fpp_user_count_<world>%` | Player's bot count in a specific world |
 
 ## Per-Bot
 
 | Placeholder | Description |
 |-------------|-------------|
 | `%fpp_ping_<bot_name>%` | Specific bot's ping |
-| `%fpp_ping_all%` | If sender is a bot, return bot's ping; otherwise sender's real ping |
-| `%fpp_avg_ping%` | Average ping across all local bots |
-| `%fpp_player_ping%` | Sender's real player ping |
+| `%fpp_health_<bot_name>%` | Specific bot's current health |
+| `%fpp_world_<bot_name>%` | Specific bot's current world |
+| `%fpp_loc_x_<bot_name>%` | Specific bot's X coordinate |
+| `%fpp_loc_y_<bot_name>%` | Specific bot's Y coordinate |
+| `%fpp_loc_z_<bot_name>%` | Specific bot's Z coordinate |
+| `%fpp_frozen_<bot_name>%` | `yes` or `no` |
+| `%fpp_sleeping_<bot_name>%` | `yes` or `no` |
+| `%fpp_owner_<bot_name>%` | Username who spawned the bot |
+| `%fpp_pve_<bot_name>%` | `yes` or `no` (bot attack mob enabled) |
 
 ## Examples
 
 ```
 # Tab list header
-&7Bots: %fpp_count% | Real: %fpp_real% | Total: %fpp_total%
+&Bots: %fpp_count% | Real: %fpp_real% | Total: %fpp_online% | Ping: %fpp_server_tps%
 
 # Scoreboard
-'Bot Count': %fpp_count%
+'Bot Count': %fpp_count% / %fpp_max%
 'Your Bots': %fpp_user_count% / %fpp_user_max%
+'Extensions': %fpp_extensions%
 ```

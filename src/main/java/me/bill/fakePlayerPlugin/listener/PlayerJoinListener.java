@@ -195,6 +195,14 @@ public class PlayerJoinListener implements Listener {
     } catch (Throwable ignored) {
     }
 
+    try {
+      var vc = plugin.getVelocityChannel();
+      if (vc != null) {
+        vc.flushPendingServerStats();
+      }
+    } catch (Throwable ignored) {
+    }
+
     long delayTicks = manager.isRestorationInProgress() ? 40L : 5L;
 
     FppScheduler.runSyncLater(

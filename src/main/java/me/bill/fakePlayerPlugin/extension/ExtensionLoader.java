@@ -239,6 +239,12 @@ public final class ExtensionLoader {
     }
   }
 
+  public @NotNull List<me.bill.fakePlayerPlugin.api.FppAddon> getLoadedExtensions() {
+    return activeWrappers.stream()
+        .map(w -> (me.bill.fakePlayerPlugin.api.FppAddon) w)
+        .toList();
+  }
+
   public void reloadExtensionConfigs() {
     for (var entry : EXTENSIONS.entrySet()) {
       try {

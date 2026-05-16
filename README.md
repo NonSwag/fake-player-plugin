@@ -13,7 +13,7 @@
 [![Patreon](https://img.shields.io/badge/Patreon-Support%20FPP-FF424D?style=flat-square&logo=patreon&logoColor=white)](https://www.patreon.com/c/F_PP?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink)
 
 > **Advanced Fake Player Spoofer for Paper 1.21+**
-> Create realistic fake players — full tab-list entries, physical in-world bodies, skins, combat, pathfinding, automation, and multi-server proxy support.
+> Create realistic fake players — full tab-list entries, physical in-world bodies, skins, combat, pathfinding, automation, and multi-server proxy support with **proxy-merged shared database**.
 
 ---
 
@@ -29,13 +29,13 @@
 - ⚔️ **PvE Combat** — Per-bot attack settings, hunt mode, melee cooldowns
 - ⚙️ **Per-Bot Settings GUI** — Shift+right-click any bot for inventories, pathfinding toggles, PvE settings, and automation overrides
 - 💾 **Persistence** — Bot positions, tasks, and inventories survive restarts (YAML or database)
-- 🗄️ **Database** — SQLite (local) or MySQL (network / multi-server)
-- 🌐 **Proxy Support** — Velocity & BungeeCord companion plugins for cross-server bot visibility
+- 🗄️ **Database** — SQLite (local) or MySQL (network / multi-server with proxy-merged shared tables)
+- 🌐 **Proxy Support** — Velocity & BungeeCord with companion plugins; **proxy-merged database shares live bot registry and player counts across all backends**
 - 🔄 **Config Sync** — Push/pull config across backend servers via shared MySQL
 - 📦 **Extension API** — Drop `.jar` files into `plugins/FakePlayerPlugin/extensions/` to load third-party addons
 - 🔤 **Random Name Generator** — `bot-name.mode: random` generates realistic Minecraft-style usernames on the fly
 - 🚫 **Badword Filter** — Leet-speak normalization, auto-rename, remote word list
-- 📊 **PlaceholderAPI** — 29+ placeholders for scoreboards, tab headers, and more
+- 📊 **PlaceholderAPI** — **70+ placeholders** for scoreboards, tab headers, cross-server counts, and more
 - 🧱 **WorldEdit & WorldGuard** — `--wesel` selection flag for mine/place; region-aware PvP protection
 - 🍃 **Folia Support** — Compatible with Folia's regionised threading model out of the box
 - 📶 **Simulated Ping** — Tab-list latency display per bot
@@ -113,6 +113,7 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 | **freeze** | `<bot\|all> [on\|off]` | Freeze/unfreeze | `fpp.freeze` |
 | **inventory** | `<bot>` (alias: `inv`) | Open bot inventory | `fpp.inventory` |
 | **storage** | `<bot> [storage_name\|--list\|--remove <name>\|--clear]` | Manage supply containers | `fpp.storage` |
+| **extension** | `[--list]` | Manage extensions | `fpp.stats` |
 | **save** | — | Force-save all bots | `fpp.save` |
 | **setowner** | `<bot> <player>` | Transfer ownership | `fpp.setowner` |
 | **rename** | `<oldname> <newname>` | Rename a bot | `fpp.rename` |
@@ -196,7 +197,7 @@ FPP uses a two-tier permission system.
 
 ## 📊 Placeholders
 
-Requires **PlaceholderAPI**. All prefixed with `%fpp_`.
+Requires **PlaceholderAPI**. **70+ placeholders** — all prefixed with `%fpp_`.
 
 ### Server-Wide
 
@@ -207,24 +208,46 @@ Requires **PlaceholderAPI**. All prefixed with `%fpp_`.
 | `%fpp_network_count%` | Bots on other proxy servers |
 | `%fpp_max%` | Global bot cap (`∞` if unlimited) |
 | `%fpp_real%` | Real players online |
-| `%fpp_total%` / `%fpp_online%` | Total players (real + bots) |
+| `%fpp_total%` / `%fpp_online%` | Total players (real + bots) on **this** server |
+| `%fpp_network_total%` | **Total players + bots across ALL backends** (NETWORK mode) |
+| `%fpp_network_real%` | **Total real players across ALL backends** (NETWORK mode) |
+| `%fpp_network_bots%` | **Total bots across ALL backends** (NETWORK mode) |
 | `%fpp_frozen%` | Frozen bot count |
-| `%fpp_names%` | Comma-separated bot names |
+| `%fpp_names%` | Comma-separated bot names (includes remote in NETWORK mode) |
 | `%fpp_network_names%` | Remote bot names |
 | `%fpp_version%` | Plugin version |
 
-### State
+### Server Performance
 
 | Placeholder | Description |
 |-------------|-------------|
+| `%fpp_server_tps%` | Server TPS |
+| `%fpp_server_uptime%` | Server uptime |
+
+### Extensions
+
+| Placeholder | Description |
+|-------------|-------------|
+| `%fpp_extensions%` | Number of loaded extensions |
+| `%fpp_extensions_names%` | Comma-separated extension names |
+
+### Settings / Toggles
+
+| Placeholder | Returns |
+|-------------|---------|
 | `%fpp_chat%` | `on` / `off` |
 | `%fpp_skin%` | Skin mode |
 | `%fpp_body%` / `%fpp_pushable%` / `%fpp_damageable%` / `%fpp_tab%` / `%fpp_ping%` | `on` / `off` |
 | `%fpp_max_health%` | Max HP |
-| `%fpp_network%` | `on` / `off` (NETWORK mode) |
+| `%fpp_network%` / `%fpp_network_mode%` | `on` / `off` (NETWORK mode) |
 | `%fpp_server_id%` | Server ID |
 | `%fpp_persistence%` | `on` / `off` |
 | `%fpp_spawn_cooldown%` | Cooldown seconds |
+| `%fpp_chunk_loading%` / `%fpp_head_ai%` / `%fpp_swim_ai%` | `on` / `off` |
+| `%fpp_auto_eat%` / `%fpp_auto_place_bed%` / `%fpp_auto_milk%` | `on` / `off` |
+| `%fpp_prevent_bad_omen%` / `%fpp_fall_damage%` / `%fpp_respawn_on_death%` | `on` / `off` |
+| `%fpp_hurt_sound%` / `%fpp_join_message%` / `%fpp_leave_message%` / `%fpp_death_message%` | `on` / `off` |
+| `%fpp_peak_hours%` / `%fpp_swap%` / `%fpp_metrics%` / `%fpp_update_checker%` | `on` / `off` |
 
 ### Per-World
 
@@ -239,18 +262,33 @@ Requires **PlaceholderAPI**. All prefixed with `%fpp_`.
 | Placeholder | Description |
 |-------------|-------------|
 | `%fpp_user_count%` | Player's bot count |
-| `%fpp_user_max%` | Player's bot limit |
+| `%fpp_user_max%` | Player's bot limit (respects permission overrides) |
 | `%fpp_user_names%` | Player's bot names |
 | `%fpp_user_ping%` | First bot's ping |
-| `%fpp_user_ping_avg%` | Average ping |
+| `%fpp_user_ping_avg%` | Average ping of player's bots |
+| `%fpp_user_frozen%` | Number of player's frozen bots |
+| `%fpp_user_oldest%` / `%fpp_user_newest%` | Name of oldest/newest bot |
+| `%fpp_user_uptime%` | Combined uptime of player's bots |
+| `%fpp_user_count_<world>%` | Player's bot count in specific world |
 
 ### Per-Bot
 
 | Placeholder | Description |
 |-------------|-------------|
 | `%fpp_ping_<bot_name>%` | Specific bot's ping |
-| `%fpp_ping_all%` | Bot ping or player ping |
-| `%fpp_avg_ping%` | Average across all bots |
+| `%fpp_health_<bot_name>%` | Bot's current health |
+| `%fpp_world_<bot_name>%` | Bot's current world |
+| `%fpp_loc_x_<bot_name>%` / `%fpp_loc_y_<bot_name>%` / `%fpp_loc_z_<bot_name>%` | Bot's coordinates |
+| `%fpp_frozen_<bot_name>%` / `%fpp_sleeping_<bot_name>%` | `yes` / `no` |
+| `%fpp_owner_<bot_name>%` | Who spawned the bot |
+| `%fpp_pve_<bot_name>%` | `yes` / `no` |
+
+### Ping
+
+| Placeholder | Description |
+|-------------|-------------|
+| `%fpp_ping_all%` | Bot ping if sender is bot, else real player ping |
+| `%fpp_avg_ping%` | Average across all local bots |
 | `%fpp_player_ping%` | Sender's real ping |
 
 ---
