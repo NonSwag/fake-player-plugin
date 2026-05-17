@@ -30,7 +30,7 @@ public final class BotIdentityCache {
   private static final String YAML_FILE = "bot-identities.yml";
   private static final String ROOT = "identities.by-name";
   private static final String OFFLINE_UUID_NAMESPACE = "OfflinePlayer:";
-  private static final String USER_AGENT = "FakePlayerPlugin/1.6.6.10.1";
+  private static final String USER_AGENT = "FakePlayerPlugin/1.6.6.11";
   private static final long MOJANG_RATE_LIMIT_COOLDOWN_MS = TimeUnit.MINUTES.toMillis(5);
 
   private final FakePlayerPlugin pluginRef;
