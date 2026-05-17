@@ -3,7 +3,9 @@ package me.bill.fakePlayerPlugin.fakeplayer;
 public enum BotType {
   AFK,
 
-  /** @deprecated PvP bot type is no longer supported; behaves identically to AFK. */
+  /**
+   * @deprecated PvP bot type is no longer supported; behaves identically to AFK.
+   */
   @Deprecated
   PVP;
 

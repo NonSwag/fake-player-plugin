@@ -1,24 +1,10 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppBotBlockPlaceEvent;
+import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
-import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotNavUtil;
 import me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder;
@@ -49,6 +35,23 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public final class PlaceCommand implements FppCommand {
 
@@ -73,9 +76,9 @@ public final class PlaceCommand implements FppCommand {
   private static final int SCAFFOLD_MAX_RETRIES = 4;
 
   private static final Material[] SCAFFOLD_PREF = {
-    Material.DIRT, Material.COBBLESTONE, Material.STONE, Material.SAND,
-    Material.GRAVEL, Material.NETHERRACK, Material.DIORITE, Material.ANDESITE,
-    Material.GRANITE, Material.COBBLED_DEEPSLATE
+      Material.DIRT, Material.COBBLESTONE, Material.STONE, Material.SAND,
+      Material.GRAVEL, Material.NETHERRACK, Material.DIORITE, Material.ANDESITE,
+      Material.GRANITE, Material.COBBLED_DEEPSLATE
   };
 
   private final FakePlayerPlugin plugin;
@@ -108,9 +111,9 @@ public final class PlaceCommand implements FppCommand {
   }
 
   @Override
-   public String getUsage() {
-      return "<bot> [--once|--stop]  |  --stop";
-   }
+  public String getUsage() {
+    return "<bot> [--once|--stop]  |  --stop";
+  }
 
   @Override
   public String getDescription() {
@@ -156,8 +159,8 @@ public final class PlaceCommand implements FppCommand {
       String action = args[1].toLowerCase(Locale.ROOT);
 
       if (!AREA_MODE_ENABLED) {
-        java.util.Set<String> areaActions =
-            java.util.Set.of(
+        Set<String> areaActions =
+            Set.of(
                 "--pos1", "pos1", "--pos2", "pos2", "--block", "block", "--clear", "clear",
                 "start");
         if (areaActions.contains(action)) {
@@ -371,16 +374,16 @@ public final class PlaceCommand implements FppCommand {
       List<String> opts =
           AREA_MODE_ENABLED
               ? List.of(
-                  "--pos1",
-                  "--pos2",
-                  "--block",
-                  "--clear",
-                  "--start",
-                  "--status",
-                  "--stop",
-                  "--once",
-                  "stop",
-                  "once")
+              "--pos1",
+              "--pos2",
+              "--block",
+              "--clear",
+              "--start",
+              "--status",
+              "--stop",
+              "--once",
+              "stop",
+              "once")
               : List.of("--once", "--stop", "once", "stop");
       for (String opt : opts) if (opt.startsWith(prefix)) out.add(opt);
       return out;
@@ -408,10 +411,10 @@ public final class PlaceCommand implements FppCommand {
 
   private void startNavigation(FakePlayer fp, Location dest, Runnable onArrive) {
     // Force placeBlocks=true so the bot can bridge gaps en-route to its target.
-    me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder.PathOptions baseOpts =
-        me.bill.fakePlayerPlugin.fakeplayer.PathfindingService.resolvePathOptions(fp);
-    me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder.PathOptions opts =
-        new me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder.PathOptions(
+    BotPathfinder.PathOptions baseOpts =
+        PathfindingService.resolvePathOptions(fp);
+    BotPathfinder.PathOptions opts =
+        new BotPathfinder.PathOptions(
             fp.isNavParkour(),
             fp.isNavBreakBlocks(),
             true,
@@ -434,7 +437,7 @@ public final class PlaceCommand implements FppCommand {
 
   private void lockAndStartPlacing(
       FakePlayer fp, boolean once, Location dest, float capturedYaw, float capturedPitch) {
-    FppApiImpl.fireTaskEvent(fp, "place", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.START);
+    FppApiImpl.fireTaskEvent(fp, "place", FppBotTaskEvent.Action.START);
     UUID uuid = fp.getUuid();
     Player bot = fp.getPlayer();
     if (bot == null) return;
@@ -569,7 +572,7 @@ public final class PlaceCommand implements FppCommand {
   }
 
   private PlacementInfo findBestPlacement(
-      Player bot, @org.jetbrains.annotations.Nullable Location preferred) {
+      Player bot, @Nullable Location preferred) {
     Location eye = bot.getEyeLocation();
     World world = bot.getWorld();
     int ex = (int) Math.floor(eye.getX());
@@ -584,7 +587,7 @@ public final class PlaceCommand implements FppCommand {
 
     int[][] offsets = {{0, -1, 0}, {1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1}, {0, 1, 0}};
     Direction[] faces = {
-      Direction.UP, Direction.WEST, Direction.EAST, Direction.NORTH, Direction.SOUTH, Direction.DOWN
+        Direction.UP, Direction.WEST, Direction.EAST, Direction.NORTH, Direction.SOUTH, Direction.DOWN
     };
 
     PlacementInfo best = null;
@@ -613,8 +616,8 @@ public final class PlaceCommand implements FppCommand {
             double prefDist =
                 preferred != null
                     ? Math.abs(bx - preferred.getBlockX())
-                        + Math.abs(by - preferred.getBlockY())
-                        + Math.abs(bz - preferred.getBlockZ())
+                      + Math.abs(by - preferred.getBlockY())
+                      + Math.abs(bz - preferred.getBlockZ())
                     : 0;
             double score = prefDist * 100.0 + distSq;
 
@@ -651,7 +654,7 @@ public final class PlaceCommand implements FppCommand {
   public void stopPlacing(UUID botUuid) {
     FakePlayer fp = manager.getByUuid(botUuid);
     if (fp != null) {
-      FppApiImpl.fireTaskEvent(fp, "place", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.STOP);
+      FppApiImpl.fireTaskEvent(fp, "place", FppBotTaskEvent.Action.STOP);
     }
     Integer taskId = placingTasks.remove(botUuid);
     if (taskId != null) FppScheduler.cancelTask(taskId);
@@ -660,7 +663,7 @@ public final class PlaceCommand implements FppCommand {
     placeStates.remove(botUuid);
   }
 
-  @org.jetbrains.annotations.Nullable
+  @Nullable
   public Location getActivePlaceLocation(UUID botUuid) {
     PlaceState state = placeStates.get(botUuid);
     return state != null ? state.destination : null;
@@ -861,7 +864,8 @@ public final class PlaceCommand implements FppCommand {
       int bx = botLoc.getBlockX(), by = botLoc.getBlockY(), bz = botLoc.getBlockZ();
       if (job.selection.contains(bx, by, bz) || job.selection.contains(bx, by - 1, bz)) {
         startNavigation(
-            fp, findOutsideNavDest(bot.getWorld(), job.selection, bx, by, bz), () -> {});
+            fp, findOutsideNavDest(bot.getWorld(), job.selection, bx, by, bz), () -> {
+            });
         return;
       }
     }
@@ -1081,13 +1085,13 @@ public final class PlaceCommand implements FppCommand {
   private void startNavigation(
       FakePlayer fp,
       Location dest,
-      @org.jetbrains.annotations.Nullable Location lockOnArrival,
+      @Nullable Location lockOnArrival,
       Runnable onArrive) {
     // Force placeBlocks=true so the bot can bridge gaps en-route to its target.
-    me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder.PathOptions baseOpts =
-        me.bill.fakePlayerPlugin.fakeplayer.PathfindingService.resolvePathOptions(fp);
-    me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder.PathOptions opts =
-        new me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder.PathOptions(
+    BotPathfinder.PathOptions baseOpts =
+        PathfindingService.resolvePathOptions(fp);
+    BotPathfinder.PathOptions opts =
+        new BotPathfinder.PathOptions(
             fp.isNavParkour(),
             fp.isNavBreakBlocks(),
             true,
@@ -1119,7 +1123,7 @@ public final class PlaceCommand implements FppCommand {
           if (Math.abs(dx) < r && Math.abs(dz) < r) continue;
           int cx = tx + dx, cz = tz + dz;
           if (sel != null && sel.contains(cx, ty, cz)) continue;
-          for (int dy : new int[] {0, -1, 1}) {
+          for (int dy : new int[]{0, -1, 1}) {
             if (BotPathfinder.walkable(world, cx, ty + dy, cz))
               return new Location(world, cx + 0.5, ty + dy, cz + 0.5);
           }
@@ -1259,7 +1263,7 @@ public final class PlaceCommand implements FppCommand {
     int x = target.x(), y = target.y(), z = target.z();
     int[][] offsets = {{0, -1, 0}, {1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1}, {0, 1, 0}};
     Direction[] faces = {
-      Direction.UP, Direction.WEST, Direction.EAST, Direction.NORTH, Direction.SOUTH, Direction.DOWN
+        Direction.UP, Direction.WEST, Direction.EAST, Direction.NORTH, Direction.SOUTH, Direction.DOWN
     };
     for (int i = 0; i < offsets.length; i++) {
       int nx = x + offsets[i][0], ny = y + offsets[i][1], nz = z + offsets[i][2];
@@ -1545,8 +1549,8 @@ public final class PlaceCommand implements FppCommand {
         if (sel.contains(px, targetY, pz)) continue;
         int baseY = -1;
         for (int cy = Math.min(targetY - 1, botLoc.getBlockY() + 4);
-            cy >= botLoc.getBlockY() - 4;
-            cy--) {
+             cy >= botLoc.getBlockY() - 4;
+             cy--) {
           if (BotPathfinder.walkable(world, px, cy, pz)) {
             baseY = cy;
             break;
@@ -1630,7 +1634,7 @@ public final class PlaceCommand implements FppCommand {
 
   private Material getScaffoldMaterial(Player bot, List<BlockEntry> spec) {
     Set<Material> specMats =
-        spec.stream().map(BlockEntry::material).collect(java.util.stream.Collectors.toSet());
+        spec.stream().map(BlockEntry::material).collect(Collectors.toSet());
     PlayerInventory inv = bot.getInventory();
     for (Material preferred : SCAFFOLD_PREF) {
       if (!specMats.contains(preferred) && countInInventory(inv, preferred) > 0) return preferred;
@@ -1786,14 +1790,18 @@ public final class PlaceCommand implements FppCommand {
     }
   }
 
-  private record BlockEntry(Material material, int weight) {}
+  private record BlockEntry(Material material, int weight) {
+  }
 
-  private record AreaBlock(int x, int y, int z) {}
+  private record AreaBlock(int x, int y, int z) {
+  }
 
   private record PlacementInfo(
-      BlockPos targetPos, BlockPos faceBlockPos, Direction faceDir, Location faceCenter) {}
+      BlockPos targetPos, BlockPos faceBlockPos, Direction faceDir, Location faceCenter) {
+  }
 
-  private record PlacementTarget(BlockPos faceBlockPos, Direction faceDir) {}
+  private record PlacementTarget(BlockPos faceBlockPos, Direction faceDir) {
+  }
 
   private static final class PlaceState {
     boolean once;
@@ -1808,9 +1816,9 @@ public final class PlaceCommand implements FppCommand {
 
   /**
    * Parses a single coordinate token.  Supports:
-   *   "~"         → {@code base}
-   *   "~<offset>" → {@code base + offset}
-   *   "<number>"  → absolute value
+   * "~"         → {@code base}
+   * "~<offset>" → {@code base + offset}
+   * "<number>"  → absolute value
    * Throws {@link NumberFormatException} if the token is unrecognisable.
    */
   static double parseCoord(String token, double base) {

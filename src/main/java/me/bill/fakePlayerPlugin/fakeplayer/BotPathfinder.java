@@ -3,6 +3,7 @@ package me.bill.fakePlayerPlugin.fakeplayer;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.type.Door;
 import org.bukkit.block.data.type.Fence;
 import org.bukkit.block.data.type.Gate;
@@ -11,9 +12,11 @@ import org.bukkit.block.data.type.TrapDoor;
 
 public final class BotPathfinder {
 
-  private BotPathfinder() {}
+  private BotPathfinder() {
+  }
 
-  public record Pos(int x, int y, int z) {}
+  public record Pos(int x, int y, int z) {
+  }
 
   public enum MoveType {
     WALK,
@@ -99,7 +102,7 @@ public final class BotPathfinder {
       if (mat == Material.SCAFFOLDING) return true;
       if (isClimbable(mat)) return true;
       if (block.getBlockData() instanceof TrapDoor trapDoor) {
-        return !trapDoor.isOpen() && trapDoor.getHalf() == org.bukkit.block.data.Bisected.Half.TOP;
+        return !trapDoor.isOpen() && trapDoor.getHalf() == Bisected.Half.TOP;
       }
       if (mat == Material.WATER) return false;
       if (mat == Material.MAGMA_BLOCK) return true;

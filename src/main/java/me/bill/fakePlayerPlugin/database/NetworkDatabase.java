@@ -1,9 +1,16 @@
 package me.bill.fakePlayerPlugin.database;
 
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
 import me.bill.fakePlayerPlugin.util.FppLogger;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Network-layer database operations for proxy-merged multi-server setups.
@@ -39,11 +46,11 @@ public final class NetworkDatabase {
   public void upsertNetworkBot(NetworkBotRow row) {
     String sql = isMysql
         ? "INSERT INTO fpp_network_bots (bot_uuid, bot_name, bot_display, server_id, spawned_by, world_name, pos_x, pos_y, pos_z, ping, frozen, updated_at)"
-            + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-            + " ON DUPLICATE KEY UPDATE bot_name=?, bot_display=?, server_id=?, spawned_by=?, world_name=?, pos_x=?, pos_y=?, pos_z=?, ping=?, frozen=?, updated_at=?"
+          + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          + " ON DUPLICATE KEY UPDATE bot_name=?, bot_display=?, server_id=?, spawned_by=?, world_name=?, pos_x=?, pos_y=?, pos_z=?, ping=?, frozen=?, updated_at=?"
         : "INSERT INTO fpp_network_bots (bot_uuid, bot_name, bot_display, server_id, spawned_by, world_name, pos_x, pos_y, pos_z, ping, frozen, updated_at)"
-            + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-            + " ON CONFLICT(bot_uuid) DO UPDATE SET bot_name=excluded.bot_name, bot_display=excluded.bot_display, server_id=excluded.server_id, spawned_by=excluded.spawned_by, world_name=excluded.world_name, pos_x=excluded.pos_x, pos_y=excluded.pos_y, pos_z=excluded.pos_z, ping=excluded.ping, frozen=excluded.frozen, updated_at=excluded.updated_at";
+          + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          + " ON CONFLICT(bot_uuid) DO UPDATE SET bot_name=excluded.bot_name, bot_display=excluded.bot_display, server_id=excluded.server_id, spawned_by=excluded.spawned_by, world_name=excluded.world_name, pos_x=excluded.pos_x, pos_y=excluded.pos_y, pos_z=excluded.pos_z, ping=excluded.ping, frozen=excluded.frozen, updated_at=excluded.updated_at";
     try (PreparedStatement ps = connection.prepareStatement(sql)) {
       long now = System.currentTimeMillis();
       ps.setString(1, row.botUuid());
@@ -91,7 +98,7 @@ public final class NetworkDatabase {
     List<NetworkBotRow> list = new ArrayList<>();
     String sql = "SELECT * FROM fpp_network_bots ORDER BY updated_at DESC";
     try (Statement st = connection.createStatement();
-        ResultSet rs = st.executeQuery(sql)) {
+         ResultSet rs = st.executeQuery(sql)) {
       while (rs.next()) {
         list.add(mapNetworkBotRow(rs));
       }
@@ -136,7 +143,7 @@ public final class NetworkDatabase {
   public int getNetworkBotCount() {
     String sql = "SELECT COUNT(*) FROM fpp_network_bots";
     try (Statement st = connection.createStatement();
-        ResultSet rs = st.executeQuery(sql)) {
+         ResultSet rs = st.executeQuery(sql)) {
       if (rs.next()) return rs.getInt(1);
     } catch (SQLException e) {
       FppLogger.error("[NetworkDB] getNetworkBotCount: " + e.getMessage());
@@ -177,9 +184,9 @@ public final class NetworkDatabase {
   public void heartbeat(String serverId, int realPlayers, int botCount) {
     String sql = isMysql
         ? "INSERT INTO fpp_server_heartbeat (server_id, real_players, bot_count, last_seen) VALUES (?, ?, ?, ?)"
-            + " ON DUPLICATE KEY UPDATE real_players=?, bot_count=?, last_seen=?"
+          + " ON DUPLICATE KEY UPDATE real_players=?, bot_count=?, last_seen=?"
         : "INSERT INTO fpp_server_heartbeat (server_id, real_players, bot_count, last_seen) VALUES (?, ?, ?, ?)"
-            + " ON CONFLICT(server_id) DO UPDATE SET real_players=excluded.real_players, bot_count=excluded.bot_count, last_seen=excluded.last_seen";
+          + " ON CONFLICT(server_id) DO UPDATE SET real_players=excluded.real_players, bot_count=excluded.bot_count, last_seen=excluded.last_seen";
     try (PreparedStatement ps = connection.prepareStatement(sql)) {
       long now = System.currentTimeMillis();
       ps.setString(1, serverId);
@@ -201,7 +208,7 @@ public final class NetworkDatabase {
     List<ServerHeartbeatRow> list = new ArrayList<>();
     String sql = "SELECT * FROM fpp_server_heartbeat ORDER BY last_seen DESC";
     try (Statement st = connection.createStatement();
-        ResultSet rs = st.executeQuery(sql)) {
+         ResultSet rs = st.executeQuery(sql)) {
       while (rs.next()) {
         list.add(new ServerHeartbeatRow(
             rs.getString("server_id"),
@@ -218,7 +225,7 @@ public final class NetworkDatabase {
   public int getTotalNetworkPlayers() {
     String sql = "SELECT SUM(real_players + bot_count) FROM fpp_server_heartbeat";
     try (Statement st = connection.createStatement();
-        ResultSet rs = st.executeQuery(sql)) {
+         ResultSet rs = st.executeQuery(sql)) {
       if (rs.next()) return rs.getInt(1);
     } catch (SQLException e) {
       FppLogger.error("[NetworkDB] getTotalNetworkPlayers: " + e.getMessage());
@@ -229,7 +236,7 @@ public final class NetworkDatabase {
   public int getTotalNetworkBots() {
     String sql = "SELECT SUM(bot_count) FROM fpp_server_heartbeat";
     try (Statement st = connection.createStatement();
-        ResultSet rs = st.executeQuery(sql)) {
+         ResultSet rs = st.executeQuery(sql)) {
       if (rs.next()) return rs.getInt(1);
     } catch (SQLException e) {
       FppLogger.error("[NetworkDB] getTotalNetworkBots: " + e.getMessage());
@@ -361,13 +368,15 @@ public final class NetworkDatabase {
       double posZ,
       int ping,
       boolean frozen,
-      long updatedAt) {}
+      long updatedAt) {
+  }
 
   public record ServerHeartbeatRow(
       String serverId,
       int realPlayers,
       int botCount,
-      long lastSeen) {}
+      long lastSeen) {
+  }
 
   public record NetworkTaskRow(
       long id,
@@ -380,5 +389,6 @@ public final class NetworkDatabase {
       long claimedAt,
       String claimedBy,
       String status,
-      String result) {}
+      String result) {
+  }
 }

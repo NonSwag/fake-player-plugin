@@ -1,21 +1,31 @@
 package me.bill.fakePlayerPlugin.util;
 
-import java.io.*;
-import java.sql.*;
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.database.BotRecord;
+import me.bill.fakePlayerPlugin.database.DatabaseManager;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import me.bill.fakePlayerPlugin.FakePlayerPlugin;
-import me.bill.fakePlayerPlugin.database.BotRecord;
-import me.bill.fakePlayerPlugin.database.DatabaseManager;
 
 public final class DataMigrator {
 
   private static final DateTimeFormatter EXPORT_FMT =
       DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
-  private DataMigrator() {}
+  private DataMigrator() {
+  }
 
   public static int mergeFromSQLite(
       FakePlayerPlugin plugin, DatabaseManager manager, File srcFile) {
@@ -142,7 +152,7 @@ public final class DataMigrator {
 
     int count = 0;
     try (Statement st = src.createStatement();
-        ResultSet rs = st.executeQuery("SELECT * FROM fpp_bot_sessions ORDER BY spawned_at ASC")) {
+         ResultSet rs = st.executeQuery("SELECT * FROM fpp_bot_sessions ORDER BY spawned_at ASC")) {
       while (rs.next()) {
         try {
           dst.mergeSessionRow(
@@ -187,7 +197,7 @@ public final class DataMigrator {
 
     int count = 0;
     try (Statement st = src.createStatement();
-        ResultSet rs = st.executeQuery("SELECT * FROM fpp_active_bots")) {
+         ResultSet rs = st.executeQuery("SELECT * FROM fpp_active_bots")) {
       while (rs.next()) {
         try {
           dst.mergeActiveBotRow(
@@ -272,7 +282,7 @@ public final class DataMigrator {
 
       List<String> stale = new ArrayList<>();
       try (Statement st = conn.createStatement();
-          ResultSet rs = st.executeQuery(findSql)) {
+           ResultSet rs = st.executeQuery(findSql)) {
         while (rs.next()) stale.add(rs.getString(1));
       }
 
@@ -286,7 +296,7 @@ public final class DataMigrator {
 
       int deleted = 0;
       try (PreparedStatement ps =
-          conn.prepareStatement("DELETE FROM fpp_active_bots WHERE bot_uuid=?")) {
+               conn.prepareStatement("DELETE FROM fpp_active_bots WHERE bot_uuid=?")) {
         for (String uuid : stale) {
           ps.setString(1, uuid);
           deleted += ps.executeUpdate();
@@ -316,7 +326,7 @@ public final class DataMigrator {
 
       List<Long> orphaned = new ArrayList<>();
       try (Statement st = conn.createStatement();
-          ResultSet rs = st.executeQuery(findSql)) {
+           ResultSet rs = st.executeQuery(findSql)) {
         while (rs.next()) orphaned.add(rs.getLong(1));
       }
 
@@ -331,9 +341,9 @@ public final class DataMigrator {
       long now = System.currentTimeMillis();
       int repaired = 0;
       try (PreparedStatement ps =
-          conn.prepareStatement(
-              "UPDATE fpp_bot_sessions SET removed_at=?,"
-                  + " remove_reason='ORPHAN_REPAIR' WHERE id=?")) {
+               conn.prepareStatement(
+                   "UPDATE fpp_bot_sessions SET removed_at=?,"
+                       + " remove_reason='ORPHAN_REPAIR' WHERE id=?")) {
         for (long id : orphaned) {
           ps.setLong(1, now);
           ps.setLong(2, id);
@@ -355,8 +365,8 @@ public final class DataMigrator {
       Connection conn = manager.getConnection();
       if (conn == null) return 1;
       try (PreparedStatement ps =
-              conn.prepareStatement("SELECT value FROM fpp_meta WHERE key_name='schema_version'");
-          ResultSet rs = ps.executeQuery()) {
+               conn.prepareStatement("SELECT value FROM fpp_meta WHERE key_name='schema_version'");
+           ResultSet rs = ps.executeQuery()) {
         if (rs.next()) return Integer.parseInt(rs.getString(1));
       }
     } catch (Exception ignored) {

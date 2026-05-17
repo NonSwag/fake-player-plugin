@@ -1,10 +1,6 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
+import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.BotRecord;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
@@ -16,6 +12,16 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 public class InfoCommand implements FppCommand {
 
@@ -73,7 +79,7 @@ public class InfoCommand implements FppCommand {
     }
 
     if (!isAdmin) {
-      if (!(sender instanceof org.bukkit.entity.Player player)) {
+      if (!(sender instanceof Player player)) {
         sender.sendMessage(Lang.get("player-only"));
         return true;
       }
@@ -129,7 +135,7 @@ public class InfoCommand implements FppCommand {
     return true;
   }
 
-  private void showUserOwnBots(CommandSender sender, org.bukkit.entity.Player player) {
+  private void showUserOwnBots(CommandSender sender, Player player) {
     List<FakePlayer> owned = manager.getBotsOwnedBy(player.getUniqueId());
 
     sender.sendMessage(header("ʏᴏᴜʀ ʙᴏᴛꜱ"));
@@ -152,7 +158,7 @@ public class InfoCommand implements FppCommand {
   }
 
   private void showUserBotInfo(
-      CommandSender sender, org.bukkit.entity.Player player, String input) {
+      CommandSender sender, Player player, String input) {
 
     FakePlayer fp =
         manager.getActivePlayers().stream()
@@ -179,7 +185,7 @@ public class InfoCommand implements FppCommand {
   }
 
   private void showAdminLiveBots(CommandSender sender) {
-    java.util.Collection<FakePlayer> active = manager.getActivePlayers();
+    Collection<FakePlayer> active = manager.getActivePlayers();
 
     sender.sendMessage(header("ᴀᴄᴛɪᴠᴇ ʙᴏᴛꜱ (" + active.size() + ")"));
 
@@ -202,17 +208,17 @@ public class InfoCommand implements FppCommand {
     }
 
     if (db != null) {
-      me.bill.fakePlayerPlugin.database.DatabaseManager.DbStats stats = db.getStats();
+      DatabaseManager.DbStats stats = db.getStats();
       sender.sendMessage(divider());
       sender.sendMessage(header("ᴅᴀᴛᴀʙᴀꜱᴇ ꜱᴛᴀᴛꜱ (" + stats.backend() + ")"));
-      row(sender, "ᴍᴏᴅᴇ", me.bill.fakePlayerPlugin.config.Config.databaseMode());
-      row(sender, "ꜱᴇʀᴠᴇʀ ɪᴅ", me.bill.fakePlayerPlugin.config.Config.serverId());
+      row(sender, "ᴍᴏᴅᴇ", Config.databaseMode());
+      row(sender, "ꜱᴇʀᴠᴇʀ ɪᴅ", Config.serverId());
       row(sender, "ᴛᴏᴛᴀʟ ꜱᴇꜱꜱɪᴏɴꜱ", String.valueOf(stats.totalSessions()));
       row(sender, "ᴜɴɪQᴜᴇ ʙᴏᴛꜱ", String.valueOf(stats.uniqueBots()));
       row(sender, "ᴜɴɪQᴜᴇ ꜱᴘᴀᴡɴᴇʀꜱ", String.valueOf(stats.uniqueSpawners()));
       row(sender, "ᴛᴏᴛᴀʟ ᴜᴘᴛɪᴍᴇ", stats.formattedUptime());
 
-      java.util.Map<String, Integer> top = db.getTopSpawners(3);
+      Map<String, Integer> top = db.getTopSpawners(3);
       if (!top.isEmpty()) {
         StringBuilder sb = new StringBuilder();
         top.forEach(
@@ -258,7 +264,7 @@ public class InfoCommand implements FppCommand {
     }
 
     String internalName = live != null ? live.getName() : botName;
-    int limit = me.bill.fakePlayerPlugin.config.Config.dbMaxHistoryRows();
+    int limit = Config.dbMaxHistoryRows();
     List<BotRecord> records = db.getSessionsByBot(internalName, limit);
     if (records.isEmpty() && live == null) {
       sender.sendMessage(Lang.get("info-no-records", "name", botName));
@@ -274,7 +280,7 @@ public class InfoCommand implements FppCommand {
   }
 
   private void showSpawnerSessions(CommandSender sender, String playerName) {
-    int limit = me.bill.fakePlayerPlugin.config.Config.dbMaxHistoryRows();
+    int limit = Config.dbMaxHistoryRows();
     List<BotRecord> records = db.getSessionsBySpawner(playerName, limit);
     if (records.isEmpty()) {
       sender.sendMessage(Lang.get("info-no-records", "name", playerName));
@@ -381,7 +387,7 @@ public class InfoCommand implements FppCommand {
     String lower = current.toLowerCase();
 
     if (args.length <= 1) {
-      List<String> suggestions = new java.util.ArrayList<>();
+      List<String> suggestions = new ArrayList<>();
 
       if (isAdmin) {
 
@@ -391,7 +397,7 @@ public class InfoCommand implements FppCommand {
             .map(FakePlayer::getName)
             .filter(n -> n.toLowerCase().startsWith(lower))
             .forEach(suggestions::add);
-      } else if (sender instanceof org.bukkit.entity.Player player) {
+      } else if (sender instanceof Player player) {
 
         manager.getBotsOwnedBy(player.getUniqueId()).stream()
             .map(FakePlayer::getName)

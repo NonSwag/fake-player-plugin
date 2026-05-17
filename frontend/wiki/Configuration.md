@@ -27,8 +27,10 @@ Seconds between `/fpp spawn` uses. `0` = disabled.
 ### `persistence`
 - `enabled: true` — bots save position on shutdown and rejoin on restart
 
-### `join-delay` / `leave-delay`
-Stagger spawns/despawns in **ticks** (20 ticks = 1 second).
+### `heartbeat`
+- `enabled: true` — controls whether the network heartbeat manager publishes server status
+
+> Note: `join-delay` and `leave-delay` were removed in recent versions.
 
 ---
 
@@ -62,6 +64,13 @@ Stagger spawns/despawns in **ticks** (20 ticks = 1 second).
 - `kill-message: false` — broadcast when a real player kills a bot
 - `notify-admins-on-join: true` — send compatibility warnings to admins on join
 
+### `help`
+- `mode: gui` — `gui` (interactive inventory) or `text` (chat-based help menu)
+
+### `metrics`
+- `enabled: true` — anonymous FastStats usage statistics
+- `debug: false` — log metrics flushes and individual events at `DEBUG` level
+
 ---
 
 ## 3. Body & Combat
@@ -72,7 +81,7 @@ Stagger spawns/despawns in **ticks** (20 ticks = 1 second).
 - `damageable: true` — take all damage (if `false`, still takes environmental)
 - `pick-up-items: true`
 - `pick-up-xp: true`
-- `drop-items-on-despawn: false` — `false` = remember inventory on despawn
+- `drop-items-on-despawn: false` — `true` drops inventory on despawn; `false` keeps it
 
 ### `combat`
 - `max-health: 20.0` — standard player HP
@@ -87,11 +96,19 @@ Stagger spawns/despawns in **ticks** (20 ticks = 1 second).
 - `respawn-delay: 15` — ticks before respawn
 - `suppress-drops: false` — `true` = suppress all drops
 
-### `chunk-loading`
-- `enabled: true` — keep chunks loaded around bots
-- `radius: "auto"` — `"auto"`, `0` = disabled, or fixed number
-- `update-interval: 20` — ticks between position checks
-- `mass-disable-threshold: 100` — release chunk tickets when active bots exceed this (`0` = never)
+### `skin`
+- `mode: random` — `off`, `auto`, `player`, `url`, `file`, `random`, `custom`
+- `clear-cache-on-reload: true` — clear memory cache on `/fpp reload`
+- `guaranteed-skin: true` — attempt to ensure every bot gets a valid skin
+- `pool: []` — list of Minecraft usernames to use as skin sources
+- `overrides: {}` — per-bot-name skin overrides (`bot_name: skin_source_player`)
+- `use-skin-folder: false` — load `.png` skin files from `plugins/FakePlayerPlugin/skins/`
+- `mineskin`
+  - `url-upload-enabled: false`
+  - `api-key: ""`
+  - `visibility: private`
+
+> Skins require valid player profiles and depend on Mojang API rate limits.
 
 ### `automation`
 Defaults copied to newly spawned bots:
@@ -122,6 +139,30 @@ Defaults copied to newly spawned bots:
 - `bot-strength: 0.14`
 - `max-horizontal-speed: 0.30`
 
+### `pathfinding`
+Pathfinding tuning keys:
+- `parkour: true` — walk across gaps
+- `break-blocks: true` — break obstructing blocks while pathing
+- `place-blocks: true` — place bridging blocks while pathing
+- `place-material: STONE` — material used for bridging
+- `arrival-distance: 1.5` — blocks before a simple destination is considered reached
+- `patrol-arrival-distance: 2.0` — arrival threshold for patrol loops
+- `waypoint-arrival-distance: 2.0` — arrival threshold for waypoint navigation
+- `sprint-distance: 6.0` — distance at which the bot starts sprinting
+- `follow-recalc-distance: 5.0` — distance before recalculating follow path
+- `follow-recalc-interval: 20` — ticks between follow path recalcs
+- `recalc-interval: 40` — ticks between normal path recalculations
+- `stuck-ticks: 20` — ticks before a stuck-check fires
+- `stuck-threshold: 3` — consecutive stuck ticks before giving up
+- `break-ticks: 20` — delay between block-break attempts while moving
+- `place-ticks: 20` — delay between block-place attempts while moving
+- `max-fall: 10.0` — maximum fall distance the navigator will voluntarily traverse
+- `max-range: 128.0` — maximum search distance
+- `max-nodes: 3200` — node limit for standard pathfinding
+- `max-nodes-extended: 6400` — node limit for long-distance searches
+- `detour-attempts: 2` — how many times to try detouring around obstacles
+- `detour-radius: 1` — extra blocks to look around obstacles
+
 ---
 
 ## 5. Database & Network
@@ -140,14 +181,31 @@ Defaults copied to newly spawned bots:
 
 ---
 
-## 9. Performance
+## 6. Chunk Loading
+
+### `chunk-loading`
+- `enabled: true` — keep chunks loaded around bots
+- `radius: "auto"` — `"auto"`, `0` = disabled, or fixed number
+- `update-interval: 20` — ticks between position checks
+- `mass-disable-threshold: 100` — release chunk tickets when active bots exceed this (`0` = never)
+
+---
+
+## 7. Performance
 
 ### `performance`
 - `position-sync-distance: 128.0` — max distance (blocks) for per-tick position-sync packets. `0` = send to all players regardless of distance.
 
 ---
 
-## 10. Debug & Logging
+## 8. Heartbeat
+
+### `heartbeat`
+- `enabled: true` — controls server liveness publishing to the network database (NETWORK mode only)
+
+---
+
+## 9. Debug & Logging
 
 ### `debug: false`
 Master switch. `true` enables all debug categories.
@@ -159,10 +217,9 @@ Master switch. `true` enables all debug categories.
 - `network: false`
 - `config-sync: false`
 - `database: false`
-
 ---
 
-## Attack Mob Targeting
+## 10. Attack Mob Targeting
 
 ### `attack-mob`
 - `default-range: 8.0`
@@ -173,14 +230,51 @@ Master switch. `true` enables all debug categories.
 
 ---
 
-## Metrics
+## Ping
 
-### `metrics`
-- `enabled: true` — anonymous FastStats usage statistics
+### `ping`
+> These keys exist in core `config.yml` but require the **`fpp-spoof.jar`** extension to function.
+
+- `enabled: true` — random fake ping
+- `min: 8` — minimum ping ms
+- `max: 120` — maximum ping ms
+- `variability: 15` — how much ping can swing per update
+- `update-interval: 40` — ticks between ping updates
+- `latency-effect: true` — ping influences other timing behavior
+- `behavior-effect: true` — ping influences bot AI reaction speed
+- `max-behavior-skip-ticks: 2` — max ticks to skip due to high ping
+- `spike-chance: 5.0` — chance for a ping spike (%)
+- `spike-min: 200` — spike minimum ms
+- `spike-max: 400` — spike maximum ms
+- `join-ramp-ticks: 40` — ticks to ramp ping after bot join
 
 ---
 
-## Migration
+## Extension-Only Settings
+
+The following keys exist in core `config.yml` but only function when the **`fpp-spoof.jar`** extension is loaded:
+
+### `fake-chat`
+- `enabled: false`
+- `prefix: "[BOT]"`
+- `cooldown-seconds: 5`
+- `...`
+
+### `swap`
+- `enabled: false`
+- `cooldown-seconds: 30`
+- `...`
+
+### `peak-hours`
+- `enabled: false`
+- `slots: 20`
+- `start-hour: 0`
+- `end-hour: 23`
+- `...`
+
+Download `fpp-spoof.jar` from the [FPP Marketplace](https://mp.fpp.wtf/resources/resource/9-fpp---spoof/).
+
+---
 
 The plugin includes a built-in **ConfigMigrator** that:
 1. Creates a timestamped backup before any change

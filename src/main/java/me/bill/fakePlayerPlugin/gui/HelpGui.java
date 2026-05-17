@@ -1,11 +1,9 @@
 package me.bill.fakePlayerPlugin.gui;
 
-import java.util.*;
+import com.destroystokyo.paper.profile.PlayerProfile;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
-import me.bill.fakePlayerPlugin.api.FppAddonCommand;
 import me.bill.fakePlayerPlugin.api.FppCommandExtension;
 import me.bill.fakePlayerPlugin.command.CommandManager;
-import me.bill.fakePlayerPlugin.command.FppCommand;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -28,6 +26,14 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.plugin.Plugin;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 public final class HelpGui implements Listener {
 
@@ -125,7 +131,8 @@ public final class HelpGui implements Listener {
       String permission,
       boolean addon,
       Material icon,
-      List<FppCommandExtension> modifiers) {}
+      List<FppCommandExtension> modifiers) {
+  }
 
   private final Plugin plugin;
   private final CommandManager commandManager;
@@ -484,56 +491,52 @@ public final class HelpGui implements Listener {
   private static Category categoryFor(String name) {
     return switch (name.toLowerCase()) {
       case "spawn",
-          "despawn",
-          "list",
-          "info",
-          "help",
-          "stats",
-          "reload",
-          "settings",
-          "migrate",
-          "save" ->
-          Category.CORE;
+           "despawn",
+           "list",
+           "info",
+           "help",
+           "stats",
+           "reload",
+           "settings",
+           "migrate",
+           "save" -> Category.CORE;
       case "tp",
-          "tph",
-          "freeze",
-          "rename",
-          "inventory",
-          "inv",
-          "xp",
-          "setowner" ->
-          Category.BOTS;
+           "tph",
+           "freeze",
+           "rename",
+           "inventory",
+           "inv",
+           "xp",
+           "setowner" -> Category.BOTS;
       case "move",
-          "mine",
-          "place",
-          "use",
-          "storage",
-          "attack",
-          "find",
-          "follow",
-          "sleep",
-          "stop" ->
-          Category.ACTIONS;
+           "mine",
+           "place",
+           "use",
+           "storage",
+           "attack",
+           "find",
+           "follow",
+           "sleep",
+           "stop" -> Category.ACTIONS;
       case "badword" -> Category.CORE;
       case "chat",
-          "personality",
-          "persona",
-          "skin",
-          "rank",
-          "lpinfo",
-          "groups",
-          "bots",
-          "mybots",
-          "botmenu",
-          "cmd",
-          "command",
-          "peaks",
-          "swap",
-          "sync",
-          "ping",
-          "waypoint",
-          "waypoints" ->
-          Category.ADDONS;
+           "personality",
+           "persona",
+           "skin",
+           "rank",
+           "lpinfo",
+           "groups",
+           "bots",
+           "mybots",
+           "botmenu",
+           "cmd",
+           "command",
+           "peaks",
+           "swap",
+           "sync",
+           "ping",
+           "waypoint",
+           "waypoints" -> Category.ADDONS;
       default -> Category.CORE;
     };
   }
@@ -609,7 +612,7 @@ public final class HelpGui implements Listener {
     ItemStack item = new ItemStack(Material.PLAYER_HEAD);
     SkullMeta skull = (SkullMeta) item.getItemMeta();
 
-    com.destroystokyo.paper.profile.PlayerProfile profile = Bukkit.createProfile(ownerUuid);
+    PlayerProfile profile = Bukkit.createProfile(ownerUuid);
     skull.setPlayerProfile(profile);
 
     skull.displayName(

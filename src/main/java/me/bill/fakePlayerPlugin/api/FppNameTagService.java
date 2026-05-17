@@ -1,11 +1,13 @@
 package me.bill.fakePlayerPlugin.api;
 
-import java.util.UUID;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.UUID;
+
 public interface FppNameTagService {
-  record BotSkin(String texture, @Nullable String signature) {}
+  record BotSkin(String texture, @Nullable String signature) {
+  }
 
   record NickData(@Nullable String nick, @Nullable String plainNick, @Nullable BotSkin skin) {
     public boolean canRename() {

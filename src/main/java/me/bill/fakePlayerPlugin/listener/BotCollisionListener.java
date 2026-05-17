@@ -1,13 +1,12 @@
 package me.bill.fakePlayerPlugin.listener;
 
-import java.util.Collection;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
-import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerBody;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
+import me.bill.fakePlayerPlugin.util.WorldGuardHelper;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -22,6 +21,8 @@ import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 import org.bukkit.util.Vector;
+
+import java.util.Collection;
 
 public class BotCollisionListener implements Listener {
 
@@ -118,7 +119,7 @@ public class BotCollisionListener implements Listener {
 
     applyBotKnockback(target, finalVel);
 
-    org.bukkit.util.Vector readBack = target.getVelocity();
+    Vector readBack = target.getVelocity();
     Config.debugNms(
         "[KB-DEBUG] BotCollision: readback velocity for "
             + target.getName()
@@ -353,7 +354,7 @@ public class BotCollisionListener implements Listener {
     if (location == null || location.getWorld() == null) return false;
     if (location.getWorld().getPVP()) return true;
     return plugin.isWorldGuardAvailable()
-        && me.bill.fakePlayerPlugin.util.WorldGuardHelper.isPvpAllowed(location);
+        && WorldGuardHelper.isPvpAllowed(location);
   }
 
   private static Entity resolveKnockbackSource(Entity damager) {

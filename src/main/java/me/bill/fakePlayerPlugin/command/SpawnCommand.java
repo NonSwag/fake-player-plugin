@@ -1,18 +1,21 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.ArrayList;
-import java.util.List;
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppSpawnLocationProvider;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotType;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
+import me.bill.fakePlayerPlugin.util.BadwordFilter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @SuppressWarnings("unused")
 public class SpawnCommand implements FppCommand {
@@ -161,19 +164,19 @@ public class SpawnCommand implements FppCommand {
         location =
             hasCoords
                 ? new Location(
-                    w,
-                    coordX,
-                    coordY,
-                    coordZ,
-                    player.getLocation().getYaw(),
-                    player.getLocation().getPitch())
+                w,
+                coordX,
+                coordY,
+                coordZ,
+                player.getLocation().getYaw(),
+                player.getLocation().getPitch())
                 : new Location(
-                    w,
-                    player.getLocation().getX(),
-                    player.getLocation().getY(),
-                    player.getLocation().getZ(),
-                    player.getLocation().getYaw(),
-                    player.getLocation().getPitch());
+                w,
+                player.getLocation().getX(),
+                player.getLocation().getY(),
+                player.getLocation().getZ(),
+                player.getLocation().getYaw(),
+                player.getLocation().getPitch());
       } else {
         location = player.getLocation();
       }
@@ -260,14 +263,14 @@ public class SpawnCommand implements FppCommand {
     String originalCustomName = customName;
     if (customName != null) {
       if (Config.isBadwordFilterEnabled()
-          && me.bill.fakePlayerPlugin.util.BadwordFilter.getBadwordCount() == 0) {
+          && BadwordFilter.getBadwordCount() == 0) {
 
         sender.sendMessage(Lang.get("badword-filter-empty-warning"));
-      } else if (!me.bill.fakePlayerPlugin.util.BadwordFilter.isAllowed(customName)) {
+      } else if (!BadwordFilter.isAllowed(customName)) {
 
         if (Config.isBadwordAutoRenameEnabled()) {
 
-          String sanitized = me.bill.fakePlayerPlugin.util.BadwordFilter.sanitize(customName);
+          String sanitized = BadwordFilter.sanitize(customName);
           if (sanitized != null) {
             customName = sanitized;
             sender.sendMessage(
@@ -279,7 +282,7 @@ public class SpawnCommand implements FppCommand {
                     customName));
           } else {
             String badword =
-                me.bill.fakePlayerPlugin.util.BadwordFilter.findBadword(originalCustomName);
+                BadwordFilter.findBadword(originalCustomName);
             sender.sendMessage(
                 Lang.get(
                     "spawn-badword-rejected",
@@ -292,7 +295,7 @@ public class SpawnCommand implements FppCommand {
         } else {
 
           String badword =
-              me.bill.fakePlayerPlugin.util.BadwordFilter.findBadword(originalCustomName);
+              BadwordFilter.findBadword(originalCustomName);
           sender.sendMessage(
               Lang.get(
                   "spawn-badword-rejected",
@@ -315,7 +318,7 @@ public class SpawnCommand implements FppCommand {
 
     if (spawnAtLastLocation && customName != null) {
       Location lastKnown = null;
-      var plugin = me.bill.fakePlayerPlugin.FakePlayerPlugin.getInstance();
+      var plugin = FakePlayerPlugin.getInstance();
       var api = plugin != null ? plugin.getFppApi() : null;
       FppSpawnLocationProvider provider =
           api != null ? api.getService(FppSpawnLocationProvider.class) : null;
@@ -338,12 +341,10 @@ public class SpawnCommand implements FppCommand {
         sender.sendMessage(Lang.get("spawn-max-reached", "max", String.valueOf(max)));
       }
       case -2 -> sender.sendMessage(Lang.get("spawn-invalid-name"));
-      case -4 ->
-          sender.sendMessage(
-              Lang.get("spawn-name-taken-player", "name", customName != null ? customName : "?"));
-      case -5 ->
-          sender.sendMessage(
-              Lang.get("spawn-name-taken-nick", "name", customName != null ? customName : "?"));
+      case -4 -> sender.sendMessage(
+          Lang.get("spawn-name-taken-player", "name", customName != null ? customName : "?"));
+      case -5 -> sender.sendMessage(
+          Lang.get("spawn-name-taken-nick", "name", customName != null ? customName : "?"));
       case 0 -> {
         if (customName != null) {
           sender.sendMessage(Lang.get("spawn-name-taken", "name", customName));

@@ -1,5 +1,7 @@
 package me.bill.fakePlayerPlugin.util;
 
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -14,7 +16,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 
 public final class BackupManager {
 
@@ -23,7 +24,8 @@ public final class BackupManager {
 
   private static final int MAX_BACKUPS = 10;
 
-  private BackupManager() {}
+  private BackupManager() {
+  }
 
   public static File createConfigFilesBackup(FakePlayerPlugin plugin, String reason) {
     File backupDir = createBackupDir(plugin, reason);

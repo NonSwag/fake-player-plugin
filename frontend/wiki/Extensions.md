@@ -77,6 +77,16 @@ public interface FppExtension {
     default @Nullable File saveResource(@NotNull String jarPath) { ... }
     default @NotNull YamlConfiguration getConfig() { ... }
     default void reloadConfig() { ... }
+
+    // ── Service registry helpers (see Service Registry section) ──
+    default <T> void registerService(@NotNull Class<T> type, @NotNull T instance) { ... }
+    default <T> void unregisterService(@NotNull Class<T> type, @NotNull T instance) { ... }
+    default <T> @Nullable T getService(@NotNull Class<T> type) { ... }
+    default boolean hasService(@NotNull Class<?> type) { ... }
+
+    // ── Cross-extension config helpers ──
+    default @Nullable YamlConfiguration getExtensionConfig(@NotNull String extensionName) { ... }
+    default void saveDefaultExtensionConfig(@NotNull String extensionName) { ... }
 }
 ```
 
@@ -780,14 +790,14 @@ String kills = data.get("kills");
 ### Maven Setup
 
 ```xml
-<dependencies>
+    <dependencies>
     <!-- FPP plugin JAR (provided scope) -->
     <dependency>
         <groupId>me.bill</groupId>
         <artifactId>fpp</artifactId>
-        <version>1.6.6.10</version>
+        <version>1.6.6.10.1</version>
         <scope>system</scope>
-        <systemPath>${project.basedir}/libs/fpp-1.6.6.10.jar</systemPath>
+        <systemPath>${project.basedir}/libs/fpp-1.6.6.10.1.jar</systemPath>
     </dependency>
 </dependencies>
 ```

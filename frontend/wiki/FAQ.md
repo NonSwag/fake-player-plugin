@@ -30,6 +30,9 @@
 
 ## Tasks & Pathfinding
 
+### Q: What's the difference between `attack --mob` and `attack --hunt`?
+**A:** `--mob` attacks nearby mobs within range from the bot's current position (static guard). `--hunt` makes the bot roam autonomously to find and continuously attack the nearest hostile mob. `--hunt` also accepts an optional mob type filter.
+
 ### Q: Bot stopped mining halfway through.
 **A:** The bot may have run out of tools or encountered an unbreakable block. Use `/fpp storage` to set a supply container for restocking.
 
@@ -38,6 +41,9 @@
 
 ### Q: `/fpp mine --wesel` does nothing.
 **A:** WorldEdit must be installed. The sender must have an active WorldEdit selection.
+
+### Q: What does `find --prefer-visible` do?
+**A:** When scanning for blocks, it prioritizes blocks the bot has direct line-of-sight to (and ignores blocks hidden behind walls). Without the flag, the bot may mine blocks behind obstacles.
 
 ### Q: Follow command stops after a restart.
 **A:** Tasks are persisted when `persistence.enabled: true` and the database is active. If using YAML-only persistence, tasks may not survive restarts.
@@ -57,6 +63,9 @@
 
 ### Q: `fpp-spoof.jar` extension is missing.
 **A:** This extension is not part of the core plugin. Download it from the [FPP Marketplace](https://mp.fpp.wtf/resources/resource/9-fpp---spoof/).
+
+### Q: Why do some config keys (fake-chat, swap, peak-hours, ping) not do anything?
+**A:** Those settings exist in core `config.yml` but only function when the **`fpp-spoof.jar`** extension is loaded. If you haven't installed it, the toggles will appear in config but have no effect.
 
 ## Performance
 

@@ -1,12 +1,11 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.api.event.FppBotSleepEndEvent;
+import me.bill.fakePlayerPlugin.api.event.FppBotSleepStartEvent;
+import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
+import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
+import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
@@ -29,57 +28,81 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * /fpp sleep &lt;bot|all&gt; &lt;x&gt; &lt;y&gt; &lt;z&gt; &lt;radius&gt;
- *   — Set the sleep origin and radius for a bot. The bot will automatically walk to
- *     the nearest bed within the radius (measured from the given origin) when night
- *     falls and wake up when dawn arrives. Active tasks (mine/use/place/attack/follow/
- *     move/find) are paused before sleeping and automatically resumed after waking.
- *
+ * — Set the sleep origin and radius for a bot. The bot will automatically walk to
+ * the nearest bed within the radius (measured from the given origin) when night
+ * falls and wake up when dawn arrives. Active tasks (mine/use/place/attack/follow/
+ * move/find) are paused before sleeping and automatically resumed after waking.
+ * <p>
  * /fpp sleep &lt;bot|all&gt; --stop
- *   — Disable the sleep system for one or all bots. Also disables via radius &lt;= 0.
+ * — Disable the sleep system for one or all bots. Also disables via radius &lt;= 0.
  */
 public final class SleepCommand implements FppCommand {
 
   // ── Night/day thresholds (Minecraft ticks within a 24 000-tick day) ─────────
   private static final long NIGHT_START = 12541L;
-  private static final long NIGHT_END   = 23999L;
+  private static final long NIGHT_END = 23999L;
 
   // ── Navigation / timer tuning ─────────────────────────────────────────────
-  /** Ticks between each night-watch sweep. */
+  /**
+   * Ticks between each night-watch sweep.
+   */
   private static final long CHECK_INTERVAL_TICKS = 40L;
-  /** How close (XZ) a bot must get to a bed to attempt sleep. */
+  /**
+   * How close (XZ) a bot must get to a bed to attempt sleep.
+   */
   private static final double ARRIVE_DISTANCE = 1.5;
-  /** Maximum null-path recalculations before giving up navigation to the bed. */
+  /**
+   * Maximum null-path recalculations before giving up navigation to the bed.
+   */
   private static final int MAX_NULL_RECALCS = 5;
-  /** Ticks to wait after waking before resuming the previous task. */
+  /**
+   * Ticks to wait after waking before resuming the previous task.
+   */
   private static final long WAKE_RESUME_DELAY_TICKS = 40L;
 
   private final FakePlayerPlugin plugin;
   private final FakePlayerManager manager;
   private final PathfindingService pathfinding;
 
-  @Nullable private MineCommand    mineCommand;
-  @Nullable private UseCommand     useCommand;
-  @Nullable private PlaceCommand   placeCommand;
-  @Nullable private AttackCommand  attackCommand;
-  @Nullable private FollowCommand  followCommand;
-  @Nullable private MoveCommand    moveCommand;
-  @Nullable private FindCommand    findCommand;
+  @Nullable
+  private MineCommand mineCommand;
+  @Nullable
+  private UseCommand useCommand;
+  @Nullable
+  private PlaceCommand placeCommand;
+  @Nullable
+  private AttackCommand attackCommand;
+  @Nullable
+  private FollowCommand followCommand;
+  @Nullable
+  private MoveCommand moveCommand;
+  @Nullable
+  private FindCommand findCommand;
 
-  /** Activity types that can be paused and resumed around sleep. */
+  /**
+   * Activity types that can be paused and resumed around sleep.
+   */
   private enum Activity {
     NONE, MINE, USE, PLACE, ATTACK, FOLLOW, ROAM, FIND
   }
 
   // Per-bot state for activity capture/restore
-  private final Map<UUID, Activity>  previousActivity     = new ConcurrentHashMap<>();
-  private final Map<UUID, Location>  previousRoamCenter   = new ConcurrentHashMap<>();
-  private final Map<UUID, Double>    previousRoamRadius   = new ConcurrentHashMap<>();
+  private final Map<UUID, Activity> previousActivity = new ConcurrentHashMap<>();
+  private final Map<UUID, Location> previousRoamCenter = new ConcurrentHashMap<>();
+  private final Map<UUID, Double> previousRoamRadius = new ConcurrentHashMap<>();
 
   /**
    * Tracks which bots are currently navigating toward a bed (SLEEP pathfinding owner).
@@ -89,16 +112,19 @@ public final class SleepCommand implements FppCommand {
 
   /**
    * Caches the last successfully-found bed location per bot. Cleared when:
-   *   - sleep is disabled (/fpp sleep ... --stop)
-   *   - navigation to the bed fails / is cancelled
-   *   - sleep attempt fails (bed no longer valid)
+   * - sleep is disabled (/fpp sleep ... --stop)
+   * - navigation to the bed fails / is cancelled
+   * - sleep attempt fails (bed no longer valid)
    */
   private final Map<UUID, Location> cachedBeds = new ConcurrentHashMap<>();
 
   private final Map<UUID, Location> temporaryBeds = new ConcurrentHashMap<>();
 
-  /** The single global repeating task that checks all configured bots. null = not running. */
-  @Nullable private Integer nightWatchTaskId = null;
+  /**
+   * The single global repeating task that checks all configured bots. null = not running.
+   */
+  @Nullable
+  private Integer nightWatchTaskId = null;
 
   // ── Constructor ──────────────────────────────────────────────────────────
 
@@ -106,26 +132,57 @@ public final class SleepCommand implements FppCommand {
       @NotNull FakePlayerPlugin plugin,
       @NotNull FakePlayerManager manager,
       @NotNull PathfindingService pathfinding) {
-    this.plugin      = plugin;
-    this.manager     = manager;
+    this.plugin = plugin;
+    this.manager = manager;
     this.pathfinding = pathfinding;
   }
 
   // ── Dependency injection ─────────────────────────────────────────────────
 
-  public void setMineCommand(@Nullable MineCommand cmd)       { this.mineCommand    = cmd; }
-  public void setUseCommand(@Nullable UseCommand cmd)         { this.useCommand     = cmd; }
-  public void setPlaceCommand(@Nullable PlaceCommand cmd)     { this.placeCommand   = cmd; }
-  public void setAttackCommand(@Nullable AttackCommand cmd)   { this.attackCommand  = cmd; }
-  public void setFollowCommand(@Nullable FollowCommand cmd)   { this.followCommand  = cmd; }
-  public void setMoveCommand(@Nullable MoveCommand cmd)       { this.moveCommand    = cmd; }
-  public void setFindCommand(@Nullable FindCommand cmd)       { this.findCommand    = cmd; }
+  public void setMineCommand(@Nullable MineCommand cmd) {
+    this.mineCommand = cmd;
+  }
+
+  public void setUseCommand(@Nullable UseCommand cmd) {
+    this.useCommand = cmd;
+  }
+
+  public void setPlaceCommand(@Nullable PlaceCommand cmd) {
+    this.placeCommand = cmd;
+  }
+
+  public void setAttackCommand(@Nullable AttackCommand cmd) {
+    this.attackCommand = cmd;
+  }
+
+  public void setFollowCommand(@Nullable FollowCommand cmd) {
+    this.followCommand = cmd;
+  }
+
+  public void setMoveCommand(@Nullable MoveCommand cmd) {
+    this.moveCommand = cmd;
+  }
+
+  public void setFindCommand(@Nullable FindCommand cmd) {
+    this.findCommand = cmd;
+  }
 
   // ── FppCommand metadata ──────────────────────────────────────────────────
 
-  @Override public String getName()        { return "sleep"; }
-  @Override public String getPermission()  { return Perm.SLEEP; }
-  @Override public boolean canUse(CommandSender sender) { return Perm.has(sender, Perm.SLEEP); }
+  @Override
+  public String getName() {
+    return "sleep";
+  }
+
+  @Override
+  public String getPermission() {
+    return Perm.SLEEP;
+  }
+
+  @Override
+  public boolean canUse(CommandSender sender) {
+    return Perm.has(sender, Perm.SLEEP);
+  }
 
   @Override
   public String getUsage() {
@@ -179,9 +236,9 @@ public final class SleepCommand implements FppCommand {
 
     double x, y, z, radius;
     try {
-      x      = Double.parseDouble(args[1]);
-      y      = Double.parseDouble(args[2]);
-      z      = Double.parseDouble(args[3]);
+      x = Double.parseDouble(args[1]);
+      y = Double.parseDouble(args[2]);
+      z = Double.parseDouble(args[3]);
       radius = Double.parseDouble(args[4]);
     } catch (NumberFormatException e) {
       sender.sendMessage(Lang.get("sleep-invalid-args"));
@@ -216,14 +273,17 @@ public final class SleepCommand implements FppCommand {
       int started = 0, skipped = 0;
       for (FakePlayer fp : manager.getActivePlayers()) {
         Player bot = fp.getPlayer();
-        if (bot == null || !bot.isOnline()) { skipped++; continue; }
+        if (bot == null || !bot.isOnline()) {
+          skipped++;
+          continue;
+        }
         Location origin = new Location(bot.getWorld(), x, y, z);
         configureSleep(fp, origin, radius);
         started++;
       }
       sender.sendMessage(Lang.get("sleep-all-configured",
-          "count",   String.valueOf(started),
-          "radius",  String.valueOf((int) radius),
+          "count", String.valueOf(started),
+          "radius", String.valueOf((int) radius),
           "skipped", String.valueOf(skipped)));
     } else {
       FakePlayer fp = manager.getByName(args[0]);
@@ -239,10 +299,10 @@ public final class SleepCommand implements FppCommand {
       Location origin = new Location(bot.getWorld(), x, y, z);
       configureSleep(fp, origin, radius);
       sender.sendMessage(Lang.get("sleep-configured",
-          "name",   fp.getDisplayName(),
-          "x",      String.valueOf((int) x),
-          "y",      String.valueOf((int) y),
-          "z",      String.valueOf((int) z),
+          "name", fp.getDisplayName(),
+          "x", String.valueOf((int) x),
+          "y", String.valueOf((int) y),
+          "z", String.valueOf((int) z),
           "radius", String.valueOf((int) radius)));
     }
     return true;
@@ -326,7 +386,8 @@ public final class SleepCommand implements FppCommand {
             manager.unlockAction(uuid);
             // previousActivity is still captured; next nightWatchTick will re-navigate.
           }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
       }
     }
   }
@@ -336,7 +397,7 @@ public final class SleepCommand implements FppCommand {
   private void startSleepNavigation(@NotNull FakePlayer fp) {
     UUID uuid = fp.getUuid();
     Location origin = fp.getSleepOrigin();
-    double radius   = fp.getSleepRadius();
+    double radius = fp.getSleepRadius();
     if (origin == null || radius <= 0) return;
 
     Player bot = fp.getPlayer();
@@ -347,8 +408,8 @@ public final class SleepCommand implements FppCommand {
 
     // Use cached bed if still valid; otherwise scan for a new one.
     Location bedLoc = cachedBeds.get(uuid);
-      if (bedLoc == null || !isBedBlock(bedLoc) || isBedOccupied(bedLoc, uuid)) {
-        bedLoc = findBed(bot.getWorld(), origin, radius);
+    if (bedLoc == null || !isBedBlock(bedLoc) || isBedOccupied(bedLoc, uuid)) {
+      bedLoc = findBed(bot.getWorld(), origin, radius);
       if (bedLoc == null) {
         bedLoc = tryPlaceTemporaryBed(fp, bot);
         if (bedLoc == null) {
@@ -419,7 +480,7 @@ public final class SleepCommand implements FppCommand {
       findCommand.cleanupBot(uuid);
     } else if (moveCommand != null && moveCommand.isRoaming(uuid)) {
       Location center = moveCommand.getRoamCenter(uuid);
-      Double   radius = moveCommand.getRoamRadius(uuid);
+      Double radius = moveCommand.getRoamRadius(uuid);
       if (center != null && radius != null) {
         previousActivity.put(uuid, Activity.ROAM);
         previousRoamCenter.put(uuid, center.clone());
@@ -444,19 +505,30 @@ public final class SleepCommand implements FppCommand {
 
     FppScheduler.runSyncLater(plugin, () -> {
       switch (act) {
-        case MINE    -> { if (mineCommand   != null) mineCommand.resumeMining(fp); }
-        case USE     -> { if (useCommand    != null) useCommand.resumeUsing(fp); }
-        case PLACE   -> { if (placeCommand  != null) placeCommand.resumePlacing(fp); }
-        case ATTACK  -> { if (attackCommand != null) attackCommand.resumeAttacking(fp); }
-        case FOLLOW  -> { if (followCommand != null) followCommand.resumeFollowing(fp); }
-        case ROAM    -> {
+        case MINE -> {
+          if (mineCommand != null) mineCommand.resumeMining(fp);
+        }
+        case USE -> {
+          if (useCommand != null) useCommand.resumeUsing(fp);
+        }
+        case PLACE -> {
+          if (placeCommand != null) placeCommand.resumePlacing(fp);
+        }
+        case ATTACK -> {
+          if (attackCommand != null) attackCommand.resumeAttacking(fp);
+        }
+        case FOLLOW -> {
+          if (followCommand != null) followCommand.resumeFollowing(fp);
+        }
+        case ROAM -> {
           Location center = previousRoamCenter.remove(uuid);
-          Double   radius = previousRoamRadius.remove(uuid);
+          Double radius = previousRoamRadius.remove(uuid);
           if (center != null && radius != null && moveCommand != null) {
             moveCommand.resumeRoaming(fp, center, radius);
           }
         }
-        default -> {}
+        default -> {
+        }
       }
       // Clean up any leftover map entries
       previousRoamCenter.remove(uuid);
@@ -475,11 +547,20 @@ public final class SleepCommand implements FppCommand {
     UUID uuid = fp.getUuid();
 
     Player bot = fp.getPlayer();
-    if (bot == null || !bot.isOnline()) { resumePreviousTask(fp); return; }
-    if (fp.getSleepRadius() <= 0)        { resumePreviousTask(fp); return; }
+    if (bot == null || !bot.isOnline()) {
+      resumePreviousTask(fp);
+      return;
+    }
+    if (fp.getSleepRadius() <= 0) {
+      resumePreviousTask(fp);
+      return;
+    }
 
     long time = bot.getWorld().getTime();
-    if (time < NIGHT_START || time > NIGHT_END) { resumePreviousTask(fp); return; }
+    if (time < NIGHT_START || time > NIGHT_END) {
+      resumePreviousTask(fp);
+      return;
+    }
 
     bedLoc = normalizeBedFoot(bedLoc);
     if (!isBedBlock(bedLoc) || isBedOccupied(bedLoc, uuid)) {
@@ -490,7 +571,7 @@ public final class SleepCommand implements FppCommand {
 
     // Zero any residual navigation momentum so the bot lies flat on the bed
     // rather than appearing to slide or crouch when startSleepInBed fires.
-    bot.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+    bot.setVelocity(new Vector(0, 0, 0));
 
     // Try NMS first (bypasses vanilla distance/monster checks).
     boolean slept = false;
@@ -513,10 +594,10 @@ public final class SleepCommand implements FppCommand {
     }
 
     if (slept) {
-      FppApiImpl.fireTaskEvent(fp, "sleep", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.START);
-      var sleepStartEvt = new me.bill.fakePlayerPlugin.api.event.FppBotSleepStartEvent(
-          new me.bill.fakePlayerPlugin.api.impl.FppBotImpl(fp), bedLoc);
-      org.bukkit.Bukkit.getPluginManager().callEvent(sleepStartEvt);
+      FppApiImpl.fireTaskEvent(fp, "sleep", FppBotTaskEvent.Action.START);
+      var sleepStartEvt = new FppBotSleepStartEvent(
+          new FppBotImpl(fp), bedLoc);
+      Bukkit.getPluginManager().callEvent(sleepStartEvt);
       if (sleepStartEvt.isCancelled()) {
         resumePreviousTask(fp);
         return;
@@ -542,13 +623,13 @@ public final class SleepCommand implements FppCommand {
    */
   private void wakeBot(@NotNull FakePlayer fp, boolean resumeTask) {
     if (!fp.isSleeping()) return;
-    FppApiImpl.fireTaskEvent(fp, "sleep", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.STOP);
+    FppApiImpl.fireTaskEvent(fp, "sleep", FppBotTaskEvent.Action.STOP);
     UUID uuid = fp.getUuid();
     Player bot = fp.getPlayer();
 
-    var sleepEndEvt = new me.bill.fakePlayerPlugin.api.event.FppBotSleepEndEvent(
-        new me.bill.fakePlayerPlugin.api.impl.FppBotImpl(fp), bot != null ? bot.getLocation() : null);
-    org.bukkit.Bukkit.getPluginManager().callEvent(sleepEndEvt);
+    var sleepEndEvt = new FppBotSleepEndEvent(
+        new FppBotImpl(fp), bot != null ? bot.getLocation() : null);
+    Bukkit.getPluginManager().callEvent(sleepEndEvt);
     fp.setSleeping(false);
     manager.unlockAction(uuid);
 
@@ -562,7 +643,10 @@ public final class SleepCommand implements FppCommand {
         Config.debugChat("[Sleep] NMS stopSleepInBed failed for " + fp.getName() + ": " + e.getMessage());
         // Bukkit fallback
         if (bot.isSleeping()) {
-          try { bot.wakeup(false); } catch (Exception ignored) {}
+          try {
+            bot.wakeup(false);
+          } catch (Exception ignored) {
+          }
         }
       }
     }
@@ -591,12 +675,12 @@ public final class SleepCommand implements FppCommand {
    */
   @Nullable
   private static Location findBed(@NotNull World world, @NotNull Location origin, double radius) {
-    int r  = (int) Math.ceil(radius);
+    int r = (int) Math.ceil(radius);
     int ox = origin.getBlockX();
     int oy = origin.getBlockY();
     int oz = origin.getBlockZ();
 
-    Location closest    = null;
+    Location closest = null;
     double closestDistSq = Double.MAX_VALUE;
 
     for (int dx = -r; dx <= r; dx++) {
@@ -621,7 +705,9 @@ public final class SleepCommand implements FppCommand {
     return closest;
   }
 
-  /** Returns true if the given location contains a bed block. */
+  /**
+   * Returns true if the given location contains a bed block.
+   */
   private static boolean isBedBlock(@NotNull Location loc) {
     World world = loc.getWorld();
     if (world == null) return false;
@@ -754,7 +840,9 @@ public final class SleepCommand implements FppCommand {
     checkNightWatchNeeded();
   }
 
-  /** Stops all sleep sessions; called on plugin disable. */
+  /**
+   * Stops all sleep sessions; called on plugin disable.
+   */
   public void stopAll() {
     for (FakePlayer fp : new ArrayList<>(manager.getActivePlayers())) {
       disableSleep(fp);
@@ -788,7 +876,7 @@ public final class SleepCommand implements FppCommand {
     } else if (args.length == 2) {
       String in = args[1].toLowerCase();
       if ("--stop".startsWith(in)) out.add("--stop");
-      if (org.bukkit.command.CommandSender.class.isInstance(sender)
+      if (CommandSender.class.isInstance(sender)
           && sender instanceof Player p) {
         Location loc = p.getLocation();
         String coords = loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ();

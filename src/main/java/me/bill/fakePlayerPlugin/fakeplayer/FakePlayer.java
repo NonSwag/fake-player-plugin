@@ -1,18 +1,22 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.BotRecord;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @SuppressWarnings("unused")
 public final class FakePlayer {
@@ -68,7 +72,9 @@ public final class FakePlayer {
 
   private boolean bodyless = false;
 
-  /** True when this bot was spawned via {@code spawnRestored} (server restart persistence). */
+  /**
+   * True when this bot was spawned via {@code spawnRestored} (server restart persistence).
+   */
   private boolean restoredSpawn = false;
 
   private String luckpermsGroup = null;
@@ -128,7 +134,7 @@ public final class FakePlayer {
 
     public static PveSmartAttackMode fromStoredValue(String raw) {
       if (raw == null || raw.isBlank()) return OFF;
-      return switch (raw.trim().toUpperCase(java.util.Locale.ROOT)) {
+      return switch (raw.trim().toUpperCase(Locale.ROOT)) {
         case "ON", "ON_WITHOUT_MOVEMENT", "ON_NO_MOVE", "NO_MOVE", "WITHOUT_MOVEMENT" -> ON_NO_MOVE;
         case "ON_MOVE", "MOVE", "ON_WITH_MOVEMENT", "WITH_MOVEMENT" -> ON_MOVE;
         default -> OFF;
@@ -158,15 +164,23 @@ public final class FakePlayer {
 
   private volatile boolean tabListDirty = true;
 
-  /** Addon-attached metadata — transient, cleared on despawn. */
-  private final java.util.Map<String, Object> metadata = new java.util.concurrent.ConcurrentHashMap<>();
+  /**
+   * Addon-attached metadata — transient, cleared on despawn.
+   */
+  private final Map<String, Object> metadata = new ConcurrentHashMap<>();
 
   // ── Sleep system ──────────────────────────────────────────────────────────
-  /** Station location used as the center for bed searching. null = not configured. */
+  /**
+   * Station location used as the center for bed searching. null = not configured.
+   */
   private Location sleepOrigin = null;
-  /** Bed-search radius in blocks. 0 = sleep disabled for this bot. */
+  /**
+   * Bed-search radius in blocks. 0 = sleep disabled for this bot.
+   */
   private double sleepRadius = 0.0;
-  /** True while the bot is currently in the sleeping state. */
+  /**
+   * True while the bot is currently in the sleeping state.
+   */
   private boolean sleeping = false;
 
   public FakePlayer(UUID uuid, String name, PlayerProfile profile) {
@@ -191,11 +205,11 @@ public final class FakePlayer {
     return spawnLocation;
   }
 
-  public org.bukkit.entity.Player getPhysicsEntity() {
+  public Player getPhysicsEntity() {
     return player;
   }
 
-  public org.bukkit.entity.Player getPlayer() {
+  public Player getPlayer() {
     return player;
   }
 
@@ -320,12 +334,12 @@ public final class FakePlayer {
     this.spawnLocation = loc;
   }
 
-  public void setPlayer(org.bukkit.entity.Player p) {
+  public void setPlayer(Player p) {
     this.player = p;
   }
 
   public void setPhysicsEntity(Entity e) {
-    this.player = e instanceof org.bukkit.entity.Player ? (org.bukkit.entity.Player) e : null;
+    this.player = e instanceof Player ? (Player) e : null;
   }
 
   public void setDisplayName(String name) {
@@ -509,12 +523,12 @@ public final class FakePlayer {
     this.chunkLoadRadius = r;
   }
 
-  @org.jetbrains.annotations.Nullable
+  @Nullable
   public String getNameTagNick() {
     return nameTagNick;
   }
 
-  public void setNameTagNick(@org.jetbrains.annotations.Nullable String nick) {
+  public void setNameTagNick(@Nullable String nick) {
     this.nameTagNick = nick;
 
     this.cachedNmsDisplayComponent = null;
@@ -786,12 +800,12 @@ public final class FakePlayer {
 
   // ── Sleep system accessors ────────────────────────────────────────────────
 
-  @org.jetbrains.annotations.Nullable
+  @Nullable
   public Location getSleepOrigin() {
     return sleepOrigin;
   }
 
-  public void setSleepOrigin(@org.jetbrains.annotations.Nullable Location origin) {
+  public void setSleepOrigin(@Nullable Location origin) {
     this.sleepOrigin = origin != null ? origin.clone() : null;
   }
 
@@ -813,7 +827,7 @@ public final class FakePlayer {
 
   // ── Addon metadata ────────────────────────────────────────────────────────
 
-  @org.jetbrains.annotations.Nullable
+  @Nullable
   public Object getMetadata(String key) {
     return key != null ? metadata.get(key) : null;
   }
@@ -836,8 +850,8 @@ public final class FakePlayer {
   }
 
   @NotNull
-  public java.util.Map<String, Object> getMetadataMap() {
-    return java.util.Map.copyOf(metadata);
+  public Map<String, Object> getMetadataMap() {
+    return Map.copyOf(metadata);
   }
 
   public void clearMetadata() {

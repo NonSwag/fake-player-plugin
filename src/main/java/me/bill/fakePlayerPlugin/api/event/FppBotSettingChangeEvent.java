@@ -18,10 +18,24 @@ public class FppBotSettingChangeEvent extends FppBotEvent {
     this.newValue = newValue;
   }
 
-  public @NotNull String getSettingKey() { return settingKey; }
-  public @Nullable Object getOldValue() { return oldValue; }
-  public @Nullable Object getNewValue() { return newValue; }
+  public @NotNull String getSettingKey() {
+    return settingKey;
+  }
 
-  @Override public @NotNull HandlerList getHandlers() { return HANDLERS; }
-  public static @NotNull HandlerList getHandlerList() { return HANDLERS; }
+  public @Nullable Object getOldValue() {
+    return oldValue;
+  }
+
+  public @Nullable Object getNewValue() {
+    return newValue;
+  }
+
+  @Override
+  public @NotNull HandlerList getHandlers() {
+    return HANDLERS;
+  }
+
+  public static @NotNull HandlerList getHandlerList() {
+    return HANDLERS;
+  }
 }

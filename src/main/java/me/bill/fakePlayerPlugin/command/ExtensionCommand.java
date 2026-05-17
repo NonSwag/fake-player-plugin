@@ -1,6 +1,5 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.List;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppAddon;
 import me.bill.fakePlayerPlugin.extension.ExtensionLoader;
@@ -13,6 +12,8 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.command.CommandSender;
+
+import java.util.List;
 
 public class ExtensionCommand implements FppCommand {
 

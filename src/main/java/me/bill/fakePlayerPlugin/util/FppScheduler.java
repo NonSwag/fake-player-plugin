@@ -4,12 +4,14 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.Plugin;
 
 public final class FppScheduler {
 
-  private FppScheduler() {}
+  private FppScheduler() {
+  }
 
   public static void runAtEntity(Plugin plugin, Entity entity, Runnable runnable) {
     if (entity == null) return;
@@ -60,7 +62,7 @@ public final class FppScheduler {
   }
 
   public static void teleportAsync(Entity entity, Location dest) {
-    if (entity instanceof org.bukkit.entity.Player p) {
+    if (entity instanceof Player p) {
       p.teleportAsync(dest, PlayerTeleportEvent.TeleportCause.PLUGIN);
     } else {
       entity.teleport(dest);

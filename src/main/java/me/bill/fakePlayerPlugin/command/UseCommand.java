@@ -1,8 +1,10 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.api.event.FppBotInteractEvent;
+import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
+import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
+import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
@@ -10,10 +12,6 @@ import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
-import me.bill.fakePlayerPlugin.api.event.FppBotInteractEvent;
-import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
-import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
-import org.bukkit.Bukkit;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -24,10 +22,20 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class UseCommand implements FppCommand {
 
@@ -182,7 +190,7 @@ public final class UseCommand implements FppCommand {
   // ── Lock + Use Loop ──
 
   private void lockAndStartUsing(FakePlayer fp, boolean once, Location lockLoc) {
-    FppApiImpl.fireTaskEvent(fp, "use", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.START);
+    FppApiImpl.fireTaskEvent(fp, "use", FppBotTaskEvent.Action.START);
     UUID uuid = fp.getUuid();
     Player bot = fp.getPlayer();
     if (bot == null) return;
@@ -266,8 +274,8 @@ public final class UseCommand implements FppCommand {
                   var bukkitEntity = entity.getBukkitEntity();
                   var equipSlot =
                       hand == InteractionHand.MAIN_HAND
-                          ? org.bukkit.inventory.EquipmentSlot.HAND
-                          : org.bukkit.inventory.EquipmentSlot.OFF_HAND;
+                          ? EquipmentSlot.HAND
+                          : EquipmentSlot.OFF_HAND;
                   var interactEvent =
                       new FppBotInteractEvent(new FppBotImpl(fp), bukkitEntity, equipSlot);
                   Bukkit.getPluginManager().callEvent(interactEvent);
@@ -329,7 +337,7 @@ public final class UseCommand implements FppCommand {
   public void stopUsing(UUID botUuid) {
     FakePlayer fp = manager.getByUuid(botUuid);
     if (fp != null) {
-      FppApiImpl.fireTaskEvent(fp, "use", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.STOP);
+      FppApiImpl.fireTaskEvent(fp, "use", FppBotTaskEvent.Action.STOP);
     }
     Integer taskId = useTasks.remove(botUuid);
     if (taskId != null) FppScheduler.cancelTask(taskId);
@@ -357,7 +365,7 @@ public final class UseCommand implements FppCommand {
     return useTasks.containsKey(botUuid);
   }
 
-  @org.jetbrains.annotations.Nullable
+  @Nullable
   public Location getActiveUseLocation(UUID botUuid) {
     return activeUseLocations.get(botUuid);
   }

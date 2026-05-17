@@ -1,14 +1,24 @@
 package me.bill.fakePlayerPlugin.fakeplayer.network;
 
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelOutboundInvoker;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.ChannelProgressivePromise;
+import io.netty.channel.ChannelPromise;
+import io.netty.channel.DefaultChannelPromise;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.concurrent.EventExecutorGroup;
+
 import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 @SuppressWarnings("deprecation")
 public final class FakeChannelPipeline implements ChannelPipeline {
@@ -352,7 +362,7 @@ public final class FakeChannelPipeline implements ChannelPipeline {
 
   private void notifyListener(Object msg) {
     if (channel instanceof FakeChannel fc) {
-      java.util.function.Consumer<Object> listener = fc.getPacketListener();
+      Consumer<Object> listener = fc.getPacketListener();
       if (listener != null) listener.accept(msg);
     }
   }

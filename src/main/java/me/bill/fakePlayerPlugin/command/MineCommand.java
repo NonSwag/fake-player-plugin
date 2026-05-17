@@ -1,20 +1,13 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppBotBlockBreakEvent;
+import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
-import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotNavUtil;
+import me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
@@ -23,6 +16,7 @@ import me.bill.fakePlayerPlugin.fakeplayer.StorageInteractionHelper;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
+import me.bill.fakePlayerPlugin.util.WorldEditHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
@@ -40,6 +34,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -47,6 +42,18 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.util.BlockIterator;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class MineCommand implements FppCommand {
 
@@ -150,7 +157,7 @@ public final class MineCommand implements FppCommand {
           return true;
         }
         boolean started =
-            findCommand.startFindTask(sender, fp, java.util.Arrays.copyOfRange(args, 2, args.length));
+            findCommand.startFindTask(sender, fp, Arrays.copyOfRange(args, 2, args.length));
         if (started) {
           sender.sendMessage(
               Lang.get(
@@ -169,8 +176,8 @@ public final class MineCommand implements FppCommand {
       }
 
       if (!AREA_MODE_ENABLED) {
-        java.util.Set<String> areaActions =
-            java.util.Set.of(
+        Set<String> areaActions =
+            Set.of(
                 "--pos1",
                 "pos1",
                 "--pos2",
@@ -288,7 +295,7 @@ public final class MineCommand implements FppCommand {
             sender.sendMessage(Lang.get("worldedit-not-available"));
             return true;
           }
-          Location[] corners = me.bill.fakePlayerPlugin.util.WorldEditHelper.getSelection(player);
+          Location[] corners = WorldEditHelper.getSelection(player);
           if (corners == null) {
             sender.sendMessage(Lang.get("worldedit-no-selection"));
             return true;
@@ -350,16 +357,16 @@ public final class MineCommand implements FppCommand {
       List<String> options =
           AREA_MODE_ENABLED
               ? List.of(
-                  "--once",
-                  "--stop",
-                  "once",
-                  "stop",
-                  "--pos1",
-                  "--pos2",
-                  "--start",
-                  "--wesel",
-                  "--status",
-                  "--clear")
+              "--once",
+              "--stop",
+              "once",
+              "stop",
+              "--pos1",
+              "--pos2",
+              "--start",
+              "--wesel",
+              "--status",
+              "--clear")
               : List.of("--once", "--stop", "--wesel", "once", "stop");
       for (String option : options) {
         if (option.startsWith(prefix)) out.add(option);
@@ -416,13 +423,13 @@ public final class MineCommand implements FppCommand {
   private void startNavigation(
       FakePlayer fp,
       Location dest,
-      @org.jetbrains.annotations.Nullable Location lockOnArrival,
+      @Nullable Location lockOnArrival,
       Runnable onArrive) {
     // Force breakBlocks=true so the bot can punch through obstructions en-route to its target.
-    me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder.PathOptions baseOpts =
-        me.bill.fakePlayerPlugin.fakeplayer.PathfindingService.resolvePathOptions(fp);
-    me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder.PathOptions opts =
-        new me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder.PathOptions(
+    BotPathfinder.PathOptions baseOpts =
+        PathfindingService.resolvePathOptions(fp);
+    BotPathfinder.PathOptions opts =
+        new BotPathfinder.PathOptions(
             fp.isNavParkour(),
             true,
             fp.isNavPlaceBlocks(),
@@ -453,7 +460,7 @@ public final class MineCommand implements FppCommand {
       Location lockLoc,
       BlockPos forcedTarget,
       boolean stopAfterForcedTarget) {
-    FppApiImpl.fireTaskEvent(fp, "mine", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.START);
+    FppApiImpl.fireTaskEvent(fp, "mine", FppBotTaskEvent.Action.START);
     UUID uuid = fp.getUuid();
     Player bot = fp.getPlayer();
     if (bot == null) return;
@@ -517,7 +524,7 @@ public final class MineCommand implements FppCommand {
   public void stopMining(UUID botUuid) {
     FakePlayer fp = manager.getByUuid(botUuid);
     if (fp != null) {
-      FppApiImpl.fireTaskEvent(fp, "mine", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.STOP);
+      FppApiImpl.fireTaskEvent(fp, "mine", FppBotTaskEvent.Action.STOP);
     }
     Integer taskId = miningTasks.remove(botUuid);
     if (taskId != null) FppScheduler.cancelTask(taskId);
@@ -584,7 +591,7 @@ public final class MineCommand implements FppCommand {
     return miningTasks.containsKey(botUuid);
   }
 
-  @org.jetbrains.annotations.Nullable
+  @Nullable
   public Location getActiveMineLocation(UUID botUuid) {
     return activeMineLocations.get(botUuid);
   }
@@ -594,13 +601,13 @@ public final class MineCommand implements FppCommand {
     return v != null && v;
   }
 
-  @org.jetbrains.annotations.Nullable
+  @Nullable
   public Location getSelectionPos1(UUID botUuid) {
     AreaSelection s = selections.get(botUuid);
     return s != null ? s.pos1 : null;
   }
 
-  @org.jetbrains.annotations.Nullable
+  @Nullable
   public Location getSelectionPos2(UUID botUuid) {
     AreaSelection s = selections.get(botUuid);
     return s != null ? s.pos2 : null;
@@ -719,7 +726,8 @@ public final class MineCommand implements FppCommand {
     if (fp.isPickUpItemsEnabled()) {
       Location dropTarget = nearestAnticipatedDrop(bot, job);
       if (dropTarget != null && bot.getLocation().distanceSquared(dropTarget) > 1.5 * 1.5) {
-        startNavigation(fp, dropTarget, () -> {});
+        startNavigation(fp, dropTarget, () -> {
+        });
         return;
       }
     } else if (!job.anticipatedDrops.isEmpty()) {
@@ -801,7 +809,7 @@ public final class MineCommand implements FppCommand {
       StorageStore.StoragePoint point = storages.get(idx);
       if (point.location().getWorld() != bot.getWorld()) continue;
       Block block = point.location().getBlock();
-      if (!(block.getState() instanceof org.bukkit.inventory.InventoryHolder holder)) continue;
+      if (!(block.getState() instanceof InventoryHolder holder)) continue;
       if (!containerCanAcceptAny(bot.getInventory(), holder.getInventory())) continue;
       Location standLoc =
           BotNavUtil.findStandLocation(
@@ -820,7 +828,7 @@ public final class MineCommand implements FppCommand {
     Player bot = fp.getPlayer();
     if (bot == null || !bot.isOnline()) return;
     Block block = point.location().getBlock();
-    if (!(block.getState() instanceof org.bukkit.inventory.InventoryHolder)) {
+    if (!(block.getState() instanceof InventoryHolder)) {
       job.preferredStorageIndex =
           (storageIndex + 1) % Math.max(1, storageStore.getStorages(fp.getName()).size());
       return;
@@ -931,12 +939,12 @@ public final class MineCommand implements FppCommand {
     if (state.currentPos == null || !state.currentPos.equals(targetPos)) {
       if (state.currentPos != null) {
         if (fireBlockBreakHook(fp, state.currentPos)) {
-        NmsPlayerSpawner.handleBlockBreakAction(nms,
-            state.currentPos,
-            ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK,
-            Direction.DOWN,
-            nms.level().getMaxY(),
-            -1);
+          NmsPlayerSpawner.handleBlockBreakAction(nms,
+              state.currentPos,
+              ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK,
+              Direction.DOWN,
+              nms.level().getMaxY(),
+              -1);
         }
       }
 
@@ -1070,18 +1078,17 @@ public final class MineCommand implements FppCommand {
     if (block.getState() instanceof InventoryHolder) return false;
     return switch (type) {
       case BEDROCK,
-          BARRIER,
-          END_PORTAL,
-          END_PORTAL_FRAME,
-          NETHER_PORTAL,
-          COMMAND_BLOCK,
-          CHAIN_COMMAND_BLOCK,
-          REPEATING_COMMAND_BLOCK,
-          STRUCTURE_BLOCK,
-          JIGSAW,
-          LIGHT,
-          REINFORCED_DEEPSLATE ->
-          false;
+           BARRIER,
+           END_PORTAL,
+           END_PORTAL_FRAME,
+           NETHER_PORTAL,
+           COMMAND_BLOCK,
+           CHAIN_COMMAND_BLOCK,
+           REPEATING_COMMAND_BLOCK,
+           STRUCTURE_BLOCK,
+           JIGSAW,
+           LIGHT,
+           REINFORCED_DEEPSLATE -> false;
       default -> true;
     };
   }
@@ -1155,7 +1162,7 @@ public final class MineCommand implements FppCommand {
         || type == Material.SHEARS;
   }
 
-  @org.jetbrains.annotations.Nullable
+  @Nullable
   private Location nearestAnticipatedDrop(Player bot, AreaMineJob job) {
 
     long now = System.currentTimeMillis();
@@ -1195,11 +1202,11 @@ public final class MineCommand implements FppCommand {
     return nearest;
   }
 
-  @org.jetbrains.annotations.Nullable
+  @Nullable
   private Location nearestItemNearTrackedDrop(World world, Location center) {
     Location nearest = null;
     double nearestDistSq = Double.MAX_VALUE;
-    for (org.bukkit.entity.Entity entity : world.getNearbyEntities(center, 4.0, 2.5, 4.0)) {
+    for (Entity entity : world.getNearbyEntities(center, 4.0, 2.5, 4.0)) {
       if (!(entity instanceof Item item) || item.isDead() || item.getPickupDelay() > 0) continue;
       Location itemLoc = item.getLocation();
       double distSq = itemLoc.distanceSquared(center);
@@ -1283,7 +1290,7 @@ public final class MineCommand implements FppCommand {
     Location center =
         new Location(
             bot.getWorld(), targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5);
-    for (org.bukkit.entity.Entity entity : bot.getNearbyEntities(2.0, 1.5, 2.0)) {
+    for (Entity entity : bot.getNearbyEntities(2.0, 1.5, 2.0)) {
       if (!(entity instanceof Item item) || item.isDead()) continue;
       if (item.getLocation().distanceSquared(center) <= 6.25) return true;
     }
@@ -1493,9 +1500,9 @@ public final class MineCommand implements FppCommand {
 
   /**
    * Parses a single coordinate token.  Supports:
-   *   "~"         → {@code base}
-   *   "~<offset>" → {@code base + offset}
-   *   "<number>"  → absolute value
+   * "~"         → {@code base}
+   * "~<offset>" → {@code base + offset}
+   * "<number>"  → absolute value
    * Throws {@link NumberFormatException} if the token is unrecognisable.
    */
   static double parseCoord(String token, double base) {

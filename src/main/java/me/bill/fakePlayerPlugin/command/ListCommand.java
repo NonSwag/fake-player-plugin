@@ -1,10 +1,5 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
@@ -19,6 +14,13 @@ import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 @SuppressWarnings("unused")
 public class ListCommand implements FppCommand {
@@ -119,9 +121,9 @@ public class ListCommand implements FppCommand {
       Component prev =
           page > 1
               ? Component.text("  ◄ ᴘʀᴇᴠ")
-                  .color(ACCENT)
-                  .clickEvent(ClickEvent.runCommand("/fpp list " + (page - 1)))
-                  .hoverEvent(HoverEvent.showText(Component.text("Page " + (page - 1))))
+              .color(ACCENT)
+              .clickEvent(ClickEvent.runCommand("/fpp list " + (page - 1)))
+              .hoverEvent(HoverEvent.showText(Component.text("Page " + (page - 1))))
               : Component.text("  ◄").color(MUTED);
 
       Component pageNum = Component.text("  " + page + "/" + totalPages + "  ").color(LABEL);
@@ -129,9 +131,9 @@ public class ListCommand implements FppCommand {
       Component next =
           page < totalPages
               ? Component.text("ɴᴇxᴛ ▶")
-                  .color(ACCENT)
-                  .clickEvent(ClickEvent.runCommand("/fpp list " + (page + 1)))
-                  .hoverEvent(HoverEvent.showText(Component.text("Page " + (page + 1))))
+              .color(ACCENT)
+              .clickEvent(ClickEvent.runCommand("/fpp list " + (page + 1)))
+              .hoverEvent(HoverEvent.showText(Component.text("Page " + (page + 1))))
               : Component.text("ɴᴇxᴛ ▶").color(MUTED);
 
       sender.sendMessage(prev.append(pageNum).append(next));
@@ -204,7 +206,7 @@ public class ListCommand implements FppCommand {
   }
 
   private static String formatLocation(FakePlayer fp) {
-    org.bukkit.entity.Entity body = fp.getPhysicsEntity();
+    Entity body = fp.getPhysicsEntity();
     if (body != null && body.isValid()) {
       var loc = body.getLocation();
       return (loc.getWorld() != null ? loc.getWorld().getName() : "?")

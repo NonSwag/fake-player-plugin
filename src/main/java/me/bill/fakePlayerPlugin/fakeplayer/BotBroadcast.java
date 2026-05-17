@@ -4,6 +4,7 @@ import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppBotDisplayService;
+import me.bill.fakePlayerPlugin.api.event.FppBotChatEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.lang.Lang;
@@ -17,9 +18,13 @@ import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public final class BotBroadcast {
 
-  private BotBroadcast() {}
+  private BotBroadcast() {
+  }
 
   private static void send(Component msg) {
     for (Player p : Bukkit.getOnlinePlayers()) p.sendMessage(msg);
@@ -116,9 +121,9 @@ public final class BotBroadcast {
                 ? pluginInst.getFakePlayerManager().getByUuid(player.getUniqueId())
                 : null;
         if (fp != null) {
-          me.bill.fakePlayerPlugin.api.event.FppBotChatEvent chatEvt =
-              new me.bill.fakePlayerPlugin.api.event.FppBotChatEvent(
-                  new me.bill.fakePlayerPlugin.api.impl.FppBotImpl(fp), rawMessage);
+          FppBotChatEvent chatEvt =
+              new FppBotChatEvent(
+                  new FppBotImpl(fp), rawMessage);
           Bukkit.getPluginManager().callEvent(chatEvt);
           if (chatEvt.isCancelled()) return;
           rawMessage = chatEvt.getMessage();
@@ -144,7 +149,7 @@ public final class BotBroadcast {
   private static void dispatchLegacyChat(Player player, String rawMessage) {
     Component message = Component.text(rawMessage);
     Component displayName = player.displayName();
-    java.util.Set<Audience> viewers = new java.util.HashSet<>(Bukkit.getOnlinePlayers());
+    Set<Audience> viewers = new HashSet<>(Bukkit.getOnlinePlayers());
     viewers.add(Bukkit.getConsoleSender());
     SignedMessage signed = SignedMessage.system(rawMessage, message);
     ChatRenderer renderer =

@@ -1,14 +1,11 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.net.InetAddress;
-import java.util.*;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.network.FakeConnection;
 import me.bill.fakePlayerPlugin.fakeplayer.network.FakeServerGamePacketListenerImpl;
 import me.bill.fakePlayerPlugin.util.FppLogger;
+import net.kyori.adventure.text.Component;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
@@ -16,13 +13,35 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.BlockHitResult;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
+
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 public final class NmsPlayerSpawner {
 
@@ -69,7 +88,7 @@ public final class NmsPlayerSpawner {
 
   private static Method playerListRemoveMethod;
 
-  private static java.lang.reflect.Field playerDataStorageField;
+  private static Field playerDataStorageField;
 
   private static Method playerDataSaveMethod;
 
@@ -85,7 +104,8 @@ public final class NmsPlayerSpawner {
 
   private static Field entityDataFieldForSkinParts = null;
 
-  private NmsPlayerSpawner() {}
+  private NmsPlayerSpawner() {
+  }
 
   public static synchronized void init() {
     if (initialized || failed) return;
@@ -212,15 +232,15 @@ public final class NmsPlayerSpawner {
       FppLogger.debug(
           "NmsPlayerSpawner: listed field "
               + (listedField != null
-                  ? "cached"
-                  : "not found - tab unlist will use packet fallback"));
+              ? "cached"
+              : "not found - tab unlist will use packet fallback"));
 
       yHeadRotField = findFieldByName(serverPlayerClass, "yHeadRot");
       FppLogger.debug(
           "NmsPlayerSpawner: yHeadRot field "
               + (yHeadRotField != null
-                  ? "cached"
-                  : "not found - head AI will rely on setRotation only"));
+              ? "cached"
+              : "not found - head AI will rely on setRotation only"));
 
       zzaField = findFieldByName(serverPlayerClass, "zza");
 
@@ -228,8 +248,8 @@ public final class NmsPlayerSpawner {
       FppLogger.debug(
           "NmsPlayerSpawner: movement input fields "
               + (zzaField != null && xxaField != null
-                  ? "cached"
-                  : "not found - move command inactive"));
+              ? "cached"
+              : "not found - move command inactive"));
 
       if (serverGamePacketListenerClass != null) {
         connectionFieldInPlayer = findFieldByName(serverPlayerClass, "connection");
@@ -275,7 +295,7 @@ public final class NmsPlayerSpawner {
         Class<?> playerListClass = getPlayerListMethod.getReturnType();
         playerListRemoveMethod = findMethod(playerListClass, "remove", 1);
 
-        for (java.lang.reflect.Field f : playerListClass.getDeclaredFields()) {
+        for (Field f : playerListClass.getDeclaredFields()) {
           String typeName = f.getType().getSimpleName();
           if (typeName.contains("WorldNBTStorage") || typeName.contains("PlayerDataStorage")) {
             f.setAccessible(true);
@@ -291,7 +311,7 @@ public final class NmsPlayerSpawner {
           } catch (Exception ignored) {
           }
 
-          for (java.lang.reflect.Method m : storageClass.getDeclaredMethods()) {
+          for (Method m : storageClass.getDeclaredMethods()) {
             if ("a".equals(m.getName())
                 && m.getParameterCount() == 1
                 && m.getReturnType() == void.class) {
@@ -335,7 +355,7 @@ public final class NmsPlayerSpawner {
         }
 
         Field spField = findFieldByName(playerNmsClass, "DATA_PLAYER_MODE_CUSTOMISATION");
-        if (spField != null && java.lang.reflect.Modifier.isStatic(spField.getModifiers())) {
+        if (spField != null && Modifier.isStatic(spField.getModifiers())) {
           spField.setAccessible(true);
           skinPartsDataAccessor = spField.get(null);
         }
@@ -460,7 +480,7 @@ public final class NmsPlayerSpawner {
       Object entity = getBukkitEntity.invoke(serverPlayer);
       if (entity instanceof Player result) {
         applyRotation(result, yaw, pitch);
-        result.setGameMode(org.bukkit.GameMode.SURVIVAL);
+        result.setGameMode(GameMode.SURVIVAL);
         setListed(result, true);
 
         forceAllSkinParts(result);
@@ -499,7 +519,7 @@ public final class NmsPlayerSpawner {
 
       if (firstTickSet.remove(bot.getUniqueId())) {
 
-        org.bukkit.Location loc = bot.getLocation();
+        Location loc = bot.getLocation();
         double x = loc.getX(), y = loc.getY(), z = loc.getZ();
 
         initPreviousPosition(nmsPlayer, x, y, z);
@@ -579,7 +599,7 @@ public final class NmsPlayerSpawner {
   public static void performAttack(Player bot, org.bukkit.entity.Entity target, double damage) {
     if (!initialized || craftPlayerGetHandleMethod == null) {
 
-      if (target instanceof org.bukkit.entity.Damageable damageable) {
+      if (target instanceof Damageable damageable) {
         damageable.damage(damage, bot);
       }
       return;
@@ -595,14 +615,14 @@ public final class NmsPlayerSpawner {
         attackMethod.invoke(nmsBot, nmsTarget);
       } else {
 
-        if (target instanceof org.bukkit.entity.Damageable damageable) {
+        if (target instanceof Damageable damageable) {
           damageable.damage(damage, bot);
         }
       }
     } catch (Exception e) {
       FppLogger.debug("NmsPlayerSpawner.performAttack failed: " + e.getMessage());
 
-      if (target instanceof org.bukkit.entity.Damageable damageable) {
+      if (target instanceof Damageable damageable) {
         damageable.damage(damage, bot);
       }
     }
@@ -628,7 +648,7 @@ public final class NmsPlayerSpawner {
     }
   }
 
-  public static void applyServerVelocity(Player bot, org.bukkit.util.Vector velocity) {
+  public static void applyServerVelocity(Player bot, Vector velocity) {
     if (!initialized || craftPlayerGetHandleMethod == null || bot == null || velocity == null) return;
     try {
       Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
@@ -704,7 +724,7 @@ public final class NmsPlayerSpawner {
           try {
             Object nmsPlayer = craftPlayerGetHandleMethod.invoke(player);
             Object minecraftServer =
-                craftServerGetServerMethod.invoke(org.bukkit.Bukkit.getServer());
+                craftServerGetServerMethod.invoke(Bukkit.getServer());
             Object playerList = getPlayerListMethod.invoke(minecraftServer);
             playerListRemoveMethod.invoke(playerList, nmsPlayer);
             removedViaPlayerList = true;
@@ -723,7 +743,7 @@ public final class NmsPlayerSpawner {
         }
 
         if (!removedViaPlayerList && player.isOnline()) {
-          player.kick(net.kyori.adventure.text.Component.empty());
+          player.kick(Component.empty());
         }
       }
     } catch (Exception e) {
@@ -752,8 +772,8 @@ public final class NmsPlayerSpawner {
       Object playerDataStorage = playerDataStorageField.get(playerList);
 
       if (getPlayerDirMethod != null) {
-        java.io.File playerDir = (java.io.File) getPlayerDirMethod.invoke(playerDataStorage);
-        java.io.File playerFile = new java.io.File(playerDir, uuid + ".dat");
+        File playerDir = (File) getPlayerDirMethod.invoke(playerDataStorage);
+        File playerFile = new File(playerDir, uuid + ".dat");
         if (playerFile.exists()) {
           FppLogger.debug(
               "NmsPlayerSpawner: playerdata found for '"
@@ -814,7 +834,7 @@ public final class NmsPlayerSpawner {
       Object networkConn = null;
       if (currentConn != null && connectionClass != null) {
         for (Field f : getAllDeclaredFields(currentConn.getClass())) {
-          if (java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
+          if (Modifier.isStatic(f.getModifiers())) continue;
           if (connectionClass.isAssignableFrom(f.getType())) {
             f.setAccessible(true);
             networkConn = f.get(currentConn);
@@ -854,7 +874,7 @@ public final class NmsPlayerSpawner {
 
       Object clientInfo = getClientInformation();
       injectFakeListener(
-          craftServerGetServerMethod.invoke(org.bukkit.Bukkit.getServer()),
+          craftServerGetServerMethod.invoke(Bukkit.getServer()),
           networkConn,
           nmsPlayer,
           gameProfile,
@@ -880,7 +900,7 @@ public final class NmsPlayerSpawner {
       Object sgpl = connectionFieldInPlayer.get(nmsPlayer);
       if (sgpl == null) return;
       for (Field f : getAllDeclaredFields(sgpl.getClass())) {
-        if (java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
+        if (Modifier.isStatic(f.getModifiers())) continue;
 
         if (f.getName().equals("awaitingPositionFromClient") || f.getName().contains("awaiting")) {
           f.setAccessible(true);
@@ -893,7 +913,7 @@ public final class NmsPlayerSpawner {
       }
 
       for (Field f : getAllDeclaredFields(sgpl.getClass())) {
-        if (java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
+        if (Modifier.isStatic(f.getModifiers())) continue;
         if (f.getType().getSimpleName().equals("Vec3")) {
           f.setAccessible(true);
           Object val = f.get(sgpl);
@@ -932,7 +952,7 @@ public final class NmsPlayerSpawner {
       if (nmsPlayer == null) return;
       setPingNms(nmsPlayer, pingMs);
     } catch (Exception e) {
-      me.bill.fakePlayerPlugin.config.Config.debugNms("setPing failed: " + e.getMessage());
+      Config.debugNms("setPing failed: " + e.getMessage());
     }
   }
 
@@ -946,7 +966,7 @@ public final class NmsPlayerSpawner {
         setLatencyField(listener, safePing);
       }
     } catch (Exception e) {
-      me.bill.fakePlayerPlugin.config.Config.debugNms("setPing failed: " + e.getMessage());
+      Config.debugNms("setPing failed: " + e.getMessage());
     }
   }
 
@@ -958,7 +978,7 @@ public final class NmsPlayerSpawner {
       latencyField.setAccessible(true);
       latencyField.setInt(target, Math.max(0, pingMs));
     } catch (Exception e) {
-      me.bill.fakePlayerPlugin.config.Config.debugNms(
+      Config.debugNms(
           "setLatencyField failed on " + target.getClass().getSimpleName() + ": " + e.getMessage());
     }
   }
@@ -983,10 +1003,10 @@ public final class NmsPlayerSpawner {
       for (Field f : c.getDeclaredFields()) {
         if (f.getType() == type
             && (f.getName().contains("latency")
-                || f.getName().contains("ping")
-                || f.getName().contains("ping")
-                || f.getName().contains("Latency")
-                || f.getName().contains("Ping"))) {
+            || f.getName().contains("ping")
+            || f.getName().contains("ping")
+            || f.getName().contains("Latency")
+            || f.getName().contains("Ping"))) {
           return f;
         }
       }
@@ -999,8 +1019,8 @@ public final class NmsPlayerSpawner {
     if (direct != null) return direct;
     for (Class<?> c = clazz; c != null && c != Object.class; c = c.getSuperclass()) {
       for (Field f : c.getDeclaredFields()) {
-        if (f.getType() != int.class || java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
-        String name = f.getName().toLowerCase(java.util.Locale.ROOT);
+        if (f.getType() != int.class || Modifier.isStatic(f.getModifiers())) continue;
+        String name = f.getName().toLowerCase(Locale.ROOT);
         if (name.equals("ping") || name.equals("latency")) return f;
       }
     }
@@ -1041,7 +1061,7 @@ public final class NmsPlayerSpawner {
     }
   }
 
-  public static void interactBlock(Player bot, org.bukkit.block.Block block) {
+  public static void interactBlock(Player bot, Block block) {
     if (!initialized || craftPlayerGetHandleMethod == null) return;
     try {
       Object nmsPlayer = craftPlayerGetHandleMethod.invoke(bot);
@@ -1204,7 +1224,7 @@ public final class NmsPlayerSpawner {
     if (conn == null || serverGamePacketListenerClass == null) return;
     try {
       for (Field f : getAllDeclaredFields(conn.getClass())) {
-        if (java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
+        if (Modifier.isStatic(f.getModifiers())) continue;
         try {
           f.setAccessible(true);
           Object val = f.get(conn);
@@ -1350,7 +1370,9 @@ public final class NmsPlayerSpawner {
     }
   }
 
-  /** Compatibility entry point for callers that expect a callback-based spawn API. */
+  /**
+   * Compatibility entry point for callers that expect a callback-based spawn API.
+   */
   public static void spawnFakePlayerAsync(
       UUID uuid,
       String name,
@@ -1359,7 +1381,7 @@ public final class NmsPlayerSpawner {
       double x,
       double y,
       double z,
-      java.util.function.Consumer<Player> callback) {
+      Consumer<Player> callback) {
     spawnFakePlayerAsync(uuid, name, skin, world, x, y, z, -1, callback);
   }
 
@@ -1372,7 +1394,7 @@ public final class NmsPlayerSpawner {
       double y,
       double z,
       int initialPing,
-      java.util.function.Consumer<Player> callback) {
+      Consumer<Player> callback) {
     spawnFakePlayerAsync(uuid, name, skin, world, x, y, z, 0.0f, 0.0f, initialPing, callback);
   }
 
@@ -1387,7 +1409,7 @@ public final class NmsPlayerSpawner {
       float yaw,
       float pitch,
       int initialPing,
-      java.util.function.Consumer<Player> callback) {
+      Consumer<Player> callback) {
     if (!isAvailable()) {
       FppLogger.warn("NmsPlayerSpawner not available - cannot spawn " + name);
       callback.accept(null);
@@ -1421,9 +1443,8 @@ public final class NmsPlayerSpawner {
               case 3 -> c.newInstance(gameProfile, 0, clientInfo);
               case 4 -> c.newInstance(gameProfile, 0, clientInfo, false);
               case 5 -> c.newInstance(gameProfile, 0, clientInfo, false, false);
-              case 7 ->
-                  c.newInstance(
-                      gameProfile, 0, clientInfo, false, null, Collections.emptySet(), null);
+              case 7 -> c.newInstance(
+                  gameProfile, 0, clientInfo, false, null, Collections.emptySet(), null);
               default -> null;
             };
         if (result != null) return result;
@@ -1479,7 +1500,7 @@ public final class NmsPlayerSpawner {
       List<Object> managers = new ArrayList<>();
       managers.add(cmiInstance);
       for (String methodName :
-          new String[] {"getPlayerManager", "getUserManager", "getCmiUserManager", "getPlayerDataManager"}) {
+          new String[]{"getPlayerManager", "getUserManager", "getCmiUserManager", "getPlayerDataManager"}) {
         Object manager = tryInvokeNoArg(cmiInstance, methodName);
         if (manager != null && !managers.contains(manager)) managers.add(manager);
       }
@@ -1524,8 +1545,8 @@ public final class NmsPlayerSpawner {
 
   private static Object tryCreateOrGetCmiUser(Object target, Player player, UUID uuid, String name) {
     for (String methodName :
-        new String[] {
-          "getUser", "getCMIUser", "getByName", "getByUUID", "loadUser", "addUser", "createUser"
+        new String[]{
+            "getUser", "getCMIUser", "getByName", "getByUUID", "loadUser", "addUser", "createUser"
         }) {
       Object user = tryInvokeUserMethod(target, methodName, player, uuid, name);
       if (user != null) return user;
@@ -1552,7 +1573,7 @@ public final class NmsPlayerSpawner {
     for (int i = 0; i < types.length; i++) {
       Class<?> type = types[i];
       if (Player.class.isAssignableFrom(type)) args[i] = player;
-      else if (org.bukkit.OfflinePlayer.class.isAssignableFrom(type)) args[i] = player;
+      else if (OfflinePlayer.class.isAssignableFrom(type)) args[i] = player;
       else if (UUID.class.isAssignableFrom(type)) args[i] = uuid;
       else if (String.class.isAssignableFrom(type)) args[i] = name;
       else if (type == boolean.class || type == Boolean.class) args[i] = Boolean.TRUE;
@@ -1634,9 +1655,9 @@ public final class NmsPlayerSpawner {
   private static boolean tryRegisterPacketEventsUser(
       ClassLoader loader, Object channel, Player bukkitPlayer, UUID uuid, String name) {
     for (String prefix :
-        new String[] {
-          "com.github.retrooper.packetevents",
-          "ac.grim.grimac.shaded.com.github.retrooper.packetevents"
+        new String[]{
+            "com.github.retrooper.packetevents",
+            "ac.grim.grimac.shaded.com.github.retrooper.packetevents"
         }) {
       try {
         Class<?> packetEventsClass = Class.forName(prefix + ".PacketEvents", false, loader);
@@ -1673,18 +1694,18 @@ public final class NmsPlayerSpawner {
         }
 
         Object protocolManager = invokeNoArg(api.getClass(), api, "getProtocolManager");
-        invokeMethod(protocolManager, "setChannel", new Class<?>[] {UUID.class, Object.class}, uuid, channel);
-        invokeMethod(protocolManager, "setUser", new Class<?>[] {Object.class, userClass}, channel, user);
+        invokeMethod(protocolManager, "setChannel", new Class<?>[]{UUID.class, Object.class}, uuid, channel);
+        invokeMethod(protocolManager, "setUser", new Class<?>[]{Object.class, userClass}, channel, user);
         putPacketEventsProtocolMaps(loader, prefix, channel, uuid, user);
         patchPacketEventsHandlerUser(loader, prefix, channel, user, bukkitPlayer);
 
         try {
-          invokeMethod(injector, "updateUser", new Class<?>[] {Object.class, userClass}, channel, user);
+          invokeMethod(injector, "updateUser", new Class<?>[]{Object.class, userClass}, channel, user);
         } catch (NoSuchMethodException ignored) {
         }
 
         try {
-          invokeMethod(injector, "setPlayer", new Class<?>[] {Object.class, Object.class}, channel, bukkitPlayer);
+          invokeMethod(injector, "setPlayer", new Class<?>[]{Object.class, Object.class}, channel, bukkitPlayer);
         } catch (NoSuchMethodException ignored) {
         }
 
@@ -1969,7 +1990,8 @@ public final class NmsPlayerSpawner {
                 }
               }
             }
-          } catch (ClassNotFoundException ignored) {}
+          } catch (ClassNotFoundException ignored) {
+          }
         }
       }
     }
@@ -1981,7 +2003,8 @@ public final class NmsPlayerSpawner {
         } else {
           return useItemOnReflect.invoke(nms.gameMode, itemStack, hand, blockHit);
         }
-      } catch (Exception ignored) {}
+      } catch (Exception ignored) {
+      }
     }
     return null;
   }
@@ -2037,7 +2060,8 @@ public final class NmsPlayerSpawner {
                 }
               }
             }
-          } catch (ClassNotFoundException ignored) {}
+          } catch (ClassNotFoundException ignored) {
+          }
         }
       }
     }
@@ -2049,7 +2073,8 @@ public final class NmsPlayerSpawner {
         } else {
           return useItemReflect.invoke(nms.gameMode, itemStack, hand);
         }
-      } catch (Exception ignored) {}
+      } catch (Exception ignored) {
+      }
     }
     return null;
   }
@@ -2059,9 +2084,9 @@ public final class NmsPlayerSpawner {
   private static volatile int breakActionProbeState;
   private static volatile Method breakActionReflect;
 
-  public static void handleBlockBreakAction(ServerPlayer nms, net.minecraft.core.BlockPos pos,
-      net.minecraft.network.protocol.game.ServerboundPlayerActionPacket.Action action,
-      Direction direction, int maxY, int sequence) {
+  public static void handleBlockBreakAction(ServerPlayer nms, BlockPos pos,
+                                            ServerboundPlayerActionPacket.Action action,
+                                            Direction direction, int maxY, int sequence) {
     if (breakActionProbeState == 0) {
       try {
         nms.gameMode.handleBlockBreakAction(pos, action, direction, maxY, sequence);
@@ -2103,7 +2128,8 @@ public final class NmsPlayerSpawner {
                 }
               }
             }
-          } catch (ClassNotFoundException ignored) {}
+          } catch (ClassNotFoundException ignored) {
+          }
         }
       }
     }
@@ -2114,7 +2140,8 @@ public final class NmsPlayerSpawner {
         } else {
           breakActionReflect.invoke(nms.gameMode, pos, action, sequence);
         }
-      } catch (Exception ignored) {}
+      } catch (Exception ignored) {
+      }
     }
   }
 
@@ -2124,7 +2151,7 @@ public final class NmsPlayerSpawner {
   private static volatile Method destroyProgressReflect;
 
   public static void destroyBlockProgress(ServerPlayer nms, int breakerId,
-      net.minecraft.core.BlockPos pos, int progress) {
+                                          BlockPos pos, int progress) {
     if (destroyProgressProbeState == 0) {
       try {
         nms.level().destroyBlockProgress(breakerId, pos, progress);
@@ -2167,7 +2194,8 @@ public final class NmsPlayerSpawner {
                 }
               }
             }
-          } catch (ClassNotFoundException ignored) {}
+          } catch (ClassNotFoundException ignored) {
+          }
         }
       }
     }
@@ -2176,7 +2204,8 @@ public final class NmsPlayerSpawner {
         Object firstArg = destroyProgressReflect.getParameterTypes()[0] == int.class
             ? breakerId : nms;
         destroyProgressReflect.invoke(nms.level(), firstArg, pos, progress);
-      } catch (Exception ignored) {}
+      } catch (Exception ignored) {
+      }
     }
   }
 
@@ -2186,7 +2215,7 @@ public final class NmsPlayerSpawner {
   private static volatile Method sleepReflect;
 
   public static void startSleepInBed(
-      ServerPlayer nms, net.minecraft.core.BlockPos pos, boolean force) {
+      ServerPlayer nms, BlockPos pos, boolean force) {
     if (sleepProbeState == 0) {
       try {
         nms.startSleepInBed(pos, force);
@@ -2219,7 +2248,8 @@ public final class NmsPlayerSpawner {
               if (sleepReflect != null) break;
               cur = cur.getSuperclass();
             }
-          } catch (ClassNotFoundException ignored) {}
+          } catch (ClassNotFoundException ignored) {
+          }
         }
       }
     }
@@ -2230,7 +2260,8 @@ public final class NmsPlayerSpawner {
         } else {
           sleepReflect.invoke(nms, pos);
         }
-      } catch (Exception ignored) {}
+      } catch (Exception ignored) {
+      }
     }
   }
 

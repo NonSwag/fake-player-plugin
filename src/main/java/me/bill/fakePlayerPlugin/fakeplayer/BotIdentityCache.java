@@ -1,5 +1,18 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.database.DatabaseManager;
+import me.bill.fakePlayerPlugin.util.BotDataYaml;
+import me.bill.fakePlayerPlugin.util.FppLogger;
+import me.bill.fakePlayerPlugin.util.FppScheduler;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.InvalidConfigurationException;
+import org.bukkit.configuration.file.YamlConfiguration;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -11,18 +24,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import me.bill.fakePlayerPlugin.FakePlayerPlugin;
-import me.bill.fakePlayerPlugin.config.Config;
-import me.bill.fakePlayerPlugin.database.DatabaseManager;
-import me.bill.fakePlayerPlugin.util.BotDataYaml;
-import me.bill.fakePlayerPlugin.util.FppScheduler;
-import me.bill.fakePlayerPlugin.util.FppLogger;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.InvalidConfigurationException;
-import org.bukkit.configuration.file.YamlConfiguration;
 
 public final class BotIdentityCache {
 
@@ -424,7 +425,9 @@ public final class BotIdentityCache {
             + compact.substring(20));
   }
 
-  private record IdentityResolution(UUID uuid, boolean authoritative) {}
+  private record IdentityResolution(UUID uuid, boolean authoritative) {
+  }
 
-  private static final class RateLimitException extends RuntimeException {}
+  private static final class RateLimitException extends RuntimeException {
+  }
 }

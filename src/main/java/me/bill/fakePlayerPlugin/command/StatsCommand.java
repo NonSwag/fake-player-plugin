@@ -1,22 +1,25 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.lang.management.ManagementFactory;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Collection;
-import java.util.List;
-import java.util.OptionalDouble;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.permission.Perm;
+import me.bill.fakePlayerPlugin.util.AttributionManager;
 import me.bill.fakePlayerPlugin.util.TextUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+
+import java.lang.management.ManagementFactory;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.OptionalDouble;
 
 public class StatsCommand implements FppCommand {
 
@@ -85,7 +88,7 @@ public class StatsCommand implements FppCommand {
       bots.stream()
           .filter(fp -> fp.getSpawnTime() != null)
           .max(
-              java.util.Comparator.comparing(
+              Comparator.comparing(
                   fp -> Duration.between(fp.getSpawnTime(), Instant.now())))
           .ifPresent(
               fp -> {
@@ -138,7 +141,7 @@ public class StatsCommand implements FppCommand {
             .append(Component.text("  ").color(MUTED))
             .append(Component.text("Original author: ").color(LABEL))
             .append(
-                Component.text(me.bill.fakePlayerPlugin.util.AttributionManager.getOriginalAuthor())
+                Component.text(AttributionManager.getOriginalAuthor())
                     .color(NamedTextColor.WHITE))
             .append(Component.text(" · ").color(MUTED))
             .append(Component.text("Free & open-source").color(LABEL)));

@@ -3,13 +3,15 @@ package me.bill.fakePlayerPlugin.util;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.protection.flags.Flags;
+import com.sk89q.worldguard.protection.flags.StateFlag;
 import com.sk89q.worldguard.protection.regions.RegionQuery;
 import org.bukkit.Location;
 import org.bukkit.World;
 
 public final class WorldGuardHelper {
 
-  private WorldGuardHelper() {}
+  private WorldGuardHelper() {
+  }
 
   public static boolean isPvpAllowed(Location location) {
     if (location == null || location.getWorld() == null) return true;
@@ -17,9 +19,9 @@ public final class WorldGuardHelper {
       RegionQuery query = WorldGuard.getInstance().getPlatform().getRegionContainer().createQuery();
       com.sk89q.worldedit.util.Location wgLoc = BukkitAdapter.adapt(location);
 
-      com.sk89q.worldguard.protection.flags.StateFlag.State state =
+      StateFlag.State state =
           query.queryState(wgLoc, null, Flags.PVP);
-      return state != com.sk89q.worldguard.protection.flags.StateFlag.State.DENY;
+      return state != StateFlag.State.DENY;
     } catch (Exception e) {
 
       return true;

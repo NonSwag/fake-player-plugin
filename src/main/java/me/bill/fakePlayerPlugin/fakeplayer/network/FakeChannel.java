@@ -1,6 +1,16 @@
 package me.bill.fakePlayerPlugin.fakeplayer.network;
 
-import io.netty.channel.*;
+import io.netty.channel.AbstractChannel;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelConfig;
+import io.netty.channel.ChannelMetadata;
+import io.netty.channel.ChannelOutboundBuffer;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.ChannelPromise;
+import io.netty.channel.DefaultChannelConfig;
+import io.netty.channel.DefaultEventLoop;
+import io.netty.channel.EventLoop;
+
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -24,7 +34,7 @@ public final class FakeChannel extends AbstractChannel {
     this.address = address;
   }
 
-  public FakeChannel(io.netty.channel.Channel parent, InetAddress address) {
+  public FakeChannel(Channel parent, InetAddress address) {
     super(parent);
     this.address = address;
   }
@@ -95,10 +105,12 @@ public final class FakeChannel extends AbstractChannel {
   }
 
   @Override
-  protected void doBeginRead() {}
+  protected void doBeginRead() {
+  }
 
   @Override
-  protected void doBind(SocketAddress localAddress) {}
+  protected void doBind(SocketAddress localAddress) {
+  }
 
   @Override
   protected void doDisconnect() {

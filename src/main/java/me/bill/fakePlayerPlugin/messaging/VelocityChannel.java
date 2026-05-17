@@ -1,14 +1,7 @@
 package me.bill.fakePlayerPlugin.messaging;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.config.BotNameConfig;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotBroadcast;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
@@ -17,13 +10,30 @@ import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.PacketHelper;
 import me.bill.fakePlayerPlugin.fakeplayer.RemoteBotCache;
 import me.bill.fakePlayerPlugin.fakeplayer.RemoteBotEntry;
-import org.bukkit.persistence.PersistentDataType;
+import me.bill.fakePlayerPlugin.fakeplayer.SkinProfile;
+import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.jetbrains.annotations.NotNull;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 public final class VelocityChannel implements PluginMessageListener {
 
@@ -50,9 +60,9 @@ public final class VelocityChannel implements PluginMessageListener {
 
   private final FakePlayerManager manager;
 
-  private final java.util.Set<String> recentIds = ConcurrentHashMap.newKeySet();
+  private final Set<String> recentIds = ConcurrentHashMap.newKeySet();
 
-  private final java.util.Set<UUID> pendingProxyDespawnUuids = ConcurrentHashMap.newKeySet();
+  private final Set<UUID> pendingProxyDespawnUuids = ConcurrentHashMap.newKeySet();
 
   private volatile boolean pendingResync = false;
 
@@ -189,7 +199,7 @@ public final class VelocityChannel implements PluginMessageListener {
   }
 
   public void broadcastBotSpawn(FakePlayer fp) {
-    me.bill.fakePlayerPlugin.fakeplayer.SkinProfile skin = fp.getResolvedSkin();
+    SkinProfile skin = fp.getResolvedSkin();
     String skinValue = (skin != null) ? skin.getValue() : "";
     String skinSignature = (skin != null) ? skin.getSignature() : "";
     String msgId = generateAndTrackId();
@@ -366,7 +376,7 @@ public final class VelocityChannel implements PluginMessageListener {
 
               // Flush any pending despawns first
               if (!pendingProxyDespawnUuids.isEmpty()) {
-                java.util.Set<UUID> copy = new java.util.HashSet<>(pendingProxyDespawnUuids);
+                Set<UUID> copy = new HashSet<>(pendingProxyDespawnUuids);
                 pendingProxyDespawnUuids.clear();
                 for (UUID pendingUuid : copy) {
                   String msgId = generateAndTrackId();
@@ -378,7 +388,7 @@ public final class VelocityChannel implements PluginMessageListener {
               // Then flush pending spawns
               if (pendingProxyBroadcast) {
                 pendingProxyBroadcast = false;
-                for (me.bill.fakePlayerPlugin.fakeplayer.FakePlayer botFp :
+                for (FakePlayer botFp :
                     manager.getActivePlayers()) {
                   broadcastBotSpawn(botFp);
                 }
@@ -440,7 +450,7 @@ public final class VelocityChannel implements PluginMessageListener {
     try {
       String pingStr = in.readUTF();
       ping = Integer.parseInt(pingStr);
-    } catch (java.io.EOFException | NumberFormatException e) {
+    } catch (EOFException | NumberFormatException e) {
       ping = 0;
     }
 
@@ -643,7 +653,7 @@ public final class VelocityChannel implements PluginMessageListener {
     FppScheduler.runSync(
         plugin,
         () -> {
-          for (me.bill.fakePlayerPlugin.fakeplayer.FakePlayer fp : manager.getActivePlayers()) {
+          for (FakePlayer fp : manager.getActivePlayers()) {
             broadcastBotSpawn(fp);
           }
         });
@@ -665,8 +675,8 @@ public final class VelocityChannel implements PluginMessageListener {
     RemoteBotCache cache = plugin.getRemoteBotCache();
     if (cache == null) return;
 
-    java.util.List<UUID> evicted = new java.util.ArrayList<>();
-    for (me.bill.fakePlayerPlugin.fakeplayer.RemoteBotEntry entry : cache.getAll()) {
+    List<UUID> evicted = new ArrayList<>();
+    for (RemoteBotEntry entry : cache.getAll()) {
       if (originServer.equals(entry.serverId())) {
         evicted.add(entry.uuid());
       }
@@ -744,25 +754,24 @@ public final class VelocityChannel implements PluginMessageListener {
   private void reloadSubsystemForFile(String fileName) {
     switch (fileName) {
       case "config.yml" -> {
-        me.bill.fakePlayerPlugin.config.Config.reload();
+        Config.reload();
         Config.debugConfigSync("[ConfigSync] config.yml reloaded after reactive pull.");
       }
       case "bot-names.yml" -> {
-        me.bill.fakePlayerPlugin.config.BotNameConfig.reload();
+        BotNameConfig.reload();
         Config.debugConfigSync("[ConfigSync] bot-names.yml reloaded after reactive pull.");
       }
       case "language/en.yml" -> {
-        me.bill.fakePlayerPlugin.lang.Lang.reload();
+        Lang.reload();
         Config.debugConfigSync("[ConfigSync] language/en.yml reloaded after reactive pull.");
       }
-      default ->
-          Config.debugConfigSync("[ConfigSync] Unknown file for reactive reload: " + fileName);
+      default -> Config.debugConfigSync("[ConfigSync] Unknown file for reactive reload: " + fileName);
     }
   }
 
   private void broadcastAlertLocally(String message) {
-    net.kyori.adventure.text.Component line =
-        me.bill.fakePlayerPlugin.lang.Lang.get("alert-received", "message", message);
+    Component line =
+        Lang.get("alert-received", "message", message);
     Bukkit.getServer().broadcast(line);
   }
 }

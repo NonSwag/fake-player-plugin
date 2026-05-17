@@ -1,17 +1,21 @@
 package me.bill.fakePlayerPlugin.gui;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
-import java.util.*;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppBotSettingsTab;
+import me.bill.fakePlayerPlugin.api.FppSettingsItem;
+import me.bill.fakePlayerPlugin.api.FppSettingsTab;
+import me.bill.fakePlayerPlugin.api.event.FppBotDespawnEvent;
+import me.bill.fakePlayerPlugin.api.event.FppBotSettingChangeEvent;
+import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
-import me.bill.fakePlayerPlugin.util.BotRenameHelper;
 import me.bill.fakePlayerPlugin.util.BotAccess;
+import me.bill.fakePlayerPlugin.util.BotRenameHelper;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -41,13 +45,20 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
-import me.bill.fakePlayerPlugin.api.event.FppBotDespawnEvent;
-import me.bill.fakePlayerPlugin.api.event.FppBotSettingChangeEvent;
-import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
-import me.bill.fakePlayerPlugin.api.FppSettingsItem;
-import me.bill.fakePlayerPlugin.api.FppSettingsTab;
 
 public final class BotSettingGui implements Listener {
 
@@ -289,7 +300,7 @@ public final class BotSettingGui implements Listener {
       return;
     }
     pauseBotForEditing(bot);
-    sessions.put(uuid, new int[] {0, 0, 0});
+    sessions.put(uuid, new int[]{0, 0, 0});
     botSessions.put(uuid, botUuid);
     build(player);
   }
@@ -887,7 +898,8 @@ public final class BotSettingGui implements Listener {
     };
   }
 
-  private void applyImmediate(Player player, FakePlayer bot, String id) {}
+  private void applyImmediate(Player player, FakePlayer bot, String id) {
+  }
 
   private void applyDanger(Player player, FakePlayer bot, String id) {
     if ("reset_all".equals(id)) {
@@ -1042,7 +1054,7 @@ public final class BotSettingGui implements Listener {
         MOB_SLOT_PREV_PAGE,
         page > 0
             ? buildMobBarItem(
-                Material.MAGENTA_STAINED_GLASS_PANE, "◄  ᴘʀᴇᴠɪᴏᴜꜱ ᴘᴀɡᴇ", COMING_SOON_COLOR)
+            Material.MAGENTA_STAINED_GLASS_PANE, "◄  ᴘʀᴇᴠɪᴏᴜꜱ ᴘᴀɡᴇ", COMING_SOON_COLOR)
             : glassFiller(Material.GRAY_STAINED_GLASS_PANE));
 
     inv.setItem(47, glassFiller(Material.GRAY_STAINED_GLASS_PANE));
@@ -1140,7 +1152,7 @@ public final class BotSettingGui implements Listener {
     }
 
     if (slot == MOB_SLOT_CLEAR) {
-      bot.setPveMobTypes(new java.util.LinkedHashSet<>());
+      bot.setPveMobTypes(new LinkedHashSet<>());
       manager.persistBotSettings(bot);
       restartPveIfActive(bot);
       playUiClick(player, 1.2f);
@@ -1165,10 +1177,10 @@ public final class BotSettingGui implements Listener {
           nowSelected
               ? "+" + mob.displayName + " (" + count + " ꜱᴇʟᴇᴄᴛᴇᴅ)"
               : "-"
-                  + mob.displayName
-                  + " ("
-                  + (count == 0 ? "ᴀʟʟ ʜᴏꜱᴛɪʟᴇ" : count + " ꜱᴇʟᴇᴄᴛᴇᴅ")
-                  + ")";
+                + mob.displayName
+                + " ("
+                + (count == 0 ? "ᴀʟʟ ʜᴏꜱᴛɪʟᴇ" : count + " ꜱᴇʟᴇᴄᴛᴇᴅ")
+                + ")";
       sendActionBarConfirm(player, "ᴍᴏʙ ᴛᴀʀɢᴇᴛ", label);
 
       pendingRebuild.add(uuid);
@@ -1426,7 +1438,7 @@ public final class BotSettingGui implements Listener {
     bot.setPveRange(Config.attackMobDefaultRange());
     bot.setPvePriority(Config.attackMobDefaultPriority());
     bot.setPveSmartAttackMode(FakePlayer.PveSmartAttackMode.OFF);
-    bot.setPveMobTypes(new java.util.LinkedHashSet<>());
+    bot.setPveMobTypes(new LinkedHashSet<>());
 
     bot.setNavParkour(Config.pathfindingParkour());
     bot.setNavBreakBlocks(Config.pathfindingBreakBlocks());
@@ -1642,12 +1654,11 @@ public final class BotSettingGui implements Listener {
       case ACTION -> lore.add(hint("✎ ", "ᴄʟɪᴄᴋ ᴛᴏ ᴇᴅɪᴛ ɪɴ ᴄʜᴀᴛ"));
       case MOB_SELECTOR -> lore.add(hint("◈ ", "ᴄʟɪᴄᴋ ᴛᴏ ᴏᴘᴇɴ ᴍᴏʙ ꜱᴇʟᴇᴄᴛᴏʀ"));
       case IMMEDIATE -> lore.add(hint("◈ ", "ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴇᴀʀ"));
-      case DANGER ->
-          lore.add(
-              Component.empty()
-                  .decoration(TextDecoration.ITALIC, false)
-                  .append(Component.text("◈ ").color(DANGER_RED))
-                  .append(Component.text("ᴄʟɪᴄᴋ ᴛᴏ ᴄᴏɴꜰɪʀᴍ").color(DARK_GRAY)));
+      case DANGER -> lore.add(
+          Component.empty()
+              .decoration(TextDecoration.ITALIC, false)
+              .append(Component.text("◈ ").color(DANGER_RED))
+              .append(Component.text("ᴄʟɪᴄᴋ ᴛᴏ ᴄᴏɴꜰɪʀᴍ").color(DARK_GRAY)));
     }
     meta.lore(lore);
     item.setItemMeta(meta);
@@ -1738,21 +1749,16 @@ public final class BotSettingGui implements Listener {
   private Material dynamicIcon(BotEntry entry, FakePlayer bot) {
     return switch (entry.id()) {
       case "frozen" -> bot.isFrozen() ? Material.BLUE_ICE : Material.PACKED_ICE;
-      case "respawn_on_death" ->
-          bot.isRespawnOnDeath() ? Material.TOTEM_OF_UNDYING : Material.SKELETON_SKULL;
-      case "head_ai_enabled" ->
-          bot.isHeadAiEnabled() ? Material.PLAYER_HEAD : Material.SKELETON_SKULL;
+      case "respawn_on_death" -> bot.isRespawnOnDeath() ? Material.TOTEM_OF_UNDYING : Material.SKELETON_SKULL;
+      case "head_ai_enabled" -> bot.isHeadAiEnabled() ? Material.PLAYER_HEAD : Material.SKELETON_SKULL;
       case "swim_ai_enabled" -> bot.isSwimAiEnabled() ? Material.WATER_BUCKET : Material.BUCKET;
       case "pickup_items" -> bot.isPickUpItemsEnabled() ? Material.HOPPER : Material.CHEST;
-      case "pickup_xp" ->
-          bot.isPickUpXpEnabled() ? Material.EXPERIENCE_BOTTLE : Material.GLASS_BOTTLE;
+      case "pickup_xp" -> bot.isPickUpXpEnabled() ? Material.EXPERIENCE_BOTTLE : Material.GLASS_BOTTLE;
       case "chat_enabled" -> bot.isChatEnabled() ? Material.WRITABLE_BOOK : Material.BOOK;
       case "auto_milk" -> bot.isAutoMilkEnabled() ? Material.MILK_BUCKET : Material.BUCKET;
-      case "prevent_bad_omen" ->
-          bot.isPreventBadOmen() ? Material.OMINOUS_BOTTLE : Material.GLASS_BOTTLE;
+      case "prevent_bad_omen" -> bot.isPreventBadOmen() ? Material.OMINOUS_BOTTLE : Material.GLASS_BOTTLE;
       case "nav_parkour" -> bot.isNavParkour() ? Material.SLIME_BALL : Material.RABBIT_FOOT;
-      case "nav_break_blocks" ->
-          bot.isNavBreakBlocks() ? Material.DIAMOND_PICKAXE : Material.IRON_PICKAXE;
+      case "nav_break_blocks" -> bot.isNavBreakBlocks() ? Material.DIAMOND_PICKAXE : Material.IRON_PICKAXE;
       case "nav_place_blocks" -> bot.isNavPlaceBlocks() ? Material.GRASS_BLOCK : Material.DIRT;
       case "pve_enabled" -> switch (bot.getPveSmartAttackMode()) {
         case OFF -> Material.WOODEN_SWORD;
@@ -1777,8 +1783,7 @@ public final class BotSettingGui implements Listener {
         }
         yield Material.ZOMBIE_HEAD;
       }
-      case "chunk_load_radius" ->
-          bot.getChunkLoadRadius() == 0 ? Material.STRUCTURE_VOID : Material.MAP;
+      case "chunk_load_radius" -> bot.getChunkLoadRadius() == 0 ? Material.STRUCTURE_VOID : Material.MAP;
       default -> entry.icon();
     };
   }
@@ -1921,7 +1926,7 @@ public final class BotSettingGui implements Listener {
       manager.lockForAction(botUuid, player.getLocation());
       NmsPlayerSpawner.setMovementForward(player, 0f);
       player.setSprinting(false);
-      player.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+      player.setVelocity(new Vector(0, 0, 0));
     }
   }
 
@@ -2170,14 +2175,16 @@ public final class BotSettingGui implements Listener {
   }
 
   private record MobDisplay(
-      EntityType type, Material material, String displayName, String category) {}
+      EntityType type, Material material, String displayName, String category) {
+  }
 
   private record BotCategory(
       String label,
       Material activeMat,
       Material inactiveMat,
       Material separatorGlass,
-      List<BotEntry> entries) {}
+      List<BotEntry> entries) {
+  }
 
   private enum BotEntryType {
     TOGGLE,
@@ -2243,5 +2250,6 @@ public final class BotSettingGui implements Listener {
     }
   }
 
-  private record ChatInputSes(String inputType, UUID botUuid, int[] guiState, int cleanupTaskId) {}
+  private record ChatInputSes(String inputType, UUID botUuid, int[] guiState, int cleanupTaskId) {
+  }
 }

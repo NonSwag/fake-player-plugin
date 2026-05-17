@@ -1,12 +1,16 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
-import java.lang.reflect.Method;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+
+import java.lang.reflect.Method;
 
 public final class NmsHelper {
 
-  private NmsHelper() {}
+  private NmsHelper() {
+  }
 
   public static ClassLoader findNmsClassLoader() {
 
@@ -26,7 +30,7 @@ public final class NmsHelper {
     try {
       Class<?> craftPlayerClass = getCraftClass("entity.CraftPlayer");
       Method getHandle = craftPlayerClass.getMethod("getHandle");
-      for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) {
+      for (Player p : Bukkit.getOnlinePlayers()) {
         try {
           Object nmsPlayer = getHandle.invoke(craftPlayerClass.cast(p));
           Class<?> c = nmsPlayer.getClass();
@@ -52,10 +56,10 @@ public final class NmsHelper {
 
   private static boolean canLoadNms(ClassLoader cl) {
     for (String probe :
-        new String[] {
-          "net.minecraft.server.players.PlayerList",
-          "net.minecraft.server.MinecraftServer",
-          "net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket"
+        new String[]{
+            "net.minecraft.server.players.PlayerList",
+            "net.minecraft.server.MinecraftServer",
+            "net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket"
         }) {
       try {
         cl.loadClass(probe);
@@ -66,7 +70,7 @@ public final class NmsHelper {
     return false;
   }
 
-  public static Object getServerLevel(org.bukkit.World world) {
+  public static Object getServerLevel(World world) {
     try {
       Class<?> craftWorldClass = getCraftClass("CraftWorld");
       Method getHandle = craftWorldClass.getMethod("getHandle");

@@ -18,6 +18,12 @@
 - **PluginRemapper duplicate entries** — `pom.xml` now properly excludes Mojang-mapped `paper-server` NMS classes from shaded JAR, fixing Paper 1.21.11 runtime remapping crash
 - **SQLite AUTO_INCREMENT syntax** — split `fpp_network_tasks` table creation into SQLite (`INTEGER PRIMARY KEY AUTOINCREMENT`) and MySQL (`BIGINT AUTO_INCREMENT`) variants, fixing `SQLITE_ERROR near "AUTO_INCREMENT": syntax error`
 
+### Documentation
+- Full wiki sync: added missing `pathfinding.*`, `skin.*`, `help.*`, `ping.*`, `metrics.debug`, `heartbeat.enabled`, and `body.drop-items-on-despawn` config keys
+- Added missing commands (`extension`, `extension --list`) and flags (`spawn --notp`, `spawn <bottype>`, `attack --move`, `find --prefer-visible`, short flags `-r`/`-c`)
+- Added missing permissions (`fpp.mine.wesel`, `fpp.place.wesel`)
+- Added extension-dependency notes for placeholders (`peak_hours`, `swap`, etc.) and config keys (`fake-chat`, `swap`, `peak-hours`)
+
 ### Deprecations & Removals
 - None
 
@@ -95,4 +101,4 @@ https://github.com/Pepe-tf/fake-player-plugin/commits/main
 
 ---
 
-> **Note:** The built-in ConfigMigrator handles upgrades transparently. Current config version: **72**. Always back up `plugins/FakePlayerPlugin/` before major updates.
+> **Note:** The built-in ConfigMigrator handles upgrades transparently. Current config version: **73**. Always back up `plugins/FakePlayerPlugin/` before major updates.

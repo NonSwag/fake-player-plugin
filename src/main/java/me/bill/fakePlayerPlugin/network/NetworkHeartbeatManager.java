@@ -5,9 +5,12 @@ import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.database.NetworkDatabase;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
+import me.bill.fakePlayerPlugin.fakeplayer.RemoteBotEntry;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import org.bukkit.Bukkit;
+
+import java.util.UUID;
 
 /**
  * Publishes this server's live bot count + real player count into the shared
@@ -23,8 +26,8 @@ public final class NetworkHeartbeatManager {
   private final NetworkDatabase netDb;
 
   private static final long HEARTBEAT_INTERVAL_TICKS = 100L;   // 5 s
-  private static final long PRUNE_INTERVAL_TICKS     = 1200L;  // 60 s
-  private static final long STALE_THRESHOLD_MS       = 60000L; // 60 s
+  private static final long PRUNE_INTERVAL_TICKS = 1200L;  // 60 s
+  private static final long STALE_THRESHOLD_MS = 60000L; // 60 s
 
   private volatile boolean started = false;
   private volatile int hbTask = -1;
@@ -120,8 +123,8 @@ public final class NetworkHeartbeatManager {
       for (var row : netBots) {
         if (row.serverId().equals(myId)) continue;
         try {
-          java.util.UUID uuid = java.util.UUID.fromString(row.botUuid());
-          cache.add(new me.bill.fakePlayerPlugin.fakeplayer.RemoteBotEntry(
+          UUID uuid = UUID.fromString(row.botUuid());
+          cache.add(new RemoteBotEntry(
               row.serverId(), uuid, row.botName(), row.botDisplay(),
               row.botName(), "", "", row.ping()));
         } catch (IllegalArgumentException ignored) {
@@ -130,7 +133,7 @@ public final class NetworkHeartbeatManager {
 
       // Update stats
       int totalPlayers = netDb.getTotalNetworkPlayers();
-      int totalBots    = netDb.getTotalNetworkBots();
+      int totalBots = netDb.getTotalNetworkBots();
       cache.setNetworkTotalPlayers(totalPlayers);
       cache.setNetworkTotalBots(totalBots);
 

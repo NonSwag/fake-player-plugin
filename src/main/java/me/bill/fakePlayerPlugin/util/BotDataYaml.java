@@ -1,19 +1,21 @@
 package me.bill.fakePlayerPlugin.util;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+
 public final class BotDataYaml {
 
   public static final String FILE_NAME = "bots.yml";
 
-  private BotDataYaml() {}
+  private BotDataYaml() {
+  }
 
   public static File getFile(JavaPlugin plugin) {
     File dataDir = new File(plugin.getDataFolder(), "data");

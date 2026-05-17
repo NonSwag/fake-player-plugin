@@ -1,19 +1,32 @@
 package me.bill.fakePlayerPlugin.sync;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import java.sql.*;
-import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class ConfigSyncManager {
 
@@ -73,29 +86,29 @@ public final class ConfigSyncManager {
     String sql =
         db.isMysql()
             ? "CREATE TABLE IF NOT EXISTS fpp_config_sync ("
-                + "  id            BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
-                + "  config_file   VARCHAR(128) NOT NULL,"
-                + "  server_id     VARCHAR(64)  NOT NULL,"
-                + "  content_hash  VARCHAR(64)  NOT NULL,"
-                + "  content       LONGTEXT     NOT NULL,"
-                + "  pushed_at     BIGINT       NOT NULL,"
-                + "  pushed_by     VARCHAR(64)  NOT NULL,"
-                + "  INDEX idx_config_file (config_file),"
-                + "  INDEX idx_server_id (server_id),"
-                + "  INDEX idx_pushed_at (pushed_at)"
-                + ")"
+              + "  id            BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
+              + "  config_file   VARCHAR(128) NOT NULL,"
+              + "  server_id     VARCHAR(64)  NOT NULL,"
+              + "  content_hash  VARCHAR(64)  NOT NULL,"
+              + "  content       LONGTEXT     NOT NULL,"
+              + "  pushed_at     BIGINT       NOT NULL,"
+              + "  pushed_by     VARCHAR(64)  NOT NULL,"
+              + "  INDEX idx_config_file (config_file),"
+              + "  INDEX idx_server_id (server_id),"
+              + "  INDEX idx_pushed_at (pushed_at)"
+              + ")"
             : "CREATE TABLE IF NOT EXISTS fpp_config_sync ("
-                + "  id            INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "  config_file   VARCHAR(128) NOT NULL,"
-                + "  server_id     VARCHAR(64)  NOT NULL,"
-                + "  content_hash  VARCHAR(64)  NOT NULL,"
-                + "  content       TEXT         NOT NULL,"
-                + "  pushed_at     BIGINT       NOT NULL,"
-                + "  pushed_by     VARCHAR(64)  NOT NULL"
-                + ")";
+              + "  id            INTEGER PRIMARY KEY AUTOINCREMENT,"
+              + "  config_file   VARCHAR(128) NOT NULL,"
+              + "  server_id     VARCHAR(64)  NOT NULL,"
+              + "  content_hash  VARCHAR(64)  NOT NULL,"
+              + "  content       TEXT         NOT NULL,"
+              + "  pushed_at     BIGINT       NOT NULL,"
+              + "  pushed_by     VARCHAR(64)  NOT NULL"
+              + ")";
 
     try (Connection conn = db.getConnection();
-        Statement stmt = conn.createStatement()) {
+         Statement stmt = conn.createStatement()) {
       stmt.execute(sql);
       Config.debugConfigSync("[ConfigSync] Database table created/verified.");
     } catch (SQLException e) {
@@ -130,7 +143,7 @@ public final class ConfigSyncManager {
               + " pushed_at, pushed_by) VALUES (?, ?, ?, ?, ?, ?)";
 
       try (Connection conn = db.getConnection();
-          PreparedStatement ps = conn.prepareStatement(sql)) {
+           PreparedStatement ps = conn.prepareStatement(sql)) {
         ps.setString(1, fileName);
         ps.setString(2, Config.serverId());
         ps.setString(3, hash);
@@ -185,7 +198,7 @@ public final class ConfigSyncManager {
       String pushedBy = null;
 
       try (Connection conn = db.getConnection();
-          PreparedStatement ps = conn.prepareStatement(sql)) {
+           PreparedStatement ps = conn.prepareStatement(sql)) {
         ps.setString(1, fileName);
         try (ResultSet rs = ps.executeQuery()) {
           if (rs.next()) {
@@ -262,7 +275,7 @@ public final class ConfigSyncManager {
               + "ORDER BY pushed_at DESC LIMIT 1";
 
       try (Connection conn = db.getConnection();
-          PreparedStatement ps = conn.prepareStatement(sql)) {
+           PreparedStatement ps = conn.prepareStatement(sql)) {
         ps.setString(1, fileName);
         try (ResultSet rs = ps.executeQuery()) {
           if (rs.next()) {
@@ -364,8 +377,8 @@ public final class ConfigSyncManager {
 
   private String computeHash(String content) {
     try {
-      java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-      byte[] hash = md.digest(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+      MessageDigest md = MessageDigest.getInstance("SHA-256");
+      byte[] hash = md.digest(content.getBytes(StandardCharsets.UTF_8));
       StringBuilder hexString = new StringBuilder();
       for (byte b : hash) {
         String hex = Integer.toHexString(0xff & b);

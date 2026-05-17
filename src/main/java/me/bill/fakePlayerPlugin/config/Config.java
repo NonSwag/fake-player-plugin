@@ -1,14 +1,16 @@
 package me.bill.fakePlayerPlugin.config;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BooleanSupplier;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
 
 public final class Config {
 
@@ -18,7 +20,8 @@ public final class Config {
   private static BooleanSupplier tabListEnabledProvider = null;
   private static final Map<String, FileConfiguration> externalConfigs = new ConcurrentHashMap<>();
 
-  private Config() {}
+  private Config() {
+  }
 
   public interface ChatMessageProvider {
     void reload();
@@ -319,7 +322,7 @@ public final class Config {
     Object section = cfg.get("skin.overrides");
     if (section == null) section = cfg.get("skin.custom.by-name");
     if (section instanceof Map<?, ?> raw) {
-      Map<String, String> result = new java.util.LinkedHashMap<>();
+      Map<String, String> result = new LinkedHashMap<>();
       for (Map.Entry<?, ?> e : raw.entrySet()) {
         if (e.getKey() instanceof String k && e.getValue() instanceof String v) {
           result.put(k.toLowerCase(), v);
@@ -454,7 +457,7 @@ public final class Config {
     return integer("peak-hours.stagger-seconds", 30);
   }
 
-  public static java.util.List<java.util.Map<?, ?>> peakHoursSchedule() {
+  public static List<Map<?, ?>> peakHoursSchedule() {
     return mapList("peak-hours.schedule");
   }
 
@@ -640,12 +643,16 @@ public final class Config {
   }
 
 
-  /** Number of lateral sweep steps tried on each side when searching for a detour waypoint. */
+  /**
+   * Number of lateral sweep steps tried on each side when searching for a detour waypoint.
+   */
   public static int pathfindingDetourAttempts() {
     return Math.max(1, Math.min(integer("pathfinding.detour-attempts", 5), 20));
   }
 
-  /** Total lateral radius (in blocks) spread across detour-attempts steps. */
+  /**
+   * Total lateral radius (in blocks) spread across detour-attempts steps.
+   */
   public static double pathfindingDetourRadius() {
     return Math.max(2.0, Math.min(decimal("pathfinding.detour-radius", 16.0), 64.0));
   }
@@ -1005,18 +1012,18 @@ public final class Config {
   }
 
   @SuppressWarnings("unchecked")
-  public static java.util.Map<String, String> fakeChatKeywordMap() {
+  public static Map<String, String> fakeChatKeywordMap() {
     Object raw = value("fake-chat.keyword-reactions.keywords");
-    if (raw instanceof java.util.Map<?, ?> m) {
-      java.util.Map<String, String> result = new java.util.LinkedHashMap<>();
-      for (java.util.Map.Entry<?, ?> e : m.entrySet()) {
+    if (raw instanceof Map<?, ?> m) {
+      Map<String, String> result = new LinkedHashMap<>();
+      for (Map.Entry<?, ?> e : m.entrySet()) {
         if (e.getKey() instanceof String k && e.getValue() instanceof String v) {
           result.put(k.toLowerCase(), v);
         }
       }
       return result;
     }
-    return java.util.Map.of();
+    return Map.of();
   }
 
   public static boolean mysqlEnabled() {

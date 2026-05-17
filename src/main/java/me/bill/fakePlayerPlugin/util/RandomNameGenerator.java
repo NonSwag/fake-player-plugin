@@ -20,7 +20,8 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class RandomNameGenerator {
 
-  private RandomNameGenerator() {}
+  private RandomNameGenerator() {
+  }
 
   private static final List<String> CONSONANTS = List.of(
       "b", "c", "d", "f", "g", "h", "j", "k", "l", "m",

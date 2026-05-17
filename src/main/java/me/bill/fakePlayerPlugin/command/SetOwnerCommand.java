@@ -1,9 +1,5 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
@@ -16,6 +12,11 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
 public final class SetOwnerCommand implements FppCommand {
   private final FakePlayerPlugin plugin;
   private final FakePlayerManager manager;
@@ -25,11 +26,30 @@ public final class SetOwnerCommand implements FppCommand {
     this.manager = manager;
   }
 
-  @Override public String getName() { return "setowner"; }
-  @Override public String getUsage() { return "<bot> <player>"; }
-  @Override public String getDescription() { return "Set the owner of a bot."; }
-  @Override public String getPermission() { return Perm.SETOWNER; }
-  @Override public boolean canUse(CommandSender sender) { return Perm.has(sender, Perm.SETOWNER); }
+  @Override
+  public String getName() {
+    return "setowner";
+  }
+
+  @Override
+  public String getUsage() {
+    return "<bot> <player>";
+  }
+
+  @Override
+  public String getDescription() {
+    return "Set the owner of a bot.";
+  }
+
+  @Override
+  public String getPermission() {
+    return Perm.SETOWNER;
+  }
+
+  @Override
+  public boolean canUse(CommandSender sender) {
+    return Perm.has(sender, Perm.SETOWNER);
+  }
 
   @Override
   public boolean execute(CommandSender sender, String[] args) {
@@ -59,10 +79,12 @@ public final class SetOwnerCommand implements FppCommand {
     List<String> out = new ArrayList<>();
     if (args.length == 1) {
       String prefix = args[0].toLowerCase(Locale.ROOT);
-      for (FakePlayer fp : manager.getActivePlayers()) if (fp.getName().toLowerCase(Locale.ROOT).startsWith(prefix)) out.add(fp.getName());
+      for (FakePlayer fp : manager.getActivePlayers())
+        if (fp.getName().toLowerCase(Locale.ROOT).startsWith(prefix)) out.add(fp.getName());
     } else if (args.length == 2) {
       String prefix = args[1].toLowerCase(Locale.ROOT);
-      for (Player p : Bukkit.getOnlinePlayers()) if (p.getName().toLowerCase(Locale.ROOT).startsWith(prefix)) out.add(p.getName());
+      for (Player p : Bukkit.getOnlinePlayers())
+        if (p.getName().toLowerCase(Locale.ROOT).startsWith(prefix)) out.add(p.getName());
     }
     return out;
   }

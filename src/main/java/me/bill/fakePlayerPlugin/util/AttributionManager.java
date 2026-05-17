@@ -1,32 +1,35 @@
 package me.bill.fakePlayerPlugin.util;
 
+import org.bukkit.plugin.java.JavaPlugin;
+
 import java.util.List;
 
 public final class AttributionManager {
 
   private static boolean integrityValid = true;
 
-  private AttributionManager() {}
+  private AttributionManager() {
+  }
 
   private static final int[] _A = {70, 95, 80, 80};
 
   private static final int[] _M = {
-    84, 104, 105, 115, 32, 112, 108, 117, 103, 105, 110, 32, 105, 115, 32, 70, 82, 69, 69,
-    32, 97, 110, 100, 32, 111, 112, 101, 110, 45, 115, 111, 117, 114, 99, 101, 46, 32, 73,
-    102, 32, 121, 111, 117, 32, 112, 97, 105, 100, 32, 102, 111, 114, 32, 105, 116, 44, 32,
-    121, 111, 117, 32, 119, 101, 114, 101, 32, 115, 99, 97, 109, 109, 101, 100, 46
+      84, 104, 105, 115, 32, 112, 108, 117, 103, 105, 110, 32, 105, 115, 32, 70, 82, 69, 69,
+      32, 97, 110, 100, 32, 111, 112, 101, 110, 45, 115, 111, 117, 114, 99, 101, 46, 32, 73,
+      102, 32, 121, 111, 117, 32, 112, 97, 105, 100, 32, 102, 111, 114, 32, 105, 116, 44, 32,
+      121, 111, 117, 32, 119, 101, 114, 101, 32, 115, 99, 97, 109, 109, 101, 100, 46
   };
 
   private static final int[] _L1 = {
-    104, 116, 116, 112, 115, 58, 47, 47, 109, 111, 100, 114, 105, 110, 116, 104, 46, 99,
-    111, 109, 47, 112, 108, 117, 103, 105, 110, 47, 102, 97, 107, 101, 45, 112, 108, 97,
-    121, 101, 114, 45, 112, 108, 117, 103, 105, 110, 45, 40, 102, 112, 112, 41
+      104, 116, 116, 112, 115, 58, 47, 47, 109, 111, 100, 114, 105, 110, 116, 104, 46, 99,
+      111, 109, 47, 112, 108, 117, 103, 105, 110, 47, 102, 97, 107, 101, 45, 112, 108, 97,
+      121, 101, 114, 45, 112, 108, 117, 103, 105, 110, 45, 40, 102, 112, 112, 41
   };
 
   private static final int[] _L2 = {
-    104, 116, 116, 112, 115, 58, 47, 47, 103, 105, 116, 104, 117, 98, 46, 99, 111, 109, 47, 101,
-    108, 45, 112, 101, 112, 101, 115, 47, 70, 97, 107, 101, 80, 108, 97, 121, 101, 114, 80, 108,
-    117, 103, 105, 110
+      104, 116, 116, 112, 115, 58, 47, 47, 103, 105, 116, 104, 117, 98, 46, 99, 111, 109, 47, 101,
+      108, 45, 112, 101, 112, 101, 115, 47, 70, 97, 107, 101, 80, 108, 97, 121, 101, 114, 80, 108,
+      117, 103, 105, 110
   };
 
   private static String _d(int[] c) {
@@ -93,7 +96,7 @@ public final class AttributionManager {
     return v;
   }
 
-  public static boolean validate(org.bukkit.plugin.java.JavaPlugin plugin) {
+  public static boolean validate(JavaPlugin plugin) {
     integrityValid = true;
 
     if (!validateOriginalAuthor(plugin)) integrityValid = false;
@@ -107,19 +110,19 @@ public final class AttributionManager {
     return integrityValid;
   }
 
-  public static boolean validateOriginalAuthor(org.bukkit.plugin.java.JavaPlugin plugin) {
+  public static boolean validateOriginalAuthor(JavaPlugin plugin) {
     try {
       String expected = getOriginalAuthor();
       List<String> authors = plugin.getPluginMeta().getAuthors();
       for (String a : authors) {
         if (a.equalsIgnoreCase(expected)) return true;
       }
-      FppLogger.warn(new String(new char[] {9552}).repeat(65));
+      FppLogger.warn(new String(new char[]{9552}).repeat(65));
       FppLogger.warn("  " + (char) 9888 + "  ATTRIBUTION WARNING  " + (char) 9888);
       FppLogger.warn("  Original author '" + expected + "' was removed from plugin.yml.");
       FppLogger.warn("  This plugin is free and open-source. Please restore the");
       FppLogger.warn("  original author credit. You may add your own name too.");
-      FppLogger.warn(new String(new char[] {9552}).repeat(65));
+      FppLogger.warn(new String(new char[]{9552}).repeat(65));
       return false;
     } catch (Exception e) {
       return true;

@@ -1,25 +1,68 @@
 package me.bill.fakePlayerPlugin;
 
-import me.bill.fakePlayerPlugin.command.*;
+import me.bill.fakePlayerPlugin.api.FppApi;
+import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
+import me.bill.fakePlayerPlugin.command.AttackCommand;
+import me.bill.fakePlayerPlugin.command.BadwordCommand;
+import me.bill.fakePlayerPlugin.command.CommandManager;
+import me.bill.fakePlayerPlugin.command.DeleteCommand;
+import me.bill.fakePlayerPlugin.command.ExtensionCommand;
+import me.bill.fakePlayerPlugin.command.FindCommand;
+import me.bill.fakePlayerPlugin.command.FollowCommand;
+import me.bill.fakePlayerPlugin.command.FreezeCommand;
+import me.bill.fakePlayerPlugin.command.InfoCommand;
+import me.bill.fakePlayerPlugin.command.InventoryCommand;
+import me.bill.fakePlayerPlugin.command.ListCommand;
+import me.bill.fakePlayerPlugin.command.MigrateCommand;
+import me.bill.fakePlayerPlugin.command.MineCommand;
+import me.bill.fakePlayerPlugin.command.MoveCommand;
+import me.bill.fakePlayerPlugin.command.PlaceCommand;
+import me.bill.fakePlayerPlugin.command.ReloadCommand;
+import me.bill.fakePlayerPlugin.command.RenameCommand;
+import me.bill.fakePlayerPlugin.command.SaveCommand;
+import me.bill.fakePlayerPlugin.command.SetOwnerCommand;
+import me.bill.fakePlayerPlugin.command.SettingCommand;
+import me.bill.fakePlayerPlugin.command.SleepCommand;
+import me.bill.fakePlayerPlugin.command.SpawnCommand;
+import me.bill.fakePlayerPlugin.command.StatsCommand;
+import me.bill.fakePlayerPlugin.command.StopCommand;
+import me.bill.fakePlayerPlugin.command.StorageCommand;
+import me.bill.fakePlayerPlugin.command.StorageStore;
+import me.bill.fakePlayerPlugin.command.TpCommand;
+import me.bill.fakePlayerPlugin.command.TphCommand;
+import me.bill.fakePlayerPlugin.command.UseCommand;
+import me.bill.fakePlayerPlugin.command.XpCommand;
 import me.bill.fakePlayerPlugin.config.BotNameConfig;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
-import me.bill.fakePlayerPlugin.database.NetworkDatabase;
+import me.bill.fakePlayerPlugin.extension.ExtensionLoader;
 import me.bill.fakePlayerPlugin.fakeplayer.BotChatController;
+import me.bill.fakePlayerPlugin.fakeplayer.BotIdentityCache;
 import me.bill.fakePlayerPlugin.fakeplayer.BotPersistence;
 import me.bill.fakePlayerPlugin.fakeplayer.ChunkLoader;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService;
+import me.bill.fakePlayerPlugin.fakeplayer.RemoteBotCache;
+import me.bill.fakePlayerPlugin.fakeplayer.RemoteBotEntry;
+import me.bill.fakePlayerPlugin.fakeplayer.SkinFetchService;
+import me.bill.fakePlayerPlugin.fakeplayer.SkinManager;
 import me.bill.fakePlayerPlugin.gui.BotSettingGui;
+import me.bill.fakePlayerPlugin.gui.HelpGui;
 import me.bill.fakePlayerPlugin.gui.SettingGui;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.listener.BotCollisionListener;
 import me.bill.fakePlayerPlugin.listener.BotLoginOverrideListener;
+import me.bill.fakePlayerPlugin.listener.BotSpawnProtectionListener;
+import me.bill.fakePlayerPlugin.listener.BotXpPickupListener;
 import me.bill.fakePlayerPlugin.listener.FakePlayerEntityListener;
 import me.bill.fakePlayerPlugin.listener.FakePlayerKickListener;
 import me.bill.fakePlayerPlugin.listener.PlayerJoinListener;
 import me.bill.fakePlayerPlugin.listener.PlayerWorldChangeListener;
 import me.bill.fakePlayerPlugin.messaging.VelocityChannel;
+import me.bill.fakePlayerPlugin.network.NetworkHeartbeatManager;
+import me.bill.fakePlayerPlugin.sync.ConfigSyncManager;
+import me.bill.fakePlayerPlugin.util.AttributionApiManager;
+import me.bill.fakePlayerPlugin.util.AttributionManager;
 import me.bill.fakePlayerPlugin.util.BackupManager;
 import me.bill.fakePlayerPlugin.util.BadwordFilter;
 import me.bill.fakePlayerPlugin.util.CompatibilityChecker;
@@ -27,11 +70,18 @@ import me.bill.fakePlayerPlugin.util.ConfigMigrator;
 import me.bill.fakePlayerPlugin.util.ConfigValidator;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppMetrics;
+import me.bill.fakePlayerPlugin.util.FppPlaceholderExpansion;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
+import me.bill.fakePlayerPlugin.util.HeartbeatSender;
 import me.bill.fakePlayerPlugin.util.UpdateChecker;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.UUID;
 
 public final class FakePlayerPlugin extends JavaPlugin {
 
@@ -50,33 +100,33 @@ public final class FakePlayerPlugin extends JavaPlugin {
   private FppMetrics fppMetrics;
   private VelocityChannel velocityChannel;
   private BotChatController botChatAI;
-  private me.bill.fakePlayerPlugin.fakeplayer.RemoteBotCache remoteBotCache;
-  private me.bill.fakePlayerPlugin.sync.ConfigSyncManager configSyncManager;
+  private RemoteBotCache remoteBotCache;
+  private ConfigSyncManager configSyncManager;
   private SettingGui settingGui;
-  private me.bill.fakePlayerPlugin.gui.BotSettingGui botSettingGui;
-  private me.bill.fakePlayerPlugin.gui.HelpGui helpGui;
-  private me.bill.fakePlayerPlugin.fakeplayer.BotIdentityCache botIdentityCache;
-  private me.bill.fakePlayerPlugin.network.NetworkHeartbeatManager networkHeartbeat;
+  private BotSettingGui botSettingGui;
+  private HelpGui helpGui;
+  private BotIdentityCache botIdentityCache;
+  private NetworkHeartbeatManager networkHeartbeat;
   private XpCommand xpCommand;
-  private me.bill.fakePlayerPlugin.command.MoveCommand moveCommand;
-  private me.bill.fakePlayerPlugin.command.MineCommand mineCommand;
-  private me.bill.fakePlayerPlugin.command.PlaceCommand placeCommand;
-  private me.bill.fakePlayerPlugin.command.UseCommand useCommand;
-  private me.bill.fakePlayerPlugin.command.AttackCommand attackCommand;
-  private me.bill.fakePlayerPlugin.command.FollowCommand followCommand;
-  private me.bill.fakePlayerPlugin.command.SleepCommand sleepCommand;
-  private me.bill.fakePlayerPlugin.command.FindCommand findCommand;
-  private me.bill.fakePlayerPlugin.command.StopCommand stopCommand;
+  private MoveCommand moveCommand;
+  private MineCommand mineCommand;
+  private PlaceCommand placeCommand;
+  private UseCommand useCommand;
+  private AttackCommand attackCommand;
+  private FollowCommand followCommand;
+  private SleepCommand sleepCommand;
+  private FindCommand findCommand;
+  private StopCommand stopCommand;
   private PathfindingService pathfindingService;
-  private me.bill.fakePlayerPlugin.command.StorageStore storageStore;
-  private me.bill.fakePlayerPlugin.command.InventoryCommand inventoryCommand;
-  private me.bill.fakePlayerPlugin.fakeplayer.SkinManager skinManager;
-  private me.bill.fakePlayerPlugin.fakeplayer.SkinFetchService skinFetchService =
-      me.bill.fakePlayerPlugin.fakeplayer.SkinFetchService.NOOP;
-  private me.bill.fakePlayerPlugin.util.HeartbeatSender heartbeatSender;
+  private StorageStore storageStore;
+  private InventoryCommand inventoryCommand;
+  private SkinManager skinManager;
+  private SkinFetchService skinFetchService =
+      SkinFetchService.NOOP;
+  private HeartbeatSender heartbeatSender;
 
-  private me.bill.fakePlayerPlugin.api.impl.FppApiImpl fppApi;
-  private me.bill.fakePlayerPlugin.extension.ExtensionLoader extensionLoader;
+  private FppApiImpl fppApi;
+  private ExtensionLoader extensionLoader;
 
   private Component updateNotificationMessage = null;
 
@@ -117,8 +167,8 @@ public final class FakePlayerPlugin extends JavaPlugin {
     Config.init(this);
     Config.debugStartup("config.yml loaded.");
 
-    me.bill.fakePlayerPlugin.util.AttributionManager.validate(this);
-    me.bill.fakePlayerPlugin.util.AttributionApiManager.init(this);
+    AttributionManager.validate(this);
+    AttributionApiManager.init(this);
 
     BadwordFilter.reload(this);
     if (Config.isBadwordFilterEnabled() && BadwordFilter.getBadwordCount() == 0) {
@@ -174,24 +224,24 @@ public final class FakePlayerPlugin extends JavaPlugin {
     }
 
     botIdentityCache =
-        new me.bill.fakePlayerPlugin.fakeplayer.BotIdentityCache(this, databaseManager);
+        new BotIdentityCache(this, databaseManager);
     Config.debugDatabase(
         "BotIdentityCache initialised (backend="
             + (databaseManager != null ? (Config.mysqlEnabled() ? "MySQL" : "SQLite") : "YAML")
             + ").");
 
-    remoteBotCache = new me.bill.fakePlayerPlugin.fakeplayer.RemoteBotCache();
+    remoteBotCache = new RemoteBotCache();
     if (Config.isNetworkMode() && databaseManager != null) {
       var remoteRows = databaseManager.getNetworkBotsFromOtherServers();
       for (var row : remoteRows) {
         try {
-          java.util.UUID uuid = java.util.UUID.fromString(row.botUuid());
+          UUID uuid = UUID.fromString(row.botUuid());
           String display =
               (row.botDisplay() != null && !row.botDisplay().isBlank())
                   ? row.botDisplay()
                   : row.botName();
           remoteBotCache.add(
-              new me.bill.fakePlayerPlugin.fakeplayer.RemoteBotEntry(
+              new RemoteBotEntry(
                   row.serverId(), uuid, row.botName(), display, row.botName(), "", "", -1));
         } catch (Exception ignored) {
         }
@@ -202,7 +252,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     if (Config.isNetworkMode() && databaseManager != null) {
       configSyncManager =
-          new me.bill.fakePlayerPlugin.sync.ConfigSyncManager(this, databaseManager);
+          new ConfigSyncManager(this, databaseManager);
       configSyncManager.init();
       Config.debugConfigSync(
           "Config sync manager initialized (mode=" + Config.configSyncMode() + ").");
@@ -216,7 +266,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     fakePlayerManager.refreshCleanNamePool();
 
-    fppApi = new me.bill.fakePlayerPlugin.api.impl.FppApiImpl(this, fakePlayerManager);
+    fppApi = new FppApiImpl(this, fakePlayerManager);
 
     // Load persisted despawn snapshots (DB primary, YAML fallback) so bots that were manually
     // despawned before the restart can have their inventory/XP restored on next spawn.
@@ -228,7 +278,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
     botPersistence = new BotPersistence(this);
     fakePlayerManager.setBotPersistence(botPersistence);
 
-    networkHeartbeat = new me.bill.fakePlayerPlugin.network.NetworkHeartbeatManager(this, fakePlayerManager);
+    networkHeartbeat = new NetworkHeartbeatManager(this, fakePlayerManager);
     if (Config.isNetworkMode() && databaseManager != null) {
       networkHeartbeat.start();
     }
@@ -246,55 +296,55 @@ public final class FakePlayerPlugin extends JavaPlugin {
     commandManager.register(new InfoCommand(databaseManager, fakePlayerManager));
     commandManager.register(new MigrateCommand(this));
     commandManager.register(
-        new me.bill.fakePlayerPlugin.command.BadwordCommand(this, fakePlayerManager));
+        new BadwordCommand(this, fakePlayerManager));
     commandManager.register(new StatsCommand(fakePlayerManager, databaseManager));
     commandManager.register(new ExtensionCommand(this));
     commandManager.register(new FreezeCommand(fakePlayerManager));
     commandManager.register(
-        new me.bill.fakePlayerPlugin.command.RenameCommand(this, fakePlayerManager));
+        new RenameCommand(this, fakePlayerManager));
     moveCommand =
-        new me.bill.fakePlayerPlugin.command.MoveCommand(
+        new MoveCommand(
             this, fakePlayerManager, pathfindingService);
-    storageStore = new me.bill.fakePlayerPlugin.command.StorageStore(this);
+    storageStore = new StorageStore(this);
     storageStore.load();
     commandManager.register(moveCommand);
     mineCommand =
-        new me.bill.fakePlayerPlugin.command.MineCommand(
+        new MineCommand(
             this, fakePlayerManager, storageStore, pathfindingService);
     commandManager.register(mineCommand);
     findCommand =
-        new me.bill.fakePlayerPlugin.command.FindCommand(
+        new FindCommand(
             this, fakePlayerManager, pathfindingService, mineCommand);
     mineCommand.setFindCommand(findCommand);
     commandManager.register(findCommand);
     commandManager.register(
-        new me.bill.fakePlayerPlugin.command.StorageCommand(this, fakePlayerManager, storageStore, pathfindingService));
+        new StorageCommand(this, fakePlayerManager, storageStore, pathfindingService));
     placeCommand =
-        new me.bill.fakePlayerPlugin.command.PlaceCommand(
+        new PlaceCommand(
             this, fakePlayerManager, storageStore, pathfindingService);
     commandManager.register(placeCommand);
     useCommand =
-        new me.bill.fakePlayerPlugin.command.UseCommand(
+        new UseCommand(
             this, fakePlayerManager, pathfindingService);
     commandManager.register(useCommand);
     attackCommand =
-        new me.bill.fakePlayerPlugin.command.AttackCommand(
+        new AttackCommand(
             this, fakePlayerManager, pathfindingService);
     commandManager.register(attackCommand);
     followCommand =
-        new me.bill.fakePlayerPlugin.command.FollowCommand(
+        new FollowCommand(
             this, fakePlayerManager, pathfindingService);
     commandManager.register(followCommand);
     sleepCommand =
-        new me.bill.fakePlayerPlugin.command.SleepCommand(
+        new SleepCommand(
             this, fakePlayerManager, pathfindingService);
     commandManager.register(sleepCommand);
 
     botSettingGui = new BotSettingGui(this, fakePlayerManager);
     inventoryCommand = new InventoryCommand(fakePlayerManager, this, botSettingGui);
     commandManager.register(inventoryCommand);
-    commandManager.register(new me.bill.fakePlayerPlugin.command.SetOwnerCommand(this, fakePlayerManager));
-    commandManager.register(new me.bill.fakePlayerPlugin.command.SaveCommand(this));
+    commandManager.register(new SetOwnerCommand(this, fakePlayerManager));
+    commandManager.register(new SaveCommand(this));
 
     settingGui = new SettingGui(this);
     commandManager.register(new SettingCommand(settingGui, botSettingGui, fakePlayerManager));
@@ -314,7 +364,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
     sleepCommand.setMoveCommand(moveCommand);
     sleepCommand.setFindCommand(findCommand);
 
-    stopCommand = new me.bill.fakePlayerPlugin.command.StopCommand(fakePlayerManager);
+    stopCommand = new StopCommand(fakePlayerManager);
     stopCommand.setMoveCommand(moveCommand);
     stopCommand.setMineCommand(mineCommand);
     stopCommand.setUseCommand(useCommand);
@@ -354,21 +404,21 @@ public final class FakePlayerPlugin extends JavaPlugin {
     getServer()
         .getPluginManager()
         .registerEvents(
-            new me.bill.fakePlayerPlugin.listener.BotSpawnProtectionListener(this), this);
+            new BotSpawnProtectionListener(this), this);
     getServer()
         .getPluginManager()
         .registerEvents(new BotLoginOverrideListener(this, fakePlayerManager), this);
     getServer()
         .getPluginManager()
         .registerEvents(
-            new me.bill.fakePlayerPlugin.listener.BotXpPickupListener(this, fakePlayerManager),
+            new BotXpPickupListener(this, fakePlayerManager),
             this);
 
-    helpGui = new me.bill.fakePlayerPlugin.gui.HelpGui(this, commandManager);
+    helpGui = new HelpGui(this, commandManager);
     getServer().getPluginManager().registerEvents(helpGui, this);
     commandManager.setHelpGui(helpGui);
 
-    extensionLoader = new me.bill.fakePlayerPlugin.extension.ExtensionLoader(this);
+    extensionLoader = new ExtensionLoader(this);
     extensionLoader.loadExtensions();
 
     velocityChannel = new VelocityChannel(this, fakePlayerManager);
@@ -401,7 +451,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
       try {
-        new me.bill.fakePlayerPlugin.util.FppPlaceholderExpansion(this, fakePlayerManager)
+        new FppPlaceholderExpansion(this, fakePlayerManager)
             .register();
         Config.debugStartup("PlaceholderAPI detected - placeholders registered.");
       } catch (Exception e) {
@@ -421,23 +471,12 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     UpdateChecker.check(this);
 
-    heartbeatSender = new me.bill.fakePlayerPlugin.util.HeartbeatSender(this, fakePlayerManager);
+    heartbeatSender = new HeartbeatSender(this, fakePlayerManager);
     heartbeatSender.start();
 
     fppMetrics = new FppMetrics();
     if (Config.metricsEnabled()) {
-      try {
-        fppMetrics.init(this, fakePlayerManager);
-      } catch (Throwable t) {
-        FppLogger.error(
-            "Metrics: unexpected top-level error - "
-                + t.getClass().getName()
-                + ": "
-                + t.getMessage());
-        for (StackTraceElement el : t.getStackTrace()) {
-          FppLogger.error("  at " + el);
-        }
-      }
+      fppMetrics.init(this, fakePlayerManager);
     } else {
       Config.debugStartup("Metrics disabled in config.yml - skipping FastStats init.");
     }
@@ -543,14 +582,18 @@ public final class FakePlayerPlugin extends JavaPlugin {
     return commandManager;
   }
 
-  /** Returns the public addon API entry point. Available after {@code onEnable} completes. */
+  /**
+   * Returns the public addon API entry point. Available after {@code onEnable} completes.
+   */
   @SuppressWarnings("unused")
-  public me.bill.fakePlayerPlugin.api.FppApi getFppApi() {
+  public FppApi getFppApi() {
     return fppApi;
   }
 
-  /** Internal accessor for subsystems that need the concrete impl (e.g. fireTickHandlers). */
-  public me.bill.fakePlayerPlugin.api.impl.FppApiImpl getFppApiImpl() {
+  /**
+   * Internal accessor for subsystems that need the concrete impl (e.g. fireTickHandlers).
+   */
+  public FppApiImpl getFppApiImpl() {
     return fppApi;
   }
 
@@ -567,7 +610,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
     return settingGui;
   }
 
-  public me.bill.fakePlayerPlugin.gui.BotSettingGui getBotSettingGui() {
+  public BotSettingGui getBotSettingGui() {
     return botSettingGui;
   }
 
@@ -587,15 +630,15 @@ public final class FakePlayerPlugin extends JavaPlugin {
     this.botChatAI = botChatAI;
   }
 
-  public me.bill.fakePlayerPlugin.fakeplayer.RemoteBotCache getRemoteBotCache() {
+  public RemoteBotCache getRemoteBotCache() {
     return remoteBotCache;
   }
 
-  public me.bill.fakePlayerPlugin.sync.ConfigSyncManager getConfigSyncManager() {
+  public ConfigSyncManager getConfigSyncManager() {
     return configSyncManager;
   }
 
-  public me.bill.fakePlayerPlugin.fakeplayer.BotIdentityCache getBotIdentityCache() {
+  public BotIdentityCache getBotIdentityCache() {
     return botIdentityCache;
   }
 
@@ -603,31 +646,31 @@ public final class FakePlayerPlugin extends JavaPlugin {
     return xpCommand;
   }
 
-  public me.bill.fakePlayerPlugin.command.MoveCommand getMoveCommand() {
+  public MoveCommand getMoveCommand() {
     return moveCommand;
   }
 
-  public me.bill.fakePlayerPlugin.command.MineCommand getMineCommand() {
+  public MineCommand getMineCommand() {
     return mineCommand;
   }
 
-  public me.bill.fakePlayerPlugin.command.PlaceCommand getPlaceCommand() {
+  public PlaceCommand getPlaceCommand() {
     return placeCommand;
   }
 
-  public me.bill.fakePlayerPlugin.command.UseCommand getUseCommand() {
+  public UseCommand getUseCommand() {
     return useCommand;
   }
 
-  public me.bill.fakePlayerPlugin.command.AttackCommand getAttackCommand() {
+  public AttackCommand getAttackCommand() {
     return attackCommand;
   }
 
-  public me.bill.fakePlayerPlugin.command.FollowCommand getFollowCommand() {
+  public FollowCommand getFollowCommand() {
     return followCommand;
   }
 
-  public me.bill.fakePlayerPlugin.command.SleepCommand getSleepCommand() {
+  public SleepCommand getSleepCommand() {
     return sleepCommand;
   }
 
@@ -635,41 +678,41 @@ public final class FakePlayerPlugin extends JavaPlugin {
     return pathfindingService;
   }
 
-  public me.bill.fakePlayerPlugin.command.StorageStore getStorageStore() {
+  public StorageStore getStorageStore() {
     return storageStore;
   }
 
-  public me.bill.fakePlayerPlugin.command.InventoryCommand getInventoryCommand() {
+  public InventoryCommand getInventoryCommand() {
     return inventoryCommand;
   }
 
-  public me.bill.fakePlayerPlugin.fakeplayer.SkinManager getSkinManager() {
+  public SkinManager getSkinManager() {
     return skinManager;
   }
 
-  public void setSkinManager(me.bill.fakePlayerPlugin.fakeplayer.SkinManager skinManager) {
+  public void setSkinManager(SkinManager skinManager) {
     this.skinManager = skinManager;
   }
 
-  public me.bill.fakePlayerPlugin.fakeplayer.SkinFetchService getSkinFetchService() {
+  public SkinFetchService getSkinFetchService() {
     return skinFetchService != null
         ? skinFetchService
-        : me.bill.fakePlayerPlugin.fakeplayer.SkinFetchService.NOOP;
+        : SkinFetchService.NOOP;
   }
 
   public void setSkinFetchService(
-      me.bill.fakePlayerPlugin.fakeplayer.SkinFetchService skinFetchService) {
+      SkinFetchService skinFetchService) {
     this.skinFetchService =
         skinFetchService != null
             ? skinFetchService
-            : me.bill.fakePlayerPlugin.fakeplayer.SkinFetchService.NOOP;
+            : SkinFetchService.NOOP;
   }
 
-  public me.bill.fakePlayerPlugin.extension.ExtensionLoader getExtensionLoader() {
+  public ExtensionLoader getExtensionLoader() {
     return extensionLoader;
   }
 
-  public me.bill.fakePlayerPlugin.util.FppMetrics getFppMetrics() {
+  public FppMetrics getFppMetrics() {
     return fppMetrics;
   }
 
@@ -702,10 +745,10 @@ public final class FakePlayerPlugin extends JavaPlugin {
   }
 
   private void ensureDataDirectories() {
-    java.io.File root = getDataFolder();
+    File root = getDataFolder();
     String[] dirs = {"data", "language", "extensions"};
     for (String dir : dirs) {
-      java.io.File d = new java.io.File(root, dir);
+      File d = new File(root, dir);
       if (!d.exists()) {
         boolean ok = d.mkdirs();
         Config.debugStartup(
@@ -713,9 +756,9 @@ public final class FakePlayerPlugin extends JavaPlugin {
       }
     }
 
-    java.io.File extReadme = new java.io.File(root, "extensions/README.txt");
+    File extReadme = new File(root, "extensions/README.txt");
     if (!extReadme.exists()) {
-      try (java.io.PrintWriter w = new java.io.PrintWriter(extReadme)) {
+      try (PrintWriter w = new PrintWriter(extReadme)) {
         w.println("# FakePlayerPlugin - Extensions Folder");
         w.println("#");
         w.println("# Drop extension JAR files here to load them automatically.");
@@ -726,7 +769,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
         w.println("#   - That class must have a public no-arg constructor");
         w.println("#");
         w.println("# Run /fpp reload or restart the server after adding or removing extensions.");
-      } catch (java.io.IOException e) {
+      } catch (IOException e) {
         Config.debugStartup("Could not write extensions/README.txt: " + e.getMessage());
       }
     }

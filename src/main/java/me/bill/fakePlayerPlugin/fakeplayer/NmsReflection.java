@@ -1,8 +1,11 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
+import org.bukkit.Bukkit;
+import org.bukkit.World;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import org.bukkit.Bukkit;
+import java.util.UUID;
 
 public final class NmsReflection {
 
@@ -26,7 +29,8 @@ public final class NmsReflection {
   private static Constructor<?> clientInformationConstructor;
   private static Constructor<?> commonListenerCookieConstructor;
 
-  private NmsReflection() {}
+  private NmsReflection() {
+  }
 
   public static synchronized void init() {
     if (initialized || failed) return;
@@ -48,7 +52,7 @@ public final class NmsReflection {
       craftServerGetHandle = craftServerClass.getMethod("getServer");
       craftWorldGetHandle = craftWorldClass.getMethod("getHandle");
 
-      gameProfileConstructor = gameProfileClass.getConstructor(java.util.UUID.class, String.class);
+      gameProfileConstructor = gameProfileClass.getConstructor(UUID.class, String.class);
 
       initialized = true;
     } catch (Exception e) {
@@ -72,7 +76,7 @@ public final class NmsReflection {
     return gameProfileClass;
   }
 
-  public static Object createGameProfile(java.util.UUID uuid, String name) {
+  public static Object createGameProfile(UUID uuid, String name) {
     try {
       if (!initialized) init();
       return gameProfileConstructor.newInstance(uuid, name);
@@ -90,7 +94,7 @@ public final class NmsReflection {
     }
   }
 
-  public static Object getServerLevel(org.bukkit.World world) {
+  public static Object getServerLevel(World world) {
     try {
       if (!initialized) init();
       Object craftWorld = craftWorldClass.cast(world);

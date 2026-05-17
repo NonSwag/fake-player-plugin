@@ -1,14 +1,15 @@
 package me.bill.fakePlayerPlugin.fakeplayer.network;
 
 import io.netty.channel.ChannelFutureListener;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import net.minecraft.network.Connection;
 import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.PacketFlow;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 
 public final class FakeConnection extends Connection {
 
@@ -32,17 +33,22 @@ public final class FakeConnection extends Connection {
   }
 
   @Override
-  public void send(@NotNull Packet<?> packet) {}
+  public void send(@NotNull Packet<?> packet) {
+  }
 
   @Override
-  public void send(@NotNull Packet<?> packet, @Nullable ChannelFutureListener listener) {}
+  public void send(@NotNull Packet<?> packet, @Nullable ChannelFutureListener listener) {
+  }
 
   @Override
   public void send(
-      @NotNull Packet<?> packet, @Nullable ChannelFutureListener listener, boolean flush) {}
+      @NotNull Packet<?> packet, @Nullable ChannelFutureListener listener, boolean flush) {
+  }
 
-  public void send(@NotNull Packet<?> packet, @Nullable PacketSendListener listener) {}
+  public void send(@NotNull Packet<?> packet, @Nullable PacketSendListener listener) {
+  }
 
   public void send(
-      @NotNull Packet<?> packet, @Nullable PacketSendListener listener, boolean flush) {}
+      @NotNull Packet<?> packet, @Nullable PacketSendListener listener, boolean flush) {
+  }
 }

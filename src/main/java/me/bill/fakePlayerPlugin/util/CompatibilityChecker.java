@@ -1,13 +1,16 @@
 package me.bill.fakePlayerPlugin.util;
 
+import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
+
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.kyori.adventure.text.Component;
 
 public final class CompatibilityChecker {
 
-  private CompatibilityChecker() {}
+  private CompatibilityChecker() {
+  }
 
   public static final class Result {
 
@@ -65,7 +68,7 @@ public final class CompatibilityChecker {
 
   public static String extractMcVersion() {
     try {
-      String bv = org.bukkit.Bukkit.getBukkitVersion();
+      String bv = Bukkit.getBukkitVersion();
       return bv.contains("-") ? bv.split("-", 2)[0] : bv;
     } catch (Throwable ignored) {
     }
@@ -80,7 +83,7 @@ public final class CompatibilityChecker {
    *   <li>Old format {@code 1.x.y}: any version below {@code 1.21.12}</li>
    *   <li>New year-based format {@code 26.1.x}: fully supported</li>
    * </ul>
-   *
+   * <p>
    * Versions outside these ranges (e.g. {@code 1.21.12+}, {@code 26.2.x}, unknown formats)
    * are treated as unsupported until explicitly tested and added here.
    */

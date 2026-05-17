@@ -1,20 +1,23 @@
 package me.bill.fakePlayerPlugin.util;
 
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.lang.Lang;
+import me.bill.fakePlayerPlugin.permission.Perm;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import me.bill.fakePlayerPlugin.config.Config;
-import me.bill.fakePlayerPlugin.permission.Perm;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 
 public final class UpdateChecker {
 
@@ -32,7 +35,8 @@ public final class UpdateChecker {
   private static volatile long cacheTimestamp = 0L;
   private static final long CACHE_TTL_MS = 5L * 60L * 1000L;
 
-  private UpdateChecker() {}
+  private UpdateChecker() {
+  }
 
   public static void check(Plugin plugin) {
     if (!Config.updateCheckerEnabled()) {
@@ -73,7 +77,7 @@ public final class UpdateChecker {
 
     if (info.error != null) {
 
-      Component failMsg = me.bill.fakePlayerPlugin.lang.Lang.get("update-failed");
+      Component failMsg = Lang.get("update-failed");
       FppLogger.warn(
           stripLangPrefix(PlainTextComponentSerializer.plainText().serialize(failMsg))
               + " ("
@@ -104,14 +108,14 @@ public final class UpdateChecker {
               + MODRINTH_PAGE);
 
       Component msg =
-          me.bill.fakePlayerPlugin.lang.Lang.get(
+          Lang.get(
               "update-available", "current", currentClean, "latest", latestClean);
 
       for (Player p : plugin.getServer().getOnlinePlayers()) {
         if (Perm.hasOrOp(p, Perm.OP)) p.sendMessage(msg);
       }
 
-      if (plugin instanceof me.bill.fakePlayerPlugin.FakePlayerPlugin fpp) {
+      if (plugin instanceof FakePlayerPlugin fpp) {
         fpp.setUpdateNotification(msg);
         fpp.setLatestKnownVersion(latestClean);
       }
@@ -128,14 +132,14 @@ public final class UpdateChecker {
               + MODRINTH_PAGE);
 
       Component msg =
-          me.bill.fakePlayerPlugin.lang.Lang.get(
+          Lang.get(
               "update-beta", "current", currentClean, "latest", latestClean);
 
       for (Player p : plugin.getServer().getOnlinePlayers()) {
         if (Perm.hasOrOp(p, Perm.OP)) p.sendMessage(msg);
       }
 
-      if (plugin instanceof me.bill.fakePlayerPlugin.FakePlayerPlugin fpp) {
+      if (plugin instanceof FakePlayerPlugin fpp) {
         fpp.setUpdateNotification(msg);
         fpp.setLatestKnownVersion(latestClean);
         fpp.setRunningBeta(true);
@@ -144,10 +148,10 @@ public final class UpdateChecker {
     } else {
 
       Component ok =
-          me.bill.fakePlayerPlugin.lang.Lang.get("update-up-to-date", "current", currentClean);
+          Lang.get("update-up-to-date", "current", currentClean);
       FppLogger.success(stripLangPrefix(PlainTextComponentSerializer.plainText().serialize(ok)));
 
-      if (plugin instanceof me.bill.fakePlayerPlugin.FakePlayerPlugin fpp) {
+      if (plugin instanceof FakePlayerPlugin fpp) {
         fpp.setUpdateNotification(null);
         fpp.setRunningBeta(false);
       }
@@ -215,7 +219,7 @@ public final class UpdateChecker {
 
   private static String stripLangPrefix(String plain) {
     try {
-      String prefixRaw = me.bill.fakePlayerPlugin.lang.Lang.raw("prefix");
+      String prefixRaw = Lang.raw("prefix");
       String prefixPlain =
           PlainTextComponentSerializer.plainText().serialize(TextUtil.colorize(prefixRaw));
       if (plain.startsWith(prefixPlain)) return plain.substring(prefixPlain.length()).strip();
@@ -239,9 +243,9 @@ public final class UpdateChecker {
             + (modrinthResult != null ? modrinthResult.error : "null result"));
 
     String[] vercelCandidates = {
-      VERCEL_API_BASE + "/api/check-update",
-      VERCEL_API_BASE + "/api/status",
-      VERCEL_API_BASE + "/api/latest",
+        VERCEL_API_BASE + "/api/check-update",
+        VERCEL_API_BASE + "/api/status",
+        VERCEL_API_BASE + "/api/latest",
     };
     for (String url : vercelCandidates) {
       UpdateInfo result = tryFetch(info.current, url, false);
@@ -320,7 +324,7 @@ public final class UpdateChecker {
       info.downloadUrl = downloadUrl;
       return info;
 
-    } catch (java.net.SocketTimeoutException e) {
+    } catch (SocketTimeoutException e) {
       info.error = "timeout connecting to " + url;
     } catch (Exception e) {
       info.error = e.getClass().getSimpleName() + ": " + e.getMessage() + " - " + url;
@@ -351,22 +355,22 @@ public final class UpdateChecker {
 
   private static String extractVersion(String body) {
     for (String key :
-        new String[] {
-          "remoteVersion",
-          "remote_version",
-          "version_number",
-          "tag_name",
-          "version",
-          "latest",
-          "name"
+        new String[]{
+            "remoteVersion",
+            "remote_version",
+            "version_number",
+            "tag_name",
+            "version",
+            "latest",
+            "name"
         }) {
       String val = extractJsonString(body, key);
       if (val != null && VERSION_REGEX.matcher(val).find()) return val;
     }
-    for (String wrapper : new String[] {"remote", "data"}) {
+    for (String wrapper : new String[]{"remote", "data"}) {
       String nested = extractNestedObject(body, wrapper);
       if (nested != null) {
-        for (String key : new String[] {"version", "version_number", "tag_name", "latest"}) {
+        for (String key : new String[]{"version", "version_number", "tag_name", "latest"}) {
           String val = extractJsonString(nested, key);
           if (val != null && VERSION_REGEX.matcher(val).find()) return val;
         }
@@ -377,14 +381,14 @@ public final class UpdateChecker {
   }
 
   private static String extractDownloadUrl(String body) {
-    for (String key : new String[] {"downloadUrl", "download_url", "website"}) {
+    for (String key : new String[]{"downloadUrl", "download_url", "website"}) {
       String val = extractJsonString(body, key);
       if (val != null && !val.isBlank()) return val;
     }
-    for (String wrapper : new String[] {"remote", "data"}) {
+    for (String wrapper : new String[]{"remote", "data"}) {
       String nested = extractNestedObject(body, wrapper);
       if (nested != null) {
-        for (String key : new String[] {"downloadUrl", "download_url", "website"}) {
+        for (String key : new String[]{"downloadUrl", "download_url", "website"}) {
           String val = extractJsonString(nested, key);
           if (val != null && !val.isBlank()) return val;
         }

@@ -7,9 +7,14 @@ import org.jetbrains.annotations.Nullable;
 
 public interface FppSettingsItem {
   @NotNull String getId();
+
   @NotNull String getLabel();
+
   @NotNull String getDescription();
+
   @NotNull Material getIcon();
+
   @Nullable String getValue();
+
   void onClick(@NotNull Player viewer);
 }

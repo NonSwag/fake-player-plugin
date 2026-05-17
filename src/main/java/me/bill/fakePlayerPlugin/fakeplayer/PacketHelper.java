@@ -1,13 +1,5 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import net.kyori.adventure.text.Component;
@@ -17,10 +9,28 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 @SuppressWarnings("unused")
 public final class PacketHelper {
 
-  private PacketHelper() {}
+  private PacketHelper() {
+  }
 
   private static volatile boolean ready = false;
   private static volatile boolean broken = false;
@@ -410,7 +420,7 @@ public final class PacketHelper {
           for (Object entry : iter) {
 
             String entryKey = null;
-            for (String getter : new String[] {"getName", "name"}) {
+            for (String getter : new String[]{"getName", "name"}) {
               try {
                 entryKey = (String) entry.getClass().getMethod(getter).invoke(entry);
                 break;
@@ -536,7 +546,7 @@ public final class PacketHelper {
             gameProfileCtor != null
                 ? gameProfileCtor.newInstance(fp.getUuid(), fp.getName())
                 : gameProfileClass.getDeclaredConstructors()[0].newInstance(
-                    fp.getUuid(), fp.getName());
+                fp.getUuid(), fp.getName());
         fp.setCachedTabListGameProfile(profile);
       }
 
@@ -574,7 +584,7 @@ public final class PacketHelper {
           gameProfileCtor != null
               ? gameProfileCtor.newInstance(uuid, uuid.toString().substring(0, 8))
               : gameProfileClass.getDeclaredConstructors()[0].newInstance(
-                  uuid, uuid.toString().substring(0, 8));
+              uuid, uuid.toString().substring(0, 8));
 
       Component adventureComponent = MiniMessage.miniMessage().deserialize(rawDisplayName);
       Object displayName = adventureToNms(adventureComponent);
@@ -605,7 +615,7 @@ public final class PacketHelper {
             gameProfileCtor != null
                 ? gameProfileCtor.newInstance(fp.getUuid(), fp.getName())
                 : gameProfileClass.getDeclaredConstructors()[0].newInstance(
-                    fp.getUuid(), fp.getName());
+                fp.getUuid(), fp.getName());
         fp.setCachedTabListGameProfile(profile);
       }
 
@@ -754,7 +764,7 @@ public final class PacketHelper {
     try {
       Object nms = getHandle(receiver);
       Constructor<?> ctor = removeEntitiesPacketClass.getConstructor(int[].class);
-      sendPacket(nms, ctor.newInstance((Object) new int[] {fp.getPlayer().getEntityId()}));
+      sendPacket(nms, ctor.newInstance((Object) new int[]{fp.getPlayer().getEntityId()}));
       Config.debugPackets("Despawn entity → " + receiver.getName() + " for " + fp.getName());
     } catch (Exception e) {
       FppLogger.error("despawnFakePlayer failed: " + e.getMessage());
@@ -767,8 +777,8 @@ public final class PacketHelper {
       Object nms = getHandle(receiver);
       ClassLoader cl = nms.getClass().getClassLoader();
       String[] candidates = {
-        "net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket",
-        "net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket"
+          "net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket",
+          "net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket"
       };
       for (String className : candidates) {
         try {
@@ -848,7 +858,7 @@ public final class PacketHelper {
       Player botPlayer = fp.getPlayer();
       if (botPlayer == null) return;
       Object botNms = getHandle(botPlayer);
-      for (java.lang.reflect.Constructor<?> c : entityEventClass.getDeclaredConstructors()) {
+      for (Constructor<?> c : entityEventClass.getDeclaredConstructors()) {
         c.setAccessible(true);
         Class<?>[] pt = c.getParameterTypes();
         if (pt.length == 2 && pt[1] == byte.class) {
@@ -923,8 +933,8 @@ public final class PacketHelper {
           if (!posSyncCtorLookupDone) {
             ClassLoader cl = receiverNms.getClass().getClassLoader();
             String[] candidates = {
-              "net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket",
-              "net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket"
+                "net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket",
+                "net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket"
             };
             outer:
             for (String className : candidates) {
@@ -1152,7 +1162,7 @@ public final class PacketHelper {
 
   private static String describeException(Throwable throwable) {
     Throwable cause = throwable;
-    while (cause instanceof java.lang.reflect.InvocationTargetException ite && ite.getCause() != null) {
+    while (cause instanceof InvocationTargetException ite && ite.getCause() != null) {
       cause = ite.getCause();
     }
     String message = cause.getMessage();
@@ -1263,8 +1273,8 @@ public final class PacketHelper {
     return switch (cachedInfoUpdateSecondArgStrategy) {
       case 1 -> entry;
       case 2 -> {
-        Object arr = java.lang.reflect.Array.newInstance(cachedInfoUpdateArrayCompType, 1);
-        java.lang.reflect.Array.set(arr, 0, entry);
+        Object arr = Array.newInstance(cachedInfoUpdateArrayCompType, 1);
+        Array.set(arr, 0, entry);
         yield arr;
       }
       default -> List.of(entry);

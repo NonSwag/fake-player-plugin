@@ -18,12 +18,34 @@ public class FppBotGameModeChangeEvent extends FppBotEvent implements Cancellabl
     this.newMode = newMode;
   }
 
-  public @NotNull GameMode getOldMode() { return oldMode; }
-  public @NotNull GameMode getNewMode() { return newMode; }
-  public void setNewMode(@NotNull GameMode newMode) { this.newMode = newMode; }
+  public @NotNull GameMode getOldMode() {
+    return oldMode;
+  }
 
-  @Override public boolean isCancelled() { return cancelled; }
-  @Override public void setCancelled(boolean cancelled) { this.cancelled = cancelled; }
-  @Override public @NotNull HandlerList getHandlers() { return HANDLERS; }
-  public static @NotNull HandlerList getHandlerList() { return HANDLERS; }
+  public @NotNull GameMode getNewMode() {
+    return newMode;
+  }
+
+  public void setNewMode(@NotNull GameMode newMode) {
+    this.newMode = newMode;
+  }
+
+  @Override
+  public boolean isCancelled() {
+    return cancelled;
+  }
+
+  @Override
+  public void setCancelled(boolean cancelled) {
+    this.cancelled = cancelled;
+  }
+
+  @Override
+  public @NotNull HandlerList getHandlers() {
+    return HANDLERS;
+  }
+
+  public static @NotNull HandlerList getHandlerList() {
+    return HANDLERS;
+  }
 }

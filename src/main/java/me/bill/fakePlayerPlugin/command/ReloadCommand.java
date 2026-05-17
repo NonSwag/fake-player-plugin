@@ -1,10 +1,9 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.List;
-import java.util.stream.Collectors;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.BotNameConfig;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
@@ -17,6 +16,9 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.command.CommandSender;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class ReloadCommand implements FppCommand {
 
@@ -225,8 +227,8 @@ public class ReloadCommand implements FppCommand {
     String taskPersistDetail =
         taskPersistActive
             ? "db + yaml  (schema v"
-                + me.bill.fakePlayerPlugin.database.DatabaseManager.getCurrentSchemaVersion()
-                + ")"
+              + DatabaseManager.getCurrentSchemaVersion()
+              + ")"
             : Config.persistOnRestart() ? "yaml only  (DB disabled)" : "disabled";
     sendStep(sender, "Task persistence — " + taskPersistDetail);
 

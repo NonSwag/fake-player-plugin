@@ -6,6 +6,12 @@ import org.jetbrains.annotations.NotNull;
 
 public abstract class FppBotEvent extends Event {
   private final FppBot bot;
-  protected FppBotEvent(@NotNull FppBot bot) { this.bot = bot; }
-  public @NotNull FppBot getBot() { return bot; }
+
+  protected FppBotEvent(@NotNull FppBot bot) {
+    this.bot = bot;
+  }
+
+  public @NotNull FppBot getBot() {
+    return bot;
+  }
 }

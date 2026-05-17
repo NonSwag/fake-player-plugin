@@ -1,5 +1,12 @@
 package me.bill.fakePlayerPlugin.util;
 
+import me.bill.fakePlayerPlugin.config.BotNameConfig;
+import me.bill.fakePlayerPlugin.config.Config;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.io.File;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -11,15 +18,10 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import me.bill.fakePlayerPlugin.config.BotNameConfig;
-import me.bill.fakePlayerPlugin.config.Config;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public final class BadwordFilter {
 
@@ -47,7 +49,8 @@ public final class BadwordFilter {
 
   private static boolean initialized = false;
 
-  private BadwordFilter() {}
+  private BadwordFilter() {
+  }
 
   public static void reload(@Nullable Plugin plugin) {
     rawWords.clear();
@@ -140,7 +143,7 @@ public final class BadwordFilter {
     List<String> pool = BotNameConfig.getNames();
     if (pool.isEmpty()) return null;
 
-    java.util.Random rand = new java.util.Random();
+    Random rand = new Random();
     for (int i = 0; i < Math.min(10, pool.size()); i++) {
       String candidate = pool.get(rand.nextInt(pool.size()));
       if (candidate.length() <= 16 && candidate.matches("[a-zA-Z0-9_]+") && isAllowed(candidate)) {
@@ -395,7 +398,8 @@ public final class BadwordFilter {
         case '7' -> sb.append('t');
         case '8' -> sb.append('b');
         case '9' -> sb.append('g');
-        case '_' -> {}
+        case '_' -> {
+        }
         default -> sb.append(c);
       }
     }

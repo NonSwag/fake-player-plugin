@@ -1,6 +1,5 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.List;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.gui.HelpGui;
 import me.bill.fakePlayerPlugin.lang.Lang;
@@ -14,6 +13,8 @@ import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
+import java.util.List;
 
 public class HelpCommand implements FppCommand {
 

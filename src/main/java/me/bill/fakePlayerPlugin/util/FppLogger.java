@@ -1,7 +1,8 @@
 package me.bill.fakePlayerPlugin.util;
 
-import java.util.logging.Logger;
 import me.bill.fakePlayerPlugin.config.Config;
+
+import java.util.logging.Logger;
 
 public final class FppLogger {
 
@@ -34,7 +35,8 @@ public final class FppLogger {
 
   private static Logger logger;
 
-  private FppLogger() {}
+  private FppLogger() {
+  }
 
   public static void init(Logger javaLogger) {
     logger = javaLogger;

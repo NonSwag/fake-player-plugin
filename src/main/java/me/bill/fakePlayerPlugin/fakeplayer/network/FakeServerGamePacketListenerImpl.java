@@ -1,10 +1,9 @@
 package me.bill.fakePlayerPlugin.fakeplayer.network;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.util.FppLogger;
+import me.bill.fakePlayerPlugin.util.WorldGuardHelper;
 import net.minecraft.network.Connection;
 import net.minecraft.network.DisconnectionDetails;
 import net.minecraft.network.PacketSendListener;
@@ -14,14 +13,20 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.projectiles.ProjectileSource;
+import org.bukkit.util.Vector;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class FakeServerGamePacketListenerImpl extends ServerGamePacketListenerImpl {
 
@@ -45,7 +50,7 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
     if (!entityIdFallbackResolved) {
       synchronized (FakeServerGamePacketListenerImpl.class) {
         if (!entityIdFallbackResolved) {
-          for (String name : new String[] {"getEntityId", "id"}) {
+          for (String name : new String[]{"getEntityId", "id"}) {
             try {
               Method m = ClientboundSetEntityMotionPacket.class.getMethod(name);
               if (m.getReturnType() == int.class) {
@@ -113,7 +118,7 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
   }
 
   @Override
-  public void onDisconnect(@org.jetbrains.annotations.NotNull DisconnectionDetails details) {
+  public void onDisconnect(@NotNull DisconnectionDetails details) {
     try {
       super.onDisconnect(details);
     } catch (IllegalStateException e) {
@@ -205,7 +210,8 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
           }
           markVelocityChanged();
         }
-        case NONE, UNRESOLVED -> {}
+        case NONE, UNRESOLVED -> {
+        }
       }
     } catch (Exception e) {
       FppLogger.warn("Knockback apply failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
@@ -219,7 +225,7 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
     FakePlayerPlugin plugin = FakePlayerPlugin.getInstance();
     return plugin != null
         && plugin.isWorldGuardAvailable()
-        && me.bill.fakePlayerPlugin.util.WorldGuardHelper.isPvpAllowed(location);
+        && WorldGuardHelper.isPvpAllowed(location);
   }
 
   private static Entity resolveKnockbackSource(Entity damager) {
@@ -234,10 +240,10 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
   private void logPostApplyVelocity(String strategyName) {
     try {
 
-      org.bukkit.entity.Player bukkit =
-          this.player.getBukkitEntity() instanceof org.bukkit.entity.Player p ? p : null;
+      Player bukkit =
+          this.player.getBukkitEntity() instanceof Player p ? p : null;
       if (bukkit != null) {
-        org.bukkit.util.Vector v = bukkit.getVelocity();
+        Vector v = bukkit.getVelocity();
         Config.debugNms(
             "[KB-DEBUG] "
                 + strategyName
@@ -349,9 +355,9 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
     if (setDeltaMovementMethod != null || lerpMotion3Method != null) {
 
       String[][] nameTriplets = {
-        {"xa", "ya", "za"},
-        {"xd", "yd", "zd"},
-        {"motX", "motY", "motZ"},
+          {"xa", "ya", "za"},
+          {"xd", "yd", "zd"},
+          {"motX", "motY", "motZ"},
       };
       for (String[] triplet : nameTriplets) {
         Field fx = findDeclaredNumericField(ClientboundSetEntityMotionPacket.class, triplet[0]);
@@ -378,7 +384,7 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
         }
       }
 
-      java.util.List<Field> doubleFields = new java.util.ArrayList<>();
+      List<Field> doubleFields = new ArrayList<>();
       for (Field f : ClientboundSetEntityMotionPacket.class.getDeclaredFields()) {
         if (isNumericType(f.getType())) {
           f.setAccessible(true);

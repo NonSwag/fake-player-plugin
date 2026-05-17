@@ -26,12 +26,34 @@ public class FppBotInventoryEvent extends FppBotEvent implements Cancellable {
     this.slot = slot;
   }
 
-  public @NotNull Action getAction() { return action; }
-  public @Nullable ItemStack getItem() { return item != null ? item.clone() : null; }
-  public int getSlot() { return slot; }
+  public @NotNull Action getAction() {
+    return action;
+  }
 
-  @Override public boolean isCancelled() { return cancelled; }
-  @Override public void setCancelled(boolean cancelled) { this.cancelled = cancelled; }
-  @Override public @NotNull HandlerList getHandlers() { return HANDLERS; }
-  public static @NotNull HandlerList getHandlerList() { return HANDLERS; }
+  public @Nullable ItemStack getItem() {
+    return item != null ? item.clone() : null;
+  }
+
+  public int getSlot() {
+    return slot;
+  }
+
+  @Override
+  public boolean isCancelled() {
+    return cancelled;
+  }
+
+  @Override
+  public void setCancelled(boolean cancelled) {
+    this.cancelled = cancelled;
+  }
+
+  @Override
+  public @NotNull HandlerList getHandlers() {
+    return HANDLERS;
+  }
+
+  public static @NotNull HandlerList getHandlerList() {
+    return HANDLERS;
+  }
 }

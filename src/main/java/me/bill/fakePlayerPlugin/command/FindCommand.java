@@ -1,17 +1,8 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import org.bukkit.ChunkSnapshot;
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppBotBlockBreakEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
-import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotNavUtil;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
@@ -28,31 +19,53 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.level.block.state.BlockState;
 import org.bukkit.Bukkit;
+import org.bukkit.ChunkSnapshot;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.craftbukkit.util.CraftMagicNumbers;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Vector;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * /fpp find <bot> <block> [--radius <n>] [--count <n>] [--prefer-visible]
- * 
+ *
  */
 public final class FindCommand implements FppCommand {
 
-  /** Default search radius if --radius is not specified. */
+  /**
+   * Default search radius if --radius is not specified.
+   */
   private static final int DEFAULT_RADIUS = 32;
 
-  /** Hard cap on search radius to prevent freezing the server. */
+  /**
+   * Hard cap on search radius to prevent freezing the server.
+   */
   private static final int MAX_RADIUS = 128;
 
-  /** Ticks to wait after a block is broken before trying to mine the next one. */
+  /**
+   * Ticks to wait after a block is broken before trying to mine the next one.
+   */
   private static final int POST_MINE_PAUSE_TICKS = 10;
 
   private final FakePlayerPlugin plugin;
@@ -272,7 +285,8 @@ public final class FindCommand implements FppCommand {
           }
         }
         case "--prefer-visible", "--prefervisible" -> preferVisible = true;
-        default -> {}
+        default -> {
+        }
       }
     }
 
@@ -512,7 +526,9 @@ public final class FindCommand implements FppCommand {
     miningTasks.put(fp.getUuid(), taskId);
   }
 
-  /** Per-tick mining logic for a single target block. Mirrors MineCommand.tickMining logic. */
+  /**
+   * Per-tick mining logic for a single target block. Mirrors MineCommand.tickMining logic.
+   */
   private void tickMine(FakePlayer fp, FindJob job, SimpleMiningState state) {
     if (!jobs.containsKey(fp.getUuid())) {
       stopCurrentMine(fp.getUuid());
@@ -586,7 +602,7 @@ public final class FindCommand implements FppCommand {
       return;
     }
 
-    Material currentMaterial = org.bukkit.craftbukkit.util.CraftMagicNumbers.getMaterial(blockState.getBlock());
+    Material currentMaterial = CraftMagicNumbers.getMaterial(blockState.getBlock());
     if (state.countsTowardGoal) {
       if (currentMaterial != job.material) {
         state.done = true;
@@ -663,12 +679,12 @@ public final class FindCommand implements FppCommand {
       state.progress += speed;
       if (state.progress >= 1.0f) {
         if (fireBlockBreakHook(fp, targetPos)) {
-        NmsPlayerSpawner.handleBlockBreakAction(nms,
-            targetPos,
-            ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK,
-            side,
-            nms.level().getMaxY(),
-            -1);
+          NmsPlayerSpawner.handleBlockBreakAction(nms,
+              targetPos,
+              ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK,
+              side,
+              nms.level().getMaxY(),
+              -1);
         }
         nms.swing(InteractionHand.MAIN_HAND);
         state.done = true;
@@ -707,7 +723,7 @@ public final class FindCommand implements FppCommand {
 
     Location eye = bot.getEyeLocation();
     Location targetCenter = desired.getLocation().add(0.5, 0.5, 0.5);
-    org.bukkit.util.Vector dir = targetCenter.toVector().subtract(eye.toVector());
+    Vector dir = targetCenter.toVector().subtract(eye.toVector());
     double dist = dir.length();
     if (dist <= 0.001) return desiredPos;
 
@@ -737,18 +753,18 @@ public final class FindCommand implements FppCommand {
   }
 
   private void collectNearbyDrops(Player bot) {
-    for (org.bukkit.entity.Entity e : bot.getNearbyEntities(2.25, 1.75, 2.25)) {
+    for (Entity e : bot.getNearbyEntities(2.25, 1.75, 2.25)) {
       if (!(e instanceof Item item) || item.isDead() || item.getPickupDelay() > 0) continue;
-      org.bukkit.inventory.ItemStack stack = item.getItemStack();
+      ItemStack stack = item.getItemStack();
       if (stack == null || stack.getType().isAir()) {
         item.remove();
         continue;
       }
-      Map<Integer, org.bukkit.inventory.ItemStack> leftovers = bot.getInventory().addItem(stack.clone());
+      Map<Integer, ItemStack> leftovers = bot.getInventory().addItem(stack.clone());
       if (leftovers.isEmpty()) {
         item.remove();
       } else {
-        org.bukkit.inventory.ItemStack remaining = leftovers.values().iterator().next();
+        ItemStack remaining = leftovers.values().iterator().next();
         item.setItemStack(remaining);
       }
     }
@@ -876,7 +892,7 @@ public final class FindCommand implements FppCommand {
   private boolean isBlockVisible(Player bot, Block block) {
     Location eye = bot.getEyeLocation();
     Location center = block.getLocation().add(0.5, 0.5, 0.5);
-    org.bukkit.util.Vector dir = center.toVector().subtract(eye.toVector());
+    Vector dir = center.toVector().subtract(eye.toVector());
     double dist = dir.length();
     if (dist <= 0.001) return true;
     RayTraceResult hit =
@@ -892,21 +908,20 @@ public final class FindCommand implements FppCommand {
     if (block == null) return false;
     Material type = block.getType();
     if (type.isAir() || !type.isSolid()) return false;
-    if (block.getState() instanceof org.bukkit.inventory.InventoryHolder) return false;
+    if (block.getState() instanceof InventoryHolder) return false;
     return switch (type) {
       case BEDROCK,
-          BARRIER,
-          END_PORTAL,
-          END_PORTAL_FRAME,
-          NETHER_PORTAL,
-          COMMAND_BLOCK,
-          CHAIN_COMMAND_BLOCK,
-          REPEATING_COMMAND_BLOCK,
-          STRUCTURE_BLOCK,
-          JIGSAW,
-          LIGHT,
-          REINFORCED_DEEPSLATE ->
-          false;
+           BARRIER,
+           END_PORTAL,
+           END_PORTAL_FRAME,
+           NETHER_PORTAL,
+           COMMAND_BLOCK,
+           CHAIN_COMMAND_BLOCK,
+           REPEATING_COMMAND_BLOCK,
+           STRUCTURE_BLOCK,
+           JIGSAW,
+           LIGHT,
+           REINFORCED_DEEPSLATE -> false;
       default -> true;
     };
   }
@@ -929,14 +944,14 @@ public final class FindCommand implements FppCommand {
         || blockType == Material.VINE
         || blockType == Material.GLOW_LICHEN
         || blockType.name().endsWith("_WOOL")) return ToolClass.SHEARS;
-    if (org.bukkit.Tag.MINEABLE_PICKAXE.isTagged(blockType)) return ToolClass.PICKAXE;
-    if (org.bukkit.Tag.MINEABLE_AXE.isTagged(blockType)) return ToolClass.AXE;
-    if (org.bukkit.Tag.MINEABLE_SHOVEL.isTagged(blockType)) return ToolClass.SHOVEL;
-    if (org.bukkit.Tag.MINEABLE_HOE.isTagged(blockType)) return ToolClass.HOE;
+    if (Tag.MINEABLE_PICKAXE.isTagged(blockType)) return ToolClass.PICKAXE;
+    if (Tag.MINEABLE_AXE.isTagged(blockType)) return ToolClass.AXE;
+    if (Tag.MINEABLE_SHOVEL.isTagged(blockType)) return ToolClass.SHOVEL;
+    if (Tag.MINEABLE_HOE.isTagged(blockType)) return ToolClass.HOE;
     return ToolClass.NONE;
   }
 
-  private int toolScore(org.bukkit.inventory.ItemStack item, ToolClass preferred) {
+  private int toolScore(ItemStack item, ToolClass preferred) {
     if (item == null || item.getType() == Material.AIR) return Integer.MIN_VALUE;
     Material type = item.getType();
     ToolClass actual = classifyTool(type);
@@ -977,7 +992,9 @@ public final class FindCommand implements FppCommand {
   //  Lifecycle helpers
   // ─────────────────────────────────────────────────────────────────────────────
 
-  /** Cancels the mining ticker and releases the action lock for this bot. */
+  /**
+   * Cancels the mining ticker and releases the action lock for this bot.
+   */
   private void stopCurrentMine(UUID botUuid) {
     Integer taskId = miningTasks.remove(botUuid);
     if (taskId != null) FppScheduler.cancelTask(taskId);
@@ -996,7 +1013,9 @@ public final class FindCommand implements FppCommand {
     }
   }
 
-  /** Fully stops the find job for a bot. Safe to call multiple times. */
+  /**
+   * Fully stops the find job for a bot. Safe to call multiple times.
+   */
   public void cleanupBot(UUID botUuid) {
     jobs.remove(botUuid);
     releaseReservations(botUuid);
@@ -1004,9 +1023,11 @@ public final class FindCommand implements FppCommand {
     stopCurrentMine(botUuid);
   }
 
-  /** Stops all active find jobs. */
+  /**
+   * Stops all active find jobs.
+   */
   public void stopAll() {
-    for (UUID uuid : new java.util.HashSet<>(jobs.keySet())) {
+    for (UUID uuid : new HashSet<>(jobs.keySet())) {
       cleanupBot(uuid);
     }
   }
@@ -1065,7 +1086,8 @@ public final class FindCommand implements FppCommand {
     return arg.equalsIgnoreCase("stop") || arg.equalsIgnoreCase("--stop");
   }
 
-  private record BlockTarget(UUID worldId, int x, int y, int z, long key) {}
+  private record BlockTarget(UUID worldId, int x, int y, int z, long key) {
+  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   //  Inner types
@@ -1079,7 +1101,9 @@ public final class FindCommand implements FppCommand {
     final UUID starterUuid;
     final boolean playerStarted;
 
-    /** Packed keys of blocks already targeted (so we don't revisit them). */
+    /**
+     * Packed keys of blocks already targeted (so we don't revisit them).
+     */
     final Set<Long> mined = new HashSet<>();
 
     int minedCount = 0;

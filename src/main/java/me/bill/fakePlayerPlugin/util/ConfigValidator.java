@@ -3,10 +3,15 @@ package me.bill.fakePlayerPlugin.util;
 import me.bill.fakePlayerPlugin.config.Config;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.plugin.Plugin;
+
+import java.time.DateTimeException;
+import java.time.ZoneId;
 
 public final class ConfigValidator {
 
-  private ConfigValidator() {}
+  private ConfigValidator() {
+  }
 
   public static int validate() {
     int issues = 0;
@@ -112,8 +117,8 @@ public final class ConfigValidator {
     }
     String phTz = Config.peakHoursTimezone();
     try {
-      var ignored = java.time.ZoneId.of(phTz);
-    } catch (java.time.DateTimeException e) {
+      var ignored = ZoneId.of(phTz);
+    } catch (DateTimeException e) {
       FppLogger.warn(
           "[Config] peak-hours.timezone \""
               + phTz
@@ -122,7 +127,7 @@ public final class ConfigValidator {
       issues++;
     }
 
-    org.bukkit.plugin.Plugin fpp = Bukkit.getPluginManager().getPlugin("FakePlayerPlugin");
+    Plugin fpp = Bukkit.getPluginManager().getPlugin("FakePlayerPlugin");
     if (fpp != null) {
       String rawMode = fpp.getConfig().getString("database.mode", "LOCAL");
       if (!rawMode.trim().equalsIgnoreCase("LOCAL")
