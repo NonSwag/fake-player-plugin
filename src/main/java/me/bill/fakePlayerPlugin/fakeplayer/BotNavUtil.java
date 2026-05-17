@@ -16,7 +16,8 @@ import org.jetbrains.annotations.Nullable;
 
 public final class BotNavUtil {
 
-  private BotNavUtil() {}
+  private BotNavUtil() {
+  }
 
   @FunctionalInterface
   public interface SelectionBounds {
@@ -27,10 +28,10 @@ public final class BotNavUtil {
   public static Location findStandLocation(
       World world, @Nullable SelectionBounds sel, int tx, int ty, int tz) {
     int[][] candidates = {
-      {tx + 1, ty, tz}, {tx - 1, ty, tz}, {tx, ty, tz + 1}, {tx, ty, tz - 1},
-      {tx + 2, ty, tz}, {tx - 2, ty, tz}, {tx, ty, tz + 2}, {tx, ty, tz - 2},
-      {tx + 1, ty - 1, tz}, {tx - 1, ty - 1, tz}, {tx, ty - 1, tz + 1}, {tx, ty - 1, tz - 1},
-      {tx + 1, ty + 1, tz}, {tx - 1, ty + 1, tz}, {tx, ty + 1, tz + 1}, {tx, ty + 1, tz - 1}
+        {tx + 1, ty, tz}, {tx - 1, ty, tz}, {tx, ty, tz + 1}, {tx, ty, tz - 1},
+        {tx + 2, ty, tz}, {tx - 2, ty, tz}, {tx, ty, tz + 2}, {tx, ty, tz - 2},
+        {tx + 1, ty - 1, tz}, {tx - 1, ty - 1, tz}, {tx, ty - 1, tz + 1}, {tx, ty - 1, tz - 1},
+        {tx + 1, ty + 1, tz}, {tx - 1, ty + 1, tz}, {tx, ty + 1, tz + 1}, {tx, ty + 1, tz - 1}
     };
     Location targetCenter = new Location(world, tx + 0.5, ty + 0.5, tz + 0.5);
 

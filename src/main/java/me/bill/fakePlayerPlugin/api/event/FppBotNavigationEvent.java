@@ -22,9 +22,20 @@ public class FppBotNavigationEvent extends FppBotEvent {
     this.location = location != null ? location.clone() : null;
   }
 
-  public @NotNull Action getAction() { return action; }
-  public @Nullable Location getLocation() { return location != null ? location.clone() : null; }
+  public @NotNull Action getAction() {
+    return action;
+  }
 
-  @Override public @NotNull HandlerList getHandlers() { return HANDLERS; }
-  public static @NotNull HandlerList getHandlerList() { return HANDLERS; }
+  public @Nullable Location getLocation() {
+    return location != null ? location.clone() : null;
+  }
+
+  @Override
+  public @NotNull HandlerList getHandlers() {
+    return HANDLERS;
+  }
+
+  public static @NotNull HandlerList getHandlerList() {
+    return HANDLERS;
+  }
 }

@@ -1,13 +1,5 @@
 package me.bill.fakePlayerPlugin.util;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.lang.management.ManagementFactory;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppAddon;
 import me.bill.fakePlayerPlugin.config.Config;
@@ -24,6 +16,15 @@ import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+
+import java.lang.management.ManagementFactory;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class FppPlaceholderExpansion extends PlaceholderExpansion {
 
@@ -95,14 +96,12 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
         }
         yield String.valueOf(localBots + remoteBots);
       }
-      case "frozen" ->
-          String.valueOf(
-              manager.getActivePlayers().stream().filter(FakePlayer::isFrozen).count());
+      case "frozen" -> String.valueOf(
+          manager.getActivePlayers().stream().filter(FakePlayer::isFrozen).count());
       case "names" -> joinNames(
           manager.getActivePlayers().stream().map(FakePlayer::getDisplayName),
           remoteEntries.stream().map(RemoteBotEntry::displayName));
-      case "network_names" ->
-          remoteEntries.stream().map(RemoteBotEntry::displayName).collect(Collectors.joining(", "));
+      case "network_names" -> remoteEntries.stream().map(RemoteBotEntry::displayName).collect(Collectors.joining(", "));
       case "version" -> plugin.getPluginMeta().getVersion();
 
       // ── State / Toggles ──────────────────────────────────────────────────────
@@ -153,8 +152,8 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
         yield loader == null
             ? ""
             : loader.getLoadedExtensions().stream()
-                .map(FppAddon::getName)
-                .collect(Collectors.joining(", "));
+            .map(FppAddon::getName)
+            .collect(Collectors.joining(", "));
       }
 
       // ── Ping ───────────────────────────────────────────────────────────────
@@ -183,8 +182,8 @@ public final class FppPlaceholderExpansion extends PlaceholderExpansion {
       case "user_names" -> player == null
           ? ""
           : getUserBots(player).stream()
-              .map(FakePlayer::getDisplayName)
-              .collect(Collectors.joining(", "));
+          .map(FakePlayer::getDisplayName)
+          .collect(Collectors.joining(", "));
       case "user_ping" -> {
         if (player == null) yield "0";
         List<FakePlayer> owned = getUserBots(player);

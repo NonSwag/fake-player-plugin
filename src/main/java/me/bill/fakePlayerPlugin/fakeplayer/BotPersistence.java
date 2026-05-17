@@ -1,16 +1,5 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppBotSaveEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
@@ -35,6 +24,18 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.persistence.PersistentDataType;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 public final class BotPersistence {
 
@@ -1023,8 +1024,8 @@ public final class BotPersistence {
             pveModeRaw instanceof String psm
                 ? psm
                 : (map.get("pve-move") instanceof Boolean pveMove && pveMove)
-                    ? "ON_MOVE"
-                    : (pveEnabled ? "ON_NO_MOVE" : "OFF");
+                  ? "ON_MOVE"
+                  : (pveEnabled ? "ON_NO_MOVE" : "OFF");
         Object pveRgRaw = map.get("pve-range");
         double pveRange =
             pveRgRaw instanceof Number prn ? prn.doubleValue() : Config.attackMobDefaultRange();
@@ -1329,155 +1330,157 @@ public final class BotPersistence {
       TaskEntry te = loadedTasks.get(sb.uuid.toString());
       if (te != null
           && (te.mineWorld() != null
-              || te.useWorld() != null
-              || te.areaPos1World() != null
-              || te.placeWorld() != null
-              || te.roamWorld() != null)) {
+          || te.useWorld() != null
+          || te.areaPos1World() != null
+          || te.placeWorld() != null
+          || te.roamWorld() != null)) {
         final TaskEntry task = te;
         final UUID restoredUuid = sb.uuid;
         FppScheduler.runSyncLater(
             plugin,
             () -> {
-                  FakePlayer restored = manager.getByUuid(restoredUuid);
-                  if (restored == null) return;
-                  Player bot = restored.getPlayer();
-                  if (bot == null || !bot.isOnline()) return;
+              FakePlayer restored = manager.getByUuid(restoredUuid);
+              if (restored == null) return;
+              Player bot = restored.getPlayer();
+              if (bot == null || !bot.isOnline()) return;
 
-                  if (task.mineWorld() != null && mineCommand != null) {
-                    World w = Bukkit.getWorld(task.mineWorld());
-                    if (w != null && w.equals(bot.getWorld())) {
-                      Location mineLoc =
-                          new Location(
-                              w,
-                              task.mineX(),
-                              task.mineY(),
-                              task.mineZ(),
-                              task.mineYaw(),
-                              task.minePitch());
-                      mineCommand.resumeMining(restored, task.mineOnce(), mineLoc);
-                      Config.debug("Resumed mine task for bot '" + restored.getName() + "'.");
-                    }
-                  }
+              if (task.mineWorld() != null && mineCommand != null) {
+                World w = Bukkit.getWorld(task.mineWorld());
+                if (w != null && w.equals(bot.getWorld())) {
+                  Location mineLoc =
+                      new Location(
+                          w,
+                          task.mineX(),
+                          task.mineY(),
+                          task.mineZ(),
+                          task.mineYaw(),
+                          task.minePitch());
+                  mineCommand.resumeMining(restored, task.mineOnce(), mineLoc);
+                  Config.debug("Resumed mine task for bot '" + restored.getName() + "'.");
+                }
+              }
 
-                  if (task.areaActive()
-                      && task.areaPos1World() != null
-                      && task.areaPos2World() != null
-                      && mineCommand != null) {
-                    World w1 = Bukkit.getWorld(task.areaPos1World());
-                    World w2 = Bukkit.getWorld(task.areaPos2World());
-                    if (w1 != null && w2 != null && w1.equals(w2) && w1.equals(bot.getWorld())) {
-                      Location pos1 =
-                          new Location(w1, task.areaPos1X(), task.areaPos1Y(), task.areaPos1Z());
-                      Location pos2 =
-                          new Location(w2, task.areaPos2X(), task.areaPos2Y(), task.areaPos2Z());
-                      mineCommand.restoreAreaJob(restored, pos1, pos2);
-                    }
-                  }
+              if (task.areaActive()
+                  && task.areaPos1World() != null
+                  && task.areaPos2World() != null
+                  && mineCommand != null) {
+                World w1 = Bukkit.getWorld(task.areaPos1World());
+                World w2 = Bukkit.getWorld(task.areaPos2World());
+                if (w1 != null && w2 != null && w1.equals(w2) && w1.equals(bot.getWorld())) {
+                  Location pos1 =
+                      new Location(w1, task.areaPos1X(), task.areaPos1Y(), task.areaPos1Z());
+                  Location pos2 =
+                      new Location(w2, task.areaPos2X(), task.areaPos2Y(), task.areaPos2Z());
+                  mineCommand.restoreAreaJob(restored, pos1, pos2);
+                }
+              }
 
-                  if (task.useWorld() != null && useCommand != null) {
-                    World w = Bukkit.getWorld(task.useWorld());
-                    if (w != null && w.equals(bot.getWorld())) {
-                      Location useLoc =
-                          new Location(
-                              w,
-                              task.useX(),
-                              task.useY(),
-                              task.useZ(),
-                              task.useYaw(),
-                              task.usePitch());
-                      useCommand.resumeUsing(restored, task.useOnce(), useLoc);
-                      Config.debug("Resumed use loop for bot '" + restored.getName() + "'.");
-                    }
-                  }
+              if (task.useWorld() != null && useCommand != null) {
+                World w = Bukkit.getWorld(task.useWorld());
+                if (w != null && w.equals(bot.getWorld())) {
+                  Location useLoc =
+                      new Location(
+                          w,
+                          task.useX(),
+                          task.useY(),
+                          task.useZ(),
+                          task.useYaw(),
+                          task.usePitch());
+                  useCommand.resumeUsing(restored, task.useOnce(), useLoc);
+                  Config.debug("Resumed use loop for bot '" + restored.getName() + "'.");
+                }
+              }
 
-                  if (task.placeWorld() != null && placeCommand != null) {
-                    World w = Bukkit.getWorld(task.placeWorld());
-                    if (w != null && w.equals(bot.getWorld())) {
-                      Location placeLoc =
-                          new Location(
-                              w,
-                              task.placeX(),
-                              task.placeY(),
-                              task.placeZ(),
-                              task.placeYaw(),
-                              task.placePitch());
-                      placeCommand.resumePlacing(restored, task.placeOnce(), placeLoc);
-                      Config.debug("Resumed place task for bot '" + restored.getName() + "'.");
-                    }
-                  }
+              if (task.placeWorld() != null && placeCommand != null) {
+                World w = Bukkit.getWorld(task.placeWorld());
+                if (w != null && w.equals(bot.getWorld())) {
+                  Location placeLoc =
+                      new Location(
+                          w,
+                          task.placeX(),
+                          task.placeY(),
+                          task.placeZ(),
+                          task.placeYaw(),
+                          task.placePitch());
+                  placeCommand.resumePlacing(restored, task.placeOnce(), placeLoc);
+                  Config.debug("Resumed place task for bot '" + restored.getName() + "'.");
+                }
+              }
 
-                  if (task.attackWorld() != null && attackCommand != null) {
-                    World w = Bukkit.getWorld(task.attackWorld());
-                    if (w != null && w.equals(bot.getWorld())) {
-                      Location attackLoc =
-                          new Location(
-                              w,
-                              task.attackX(),
-                              task.attackY(),
-                              task.attackZ(),
-                              task.attackYaw(),
-                              task.attackPitch());
-                      String mode = task.attackMode();
-                      if ("hunt".equals(mode)) {
-                        Set<org.bukkit.entity.EntityType> filterTypes = parseEntityTypes(task.attackMobTypes());
-                        attackCommand.resumeHuntAttacking(
-                            restored,
-                            task.attackRange(),
-                            task.attackPriority(),
-                            filterTypes,
-                            attackLoc);
-                        Config.debug("Resumed hunt attack task for bot '" + restored.getName() + "'.");
-                      } else if ("mob".equals(mode)) {
-                        Set<org.bukkit.entity.EntityType> filterTypes = parseEntityTypes(task.attackMobTypes());
-                        me.bill.fakePlayerPlugin.fakeplayer.FakePlayer.PveSmartAttackMode smartMode =
-                            me.bill.fakePlayerPlugin.fakeplayer.FakePlayer.PveSmartAttackMode.OFF;
-                        if (task.attackSmartMode() != null) {
-                          try { smartMode = me.bill.fakePlayerPlugin.fakeplayer.FakePlayer.PveSmartAttackMode.valueOf(task.attackSmartMode()); }
-                          catch (IllegalArgumentException ignored) {}
-                        }
-                        attackCommand.resumeMobAttacking(
-                            restored,
-                            task.attackRange(),
-                            task.attackPriority(),
-                            filterTypes,
-                            smartMode,
-                            attackLoc);
-                        Config.debug("Resumed mob attack task for bot '" + restored.getName() + "'.");
-                      } else {
-                        attackCommand.resumeAttacking(restored, task.attackOnce(), attackLoc);
-                        Config.debug("Resumed attack task for bot '" + restored.getName() + "'.");
+              if (task.attackWorld() != null && attackCommand != null) {
+                World w = Bukkit.getWorld(task.attackWorld());
+                if (w != null && w.equals(bot.getWorld())) {
+                  Location attackLoc =
+                      new Location(
+                          w,
+                          task.attackX(),
+                          task.attackY(),
+                          task.attackZ(),
+                          task.attackYaw(),
+                          task.attackPitch());
+                  String mode = task.attackMode();
+                  if ("hunt".equals(mode)) {
+                    Set<org.bukkit.entity.EntityType> filterTypes = parseEntityTypes(task.attackMobTypes());
+                    attackCommand.resumeHuntAttacking(
+                        restored,
+                        task.attackRange(),
+                        task.attackPriority(),
+                        filterTypes,
+                        attackLoc);
+                    Config.debug("Resumed hunt attack task for bot '" + restored.getName() + "'.");
+                  } else if ("mob".equals(mode)) {
+                    Set<org.bukkit.entity.EntityType> filterTypes = parseEntityTypes(task.attackMobTypes());
+                    me.bill.fakePlayerPlugin.fakeplayer.FakePlayer.PveSmartAttackMode smartMode =
+                        me.bill.fakePlayerPlugin.fakeplayer.FakePlayer.PveSmartAttackMode.OFF;
+                    if (task.attackSmartMode() != null) {
+                      try {
+                        smartMode = me.bill.fakePlayerPlugin.fakeplayer.FakePlayer.PveSmartAttackMode.valueOf(task.attackSmartMode());
+                      } catch (IllegalArgumentException ignored) {
                       }
                     }
+                    attackCommand.resumeMobAttacking(
+                        restored,
+                        task.attackRange(),
+                        task.attackPriority(),
+                        filterTypes,
+                        smartMode,
+                        attackLoc);
+                    Config.debug("Resumed mob attack task for bot '" + restored.getName() + "'.");
+                  } else {
+                    attackCommand.resumeAttacking(restored, task.attackOnce(), attackLoc);
+                    Config.debug("Resumed attack task for bot '" + restored.getName() + "'.");
                   }
+                }
+              }
 
-                  if (task.followTargetUuid() != null && followCommand != null) {
-                    try {
-                      java.util.UUID targetUuid =
-                          java.util.UUID.fromString(task.followTargetUuid());
-                      followCommand.resumeFollowing(restored, targetUuid);
-                      Config.debug("Resumed follow task for bot '" + restored.getName() + "'.");
-                    } catch (IllegalArgumentException ignored) {
-                    }
-                  }
+              if (task.followTargetUuid() != null && followCommand != null) {
+                try {
+                  java.util.UUID targetUuid =
+                      java.util.UUID.fromString(task.followTargetUuid());
+                  followCommand.resumeFollowing(restored, targetUuid);
+                  Config.debug("Resumed follow task for bot '" + restored.getName() + "'.");
+                } catch (IllegalArgumentException ignored) {
+                }
+              }
 
-                  if (task.roamWorld() != null && moveCommand != null) {
-                    World w = Bukkit.getWorld(task.roamWorld());
-                    if (w != null && w.equals(bot.getWorld())) {
-                      Location roamCenter =
-                          new Location(w, task.roamX(), task.roamY(), task.roamZ());
-                      double roamR = task.roamRadius();
-                      if (roamR < 3) roamR = 20;
-                      moveCommand.resumeRoaming(restored, roamCenter, roamR);
-                      Config.debug(
-                          "Resumed roaming for bot '"
-                              + restored.getName()
-                              + "' (radius "
-                              + (int) roamR
-                              + ").");
-                    }
-                  }
-                },
-                25L);
+              if (task.roamWorld() != null && moveCommand != null) {
+                World w = Bukkit.getWorld(task.roamWorld());
+                if (w != null && w.equals(bot.getWorld())) {
+                  Location roamCenter =
+                      new Location(w, task.roamX(), task.roamY(), task.roamZ());
+                  double roamR = task.roamRadius();
+                  if (roamR < 3) roamR = 20;
+                  moveCommand.resumeRoaming(restored, roamCenter, roamR);
+                  Config.debug(
+                      "Resumed roaming for bot '"
+                          + restored.getName()
+                          + "' (radius "
+                          + (int) roamR
+                          + ").");
+                }
+              }
+            },
+            25L);
       }
     }
 
@@ -1745,15 +1748,15 @@ public final class BotPersistence {
               attackX,
               attackY,
               attackZ,
-               attackYaw,
-               attackPitch,
-               attackOnce,
-               attackMode,
-               attackRange,
-               attackPriority,
-               attackMobTypes,
-               attackSmartMode,
-               followTarget,
+              attackYaw,
+              attackPitch,
+              attackOnce,
+              attackMode,
+              attackRange,
+              attackPriority,
+              attackMobTypes,
+              attackSmartMode,
+              followTarget,
               roamWorld,
               roamX,
               roamY,
@@ -1820,14 +1823,14 @@ public final class BotPersistence {
               attack != null ? attack.posX() : 0,
               attack != null ? attack.posY() : 0,
               attack != null ? attack.posZ() : 0,
-               attack != null ? attack.posYaw() : 0f,
-               attack != null ? attack.posPitch() : 0f,
-               attack != null && attack.onceFlag(),
-               attack != null && attack.extraStr() != null ? parseAttackMode(attack.extraStr()) : null,
-               attack != null && attack.extraStr() != null ? parseAttackRange(attack.extraStr()) : me.bill.fakePlayerPlugin.config.Config.attackMobDefaultRange(),
-               attack != null && attack.extraStr() != null ? parseAttackPriority(attack.extraStr()) : me.bill.fakePlayerPlugin.config.Config.attackMobDefaultPriority(),
-               attack != null && attack.extraStr() != null ? parseAttackMobTypes(attack.extraStr()) : null,
-               attack != null && attack.extraStr() != null ? parseAttackSmartMode(attack.extraStr()) : null,
+              attack != null ? attack.posYaw() : 0f,
+              attack != null ? attack.posPitch() : 0f,
+              attack != null && attack.onceFlag(),
+              attack != null && attack.extraStr() != null ? parseAttackMode(attack.extraStr()) : null,
+              attack != null && attack.extraStr() != null ? parseAttackRange(attack.extraStr()) : me.bill.fakePlayerPlugin.config.Config.attackMobDefaultRange(),
+              attack != null && attack.extraStr() != null ? parseAttackPriority(attack.extraStr()) : me.bill.fakePlayerPlugin.config.Config.attackMobDefaultPriority(),
+              attack != null && attack.extraStr() != null ? parseAttackMobTypes(attack.extraStr()) : null,
+              attack != null && attack.extraStr() != null ? parseAttackSmartMode(attack.extraStr()) : null,
               follow != null ? follow.extraStr() : null,
               roam != null ? roam.worldName() : null,
               roam != null ? roam.posX() : 0,
@@ -1958,7 +1961,8 @@ public final class BotPersistence {
       boolean autoPlaceBedEnabled,
       boolean autoMilkEnabled,
       boolean preventBadOmen,
-      boolean pingUserSet) {}
+      boolean pingUserSet) {
+  }
 
   private UUID resolveRestoredUuid(String botName, UUID storedUuid) {
     me.bill.fakePlayerPlugin.fakeplayer.BotIdentityCache identityCache = plugin.getBotIdentityCache();
@@ -2009,8 +2013,10 @@ public final class BotPersistence {
     Set<org.bukkit.entity.EntityType> result = new java.util.HashSet<>();
     if (mobTypes == null || mobTypes.isEmpty()) return result;
     for (String name : mobTypes.split(",")) {
-      try { result.add(org.bukkit.entity.EntityType.valueOf(name)); }
-      catch (IllegalArgumentException ignored) {}
+      try {
+        result.add(org.bukkit.entity.EntityType.valueOf(name));
+      } catch (IllegalArgumentException ignored) {
+      }
     }
     return result;
   }
@@ -2025,7 +2031,10 @@ public final class BotPersistence {
     if (extraStr == null || extraStr.isEmpty()) return Config.attackMobDefaultRange();
     String[] parts = extraStr.split(":", 5);
     if (parts.length > 1) {
-      try { return Double.parseDouble(parts[1]); } catch (NumberFormatException ignored) {}
+      try {
+        return Double.parseDouble(parts[1]);
+      } catch (NumberFormatException ignored) {
+      }
     }
     return Config.attackMobDefaultRange();
   }
@@ -2100,7 +2109,9 @@ public final class BotPersistence {
       double roamX,
       double roamY,
       double roamZ,
-      double roamRadius) {}
+      double roamRadius) {
+  }
 
-  private record XpEntry(int totalExperience, int level, float progress) {}
+  private record XpEntry(int totalExperience, int level, float progress) {
+  }
 }

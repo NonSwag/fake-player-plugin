@@ -1,8 +1,5 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.lang.Lang;
@@ -11,12 +8,16 @@ import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 /**
  * /fpp stop [&lt;bot&gt;|all]
- *
+ * <p>
  * Immediately cancels every active task for one bot or all bots:
  * move/patrol/roam, mine, use, place, attack, follow, find, sleep.
- *
+ * <p>
  * This command intentionally does NOT touch the sleep-origin/radius
  * configuration (use "/fpp sleep &lt;bot&gt; --stop" to permanently disable the
  * sleep system for a bot).  It only interrupts tasks that are currently
@@ -27,14 +28,22 @@ public final class StopCommand implements FppCommand {
   private final FakePlayerManager manager;
 
   // All references are nullable — injected after construction.
-  @Nullable private MoveCommand   moveCommand;
-  @Nullable private MineCommand   mineCommand;
-  @Nullable private UseCommand    useCommand;
-  @Nullable private PlaceCommand  placeCommand;
-  @Nullable private AttackCommand attackCommand;
-  @Nullable private FollowCommand followCommand;
-  @Nullable private FindCommand   findCommand;
-  @Nullable private SleepCommand  sleepCommand;
+  @Nullable
+  private MoveCommand moveCommand;
+  @Nullable
+  private MineCommand mineCommand;
+  @Nullable
+  private UseCommand useCommand;
+  @Nullable
+  private PlaceCommand placeCommand;
+  @Nullable
+  private AttackCommand attackCommand;
+  @Nullable
+  private FollowCommand followCommand;
+  @Nullable
+  private FindCommand findCommand;
+  @Nullable
+  private SleepCommand sleepCommand;
 
   // ── Constructor ──────────────────────────────────────────────────────────
 
@@ -44,21 +53,59 @@ public final class StopCommand implements FppCommand {
 
   // ── Dependency injection ─────────────────────────────────────────────────
 
-  public void setMoveCommand(@Nullable MoveCommand cmd)     { this.moveCommand   = cmd; }
-  public void setMineCommand(@Nullable MineCommand cmd)     { this.mineCommand   = cmd; }
-  public void setUseCommand(@Nullable UseCommand cmd)       { this.useCommand    = cmd; }
-  public void setPlaceCommand(@Nullable PlaceCommand cmd)   { this.placeCommand  = cmd; }
-  public void setAttackCommand(@Nullable AttackCommand cmd) { this.attackCommand = cmd; }
-  public void setFollowCommand(@Nullable FollowCommand cmd) { this.followCommand = cmd; }
-  public void setFindCommand(@Nullable FindCommand cmd)     { this.findCommand   = cmd; }
-  public void setSleepCommand(@Nullable SleepCommand cmd)   { this.sleepCommand  = cmd; }
+  public void setMoveCommand(@Nullable MoveCommand cmd) {
+    this.moveCommand = cmd;
+  }
+
+  public void setMineCommand(@Nullable MineCommand cmd) {
+    this.mineCommand = cmd;
+  }
+
+  public void setUseCommand(@Nullable UseCommand cmd) {
+    this.useCommand = cmd;
+  }
+
+  public void setPlaceCommand(@Nullable PlaceCommand cmd) {
+    this.placeCommand = cmd;
+  }
+
+  public void setAttackCommand(@Nullable AttackCommand cmd) {
+    this.attackCommand = cmd;
+  }
+
+  public void setFollowCommand(@Nullable FollowCommand cmd) {
+    this.followCommand = cmd;
+  }
+
+  public void setFindCommand(@Nullable FindCommand cmd) {
+    this.findCommand = cmd;
+  }
+
+  public void setSleepCommand(@Nullable SleepCommand cmd) {
+    this.sleepCommand = cmd;
+  }
 
   // ── FppCommand metadata ──────────────────────────────────────────────────
 
-  @Override public String getName()       { return "stop"; }
-  @Override public String getPermission() { return Perm.STOP; }
-  @Override public boolean canUse(CommandSender sender) { return Perm.has(sender, Perm.STOP); }
-  @Override public String getUsage()      { return "[<bot>|all]"; }
+  @Override
+  public String getName() {
+    return "stop";
+  }
+
+  @Override
+  public String getPermission() {
+    return Perm.STOP;
+  }
+
+  @Override
+  public boolean canUse(CommandSender sender) {
+    return Perm.has(sender, Perm.STOP);
+  }
+
+  @Override
+  public String getUsage() {
+    return "[<bot>|all]";
+  }
 
   @Override
   public String getDescription() {
@@ -105,15 +152,39 @@ public final class StopCommand implements FppCommand {
   private boolean stopBot(@NotNull UUID uuid) {
     boolean did = false;
 
-    if (moveCommand   != null) { moveCommand.cleanupBot(uuid);   did = true; }
-    if (mineCommand   != null && mineCommand.isMining(uuid))   { mineCommand.stopMining(uuid);     did = true; }
-    if (useCommand    != null && useCommand.isUsing(uuid))     { useCommand.stopUsing(uuid);       did = true; }
-    if (placeCommand  != null && placeCommand.isPlacing(uuid)) { placeCommand.stopPlacing(uuid);   did = true; }
-    if (attackCommand != null && attackCommand.isAttacking(uuid)) { attackCommand.stopAttacking(uuid); did = true; }
-    if (followCommand != null && followCommand.isFollowing(uuid)) { followCommand.stopFollowing(uuid); did = true; }
-    if (findCommand   != null && findCommand.isFinding(uuid))  { findCommand.cleanupBot(uuid);     did = true; }
+    if (moveCommand != null) {
+      moveCommand.cleanupBot(uuid);
+      did = true;
+    }
+    if (mineCommand != null && mineCommand.isMining(uuid)) {
+      mineCommand.stopMining(uuid);
+      did = true;
+    }
+    if (useCommand != null && useCommand.isUsing(uuid)) {
+      useCommand.stopUsing(uuid);
+      did = true;
+    }
+    if (placeCommand != null && placeCommand.isPlacing(uuid)) {
+      placeCommand.stopPlacing(uuid);
+      did = true;
+    }
+    if (attackCommand != null && attackCommand.isAttacking(uuid)) {
+      attackCommand.stopAttacking(uuid);
+      did = true;
+    }
+    if (followCommand != null && followCommand.isFollowing(uuid)) {
+      followCommand.stopFollowing(uuid);
+      did = true;
+    }
+    if (findCommand != null && findCommand.isFinding(uuid)) {
+      findCommand.cleanupBot(uuid);
+      did = true;
+    }
     // Interrupt current sleep navigation without disabling the sleep schedule.
-    if (sleepCommand  != null && sleepCommand.isSleeping(uuid)) { sleepCommand.cleanupBot(uuid);   did = true; }
+    if (sleepCommand != null && sleepCommand.isSleeping(uuid)) {
+      sleepCommand.cleanupBot(uuid);
+      did = true;
+    }
 
     return did;
   }

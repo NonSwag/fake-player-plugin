@@ -4,11 +4,6 @@ import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.util.FppLogger;
@@ -18,6 +13,12 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 public final class SkinManager {
 
@@ -1408,13 +1409,13 @@ public final class SkinManager {
             return;
           }
           runOnMainThread(
-                  () -> {
-                    if (shouldPreserveNameTagSkin(bot)) return false;
-                    Player botPlayer = bot.getPlayer();
-                    if (botPlayer == null || !botPlayer.isOnline()) return false;
-                    return applySkinFromProfile(
-                        bot, new SkinProfile(value, signature, "url:" + trimmedUrl));
-                  })
+              () -> {
+                if (shouldPreserveNameTagSkin(bot)) return false;
+                Player botPlayer = bot.getPlayer();
+                if (botPlayer == null || !botPlayer.isOnline()) return false;
+                return applySkinFromProfile(
+                    bot, new SkinProfile(value, signature, "url:" + trimmedUrl));
+              })
               .whenComplete(
                   (applied, throwable) -> future.complete(Boolean.TRUE.equals(applied)));
         });
@@ -1516,7 +1517,7 @@ public final class SkinManager {
                   Config.debugSkin(
                       "SkinManager: failed to fetch online skin for "
                           + Optional.ofNullable(from.getName())
-                              .orElse(from.getUniqueId().toString())
+                          .orElse(from.getUniqueId().toString())
                           + " - player may not exist");
                 }
                 return CompletableFuture.completedFuture(false);
@@ -1531,7 +1532,7 @@ public final class SkinManager {
                             sourceProfile,
                             "offline:"
                                 + Optional.ofNullable(from.getName())
-                                    .orElse(from.getUniqueId().toString()));
+                                .orElse(from.getUniqueId().toString()));
                     if (fetchedSkin == null || !fetchedSkin.isValid()) return false;
                     copyTexture(sourceProfile, botPlayer);
                     bot.setResolvedSkin(fetchedSkin);

@@ -1,5 +1,15 @@
 package me.bill.fakePlayerPlugin.extension;
 
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.api.FppAddon;
+import me.bill.fakePlayerPlugin.api.FppApi;
+import me.bill.fakePlayerPlugin.api.FppExtension;
+import me.bill.fakePlayerPlugin.util.FppLogger;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,25 +24,17 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.jar.Attributes;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import me.bill.fakePlayerPlugin.FakePlayerPlugin;
-import me.bill.fakePlayerPlugin.api.FppAddon;
-import me.bill.fakePlayerPlugin.api.FppApi;
-import me.bill.fakePlayerPlugin.api.FppExtension;
-import me.bill.fakePlayerPlugin.util.FppLogger;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.plugin.Plugin;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public final class ExtensionLoader {
 
   private static final String BUNDLE_MANIFEST_ATTRIBUTE = "FPP-Extension-Bundle";
   private static final String BUNDLE_JARS_MANIFEST_ATTRIBUTE = "FPP-Extension-Jars";
+
   private static final class ExtensionContext {
     final File dataFolder;
     final URLClassLoader classLoader;

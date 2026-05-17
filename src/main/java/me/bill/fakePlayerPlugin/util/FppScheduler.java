@@ -9,7 +9,8 @@ import org.bukkit.plugin.Plugin;
 
 public final class FppScheduler {
 
-  private FppScheduler() {}
+  private FppScheduler() {
+  }
 
   public static void runAtEntity(Plugin plugin, Entity entity, Runnable runnable) {
     if (entity == null) return;

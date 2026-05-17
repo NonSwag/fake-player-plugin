@@ -1,10 +1,5 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.BotNameConfig;
 import me.bill.fakePlayerPlugin.config.Config;
@@ -22,6 +17,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
 
 public class BadwordCommand implements FppCommand {
 
@@ -451,8 +452,8 @@ public class BadwordCommand implements FppCommand {
         GRAY
             + "  Auto-rename: "
             + (autoRen
-                ? GREEN + "✔ on " + GRAY + "(bad names get a random clean name at spawn)"
-                : RED + "✘ off " + GRAY + "(bad names are hard-blocked at spawn)"));
+            ? GREEN + "✔ on " + GRAY + "(bad names get a random clean name at spawn)"
+            : RED + "✘ off " + GRAY + "(bad names are hard-blocked at spawn)"));
     msg(sender, GRAY + "  Detection  : " + ACCENT + mode + CLOSE);
 
     if (enabled && words > 0) {
@@ -694,5 +695,6 @@ public class BadwordCommand implements FppCommand {
   }
 
   private record RenameTask(
-      String oldName, String newName, Location location, BotType botType, BotSnapshot snapshot) {}
+      String oldName, String newName, Location location, BotType botType, BotSnapshot snapshot) {
+  }
 }

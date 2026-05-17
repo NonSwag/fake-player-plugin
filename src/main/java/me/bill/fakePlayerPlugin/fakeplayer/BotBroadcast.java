@@ -19,7 +19,8 @@ import org.bukkit.entity.Player;
 
 public final class BotBroadcast {
 
-  private BotBroadcast() {}
+  private BotBroadcast() {
+  }
 
   private static void send(Component msg) {
     for (Player p : Bukkit.getOnlinePlayers()) p.sendMessage(msg);

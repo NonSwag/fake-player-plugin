@@ -6,7 +6,17 @@ import org.jetbrains.annotations.NotNull;
 
 public class FppBotDespawnEvent extends FppBotEvent {
   private static final HandlerList HANDLERS = new HandlerList();
-  public FppBotDespawnEvent(@NotNull FppBot bot) { super(bot); }
-  @Override public @NotNull HandlerList getHandlers() { return HANDLERS; }
-  public static @NotNull HandlerList getHandlerList() { return HANDLERS; }
+
+  public FppBotDespawnEvent(@NotNull FppBot bot) {
+    super(bot);
+  }
+
+  @Override
+  public @NotNull HandlerList getHandlers() {
+    return HANDLERS;
+  }
+
+  public static @NotNull HandlerList getHandlerList() {
+    return HANDLERS;
+  }
 }

@@ -9,7 +9,8 @@ import org.bukkit.World;
 
 public final class WorldGuardHelper {
 
-  private WorldGuardHelper() {}
+  private WorldGuardHelper() {
+  }
 
   public static boolean isPvpAllowed(Location location) {
     if (location == null || location.getWorld() == null) return true;

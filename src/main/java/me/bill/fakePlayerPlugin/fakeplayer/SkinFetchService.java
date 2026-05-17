@@ -1,7 +1,8 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
-import java.util.function.BiConsumer;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.function.BiConsumer;
 
 public interface SkinFetchService {
   SkinFetchService NOOP =
@@ -29,5 +30,6 @@ public interface SkinFetchService {
     return getCached(playerName) != null;
   }
 
-  default void clearCache() {}
+  default void clearCache() {
+  }
 }

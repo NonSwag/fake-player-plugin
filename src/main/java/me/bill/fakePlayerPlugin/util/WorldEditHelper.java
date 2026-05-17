@@ -21,14 +21,15 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class WorldEditHelper {
 
-  private WorldEditHelper() {}
+  private WorldEditHelper() {
+  }
 
   /**
    * Returns the two corners of the player's current WorldEdit selection, or {@code null} when
    * the player has no active selection or their selection is not a cuboid-like region.
    *
    * @return {@code Location[2]}{@code [0]} = minimum corner, {@code [1]} = maximum corner;
-   *         both in the player's current world. Returns {@code null} on any error.
+   * both in the player's current world. Returns {@code null} on any error.
    */
   @Nullable
   public static Location[] getSelection(Player player) {

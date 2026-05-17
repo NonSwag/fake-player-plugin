@@ -1,21 +1,23 @@
 package me.bill.fakePlayerPlugin.config;
 
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.util.YamlFileSyncer;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import me.bill.fakePlayerPlugin.FakePlayerPlugin;
-import me.bill.fakePlayerPlugin.util.YamlFileSyncer;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 
 public final class BotNameConfig {
 
   private static FakePlayerPlugin plugin;
   private static FileConfiguration cfg;
 
-  private BotNameConfig() {}
+  private BotNameConfig() {
+  }
 
   public static void init(FakePlayerPlugin instance) {
     plugin = instance;

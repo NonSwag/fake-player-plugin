@@ -1,27 +1,31 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import me.bill.fakePlayerPlugin.api.event.FppBotDespawnEvent;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.gui.BotSettingGui;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
-import me.bill.fakePlayerPlugin.util.FppScheduler;
 import me.bill.fakePlayerPlugin.util.BotAccess;
+import me.bill.fakePlayerPlugin.util.FppScheduler;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.inventory.*;
+import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
@@ -29,6 +33,15 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class InventoryCommand implements FppCommand, Listener {
 
@@ -241,14 +254,13 @@ public class InventoryCommand implements FppCommand, Listener {
       case 37 -> equipLabel(SC_LEGGINGS, SC_ANY + " " + SC_LEGGINGS);
       case 38 -> equipLabel(SC_CHEST, SC_ANY + " " + SC_CHEST + "  " + SC_OR + "  " + SC_ELYTRA);
       case 39 -> equipLabel(SC_HELMET, SC_ANY + " \u026A\u1D1B\u1D07\u1D0D  \u2014  " + SC_UNRESTR);
-      case 41 ->
-          equipLabel(
-              SC_OFFHAND,
-              SC_ANY
-                  + " \u026A\u1D1B\u1D07\u1D0D  \u2014  "
-                  + SC_OFFHAND
-                  + " \uA731\u029F\u1D0F\u1D1B \u026A\uA731"
-                  + " \u1D1C\u0274\u0280\u1D07\uA731\u1D1B\u0280\u026A\u1D04\u1D1B\u1D07\u1D05");
+      case 41 -> equipLabel(
+          SC_OFFHAND,
+          SC_ANY
+              + " \u026A\u1D1B\u1D07\u1D0D  \u2014  "
+              + SC_OFFHAND
+              + " \uA731\u029F\u1D0F\u1D1B \u026A\uA731"
+              + " \u1D1C\u0274\u0280\u1D07\uA731\u1D1B\u0280\u026A\u1D04\u1D1B\u1D07\u1D05");
       default -> blankPane();
     };
   }
@@ -297,9 +309,8 @@ public class InventoryCommand implements FppCommand, Listener {
     return switch (guiSlot) {
       case 45 -> "\u1D1A\u1D0F\u1D0F\u1D1B\uA731";
       case 46 -> "\u029F\u1D07\u0262\u0262\u026A\u0274\u0262\uA731";
-      case 47 ->
-          "\u1D04\u029C\u1D07\uA731\u1D1B\u1D18\u029F\u1D00\u1D1B\u1D07  \u1D0F\u0280 "
-              + " \u1D07\u029F\u028F\u1D1B\u0280\u1D00";
+      case 47 -> "\u1D04\u029C\u1D07\uA731\u1D1B\u1D18\u029F\u1D00\u1D1B\u1D07  \u1D0F\u0280 "
+          + " \u1D07\u029F\u028F\u1D1B\u0280\u1D00";
       default -> "\u026A\u1D1B\u1D07\u1D0D";
     };
   }
@@ -414,7 +425,8 @@ public class InventoryCommand implements FppCommand, Listener {
             return;
           }
         }
-        default -> {}
+        default -> {
+        }
       }
     }
     scheduleSync(botUuid, top);

@@ -1,10 +1,11 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
-import java.util.List;
-import java.util.Set;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+
+import java.util.List;
+import java.util.Set;
 
 public final class BotEffectHandler {
 
@@ -26,7 +27,8 @@ public final class BotEffectHandler {
       PotionEffectType.RAID_OMEN,
       PotionEffectType.TRIAL_OMEN);
 
-  private BotEffectHandler() {}
+  private BotEffectHandler() {
+  }
 
   public static PotionEffectType tickEffects(Player bot, boolean autoMilk, boolean preventBadOmen) {
     if (bot.isDead()) return null;

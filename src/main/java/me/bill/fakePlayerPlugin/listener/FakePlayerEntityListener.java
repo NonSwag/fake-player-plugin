@@ -1,7 +1,8 @@
 package me.bill.fakePlayerPlugin.listener;
 
-import java.util.UUID;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.api.event.FppBotDamageEvent;
+import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotBroadcast;
 import me.bill.fakePlayerPlugin.fakeplayer.ChunkLoader;
@@ -9,15 +10,11 @@ import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerBody;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.PacketHelper;
-import me.bill.fakePlayerPlugin.api.event.FppBotDamageEvent;
-import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
+import me.bill.fakePlayerPlugin.util.AttributeCompat;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import me.bill.fakePlayerPlugin.util.WorldGuardHelper;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Sound;
-import org.bukkit.SoundCategory;
-import me.bill.fakePlayerPlugin.util.AttributeCompat;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -34,6 +31,8 @@ import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.util.UUID;
+
 public class FakePlayerEntityListener implements Listener {
 
   private final FakePlayerPlugin plugin;
@@ -47,7 +46,9 @@ public class FakePlayerEntityListener implements Listener {
     this.chunkLoader = chunkLoader;
   }
 
-  /** Suppress the vanilla death message when messages.death-message is false. */
+  /**
+   * Suppress the vanilla death message when messages.death-message is false.
+   */
   @EventHandler(priority = EventPriority.LOWEST)
   public void onBotDeathMessage(PlayerDeathEvent event) {
     if (!isFakeBotBody(event.getEntity())) return;

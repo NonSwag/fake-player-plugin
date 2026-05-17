@@ -1,9 +1,5 @@
 package me.bill.fakePlayerPlugin.lang;
 
-import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.util.TextUtil;
@@ -12,12 +8,18 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
+import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+
 public final class Lang {
 
   private static FakePlayerPlugin plugin;
   private static FileConfiguration cfg;
 
-  private Lang() {}
+  private Lang() {
+  }
 
   public static void init(FakePlayerPlugin instance) {
     plugin = instance;

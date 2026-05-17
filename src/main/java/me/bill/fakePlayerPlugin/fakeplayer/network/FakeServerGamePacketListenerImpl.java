@@ -1,7 +1,5 @@
 package me.bill.fakePlayerPlugin.fakeplayer.network;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.util.FppLogger;
@@ -14,7 +12,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -22,6 +19,9 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.projectiles.ProjectileSource;
 import org.jetbrains.annotations.Nullable;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 public final class FakeServerGamePacketListenerImpl extends ServerGamePacketListenerImpl {
 
@@ -45,7 +45,7 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
     if (!entityIdFallbackResolved) {
       synchronized (FakeServerGamePacketListenerImpl.class) {
         if (!entityIdFallbackResolved) {
-          for (String name : new String[] {"getEntityId", "id"}) {
+          for (String name : new String[]{"getEntityId", "id"}) {
             try {
               Method m = ClientboundSetEntityMotionPacket.class.getMethod(name);
               if (m.getReturnType() == int.class) {
@@ -205,7 +205,8 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
           }
           markVelocityChanged();
         }
-        case NONE, UNRESOLVED -> {}
+        case NONE, UNRESOLVED -> {
+        }
       }
     } catch (Exception e) {
       FppLogger.warn("Knockback apply failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
@@ -349,9 +350,9 @@ public final class FakeServerGamePacketListenerImpl extends ServerGamePacketList
     if (setDeltaMovementMethod != null || lerpMotion3Method != null) {
 
       String[][] nameTriplets = {
-        {"xa", "ya", "za"},
-        {"xd", "yd", "zd"},
-        {"motX", "motY", "motZ"},
+          {"xa", "ya", "za"},
+          {"xd", "yd", "zd"},
+          {"motX", "motY", "motZ"},
       };
       for (String[] triplet : nameTriplets) {
         Field fx = findDeclaredNumericField(ClientboundSetEntityMotionPacket.class, triplet[0]);

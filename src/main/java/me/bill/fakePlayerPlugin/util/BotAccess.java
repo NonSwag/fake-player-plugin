@@ -1,13 +1,15 @@
 package me.bill.fakePlayerPlugin.util;
 
-import java.util.UUID;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.permission.Perm;
 import org.bukkit.entity.Player;
 
+import java.util.UUID;
+
 public final class BotAccess {
 
-  private BotAccess() {}
+  private BotAccess() {
+  }
 
   public static boolean isAdmin(Player player) {
     return player != null && (player.isOp() || Perm.hasAny(player, Perm.ADMIN, Perm.OP));

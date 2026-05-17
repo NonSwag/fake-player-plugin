@@ -1,14 +1,15 @@
 package me.bill.fakePlayerPlugin.config;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BooleanSupplier;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
 
 public final class Config {
 
@@ -18,7 +19,8 @@ public final class Config {
   private static BooleanSupplier tabListEnabledProvider = null;
   private static final Map<String, FileConfiguration> externalConfigs = new ConcurrentHashMap<>();
 
-  private Config() {}
+  private Config() {
+  }
 
   public interface ChatMessageProvider {
     void reload();
@@ -640,12 +642,16 @@ public final class Config {
   }
 
 
-  /** Number of lateral sweep steps tried on each side when searching for a detour waypoint. */
+  /**
+   * Number of lateral sweep steps tried on each side when searching for a detour waypoint.
+   */
   public static int pathfindingDetourAttempts() {
     return Math.max(1, Math.min(integer("pathfinding.detour-attempts", 5), 20));
   }
 
-  /** Total lateral radius (in blocks) spread across detour-attempts steps. */
+  /**
+   * Total lateral radius (in blocks) spread across detour-attempts steps.
+   */
   public static double pathfindingDetourRadius() {
     return Math.max(2.0, Math.min(decimal("pathfinding.detour-radius", 16.0), 64.0));
   }

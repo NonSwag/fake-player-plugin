@@ -1,8 +1,9 @@
 package me.bill.fakePlayerPlugin.database;
 
+import me.bill.fakePlayerPlugin.config.Config;
+
 import java.time.Instant;
 import java.util.UUID;
-import me.bill.fakePlayerPlugin.config.Config;
 
 public class BotRecord {
 

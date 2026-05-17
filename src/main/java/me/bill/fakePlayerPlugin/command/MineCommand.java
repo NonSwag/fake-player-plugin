@@ -1,18 +1,9 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppBotBlockBreakEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
-import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotNavUtil;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
@@ -47,6 +38,16 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.util.BlockIterator;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class MineCommand implements FppCommand {
 
@@ -350,16 +351,16 @@ public final class MineCommand implements FppCommand {
       List<String> options =
           AREA_MODE_ENABLED
               ? List.of(
-                  "--once",
-                  "--stop",
-                  "once",
-                  "stop",
-                  "--pos1",
-                  "--pos2",
-                  "--start",
-                  "--wesel",
-                  "--status",
-                  "--clear")
+              "--once",
+              "--stop",
+              "once",
+              "stop",
+              "--pos1",
+              "--pos2",
+              "--start",
+              "--wesel",
+              "--status",
+              "--clear")
               : List.of("--once", "--stop", "--wesel", "once", "stop");
       for (String option : options) {
         if (option.startsWith(prefix)) out.add(option);
@@ -719,7 +720,8 @@ public final class MineCommand implements FppCommand {
     if (fp.isPickUpItemsEnabled()) {
       Location dropTarget = nearestAnticipatedDrop(bot, job);
       if (dropTarget != null && bot.getLocation().distanceSquared(dropTarget) > 1.5 * 1.5) {
-        startNavigation(fp, dropTarget, () -> {});
+        startNavigation(fp, dropTarget, () -> {
+        });
         return;
       }
     } else if (!job.anticipatedDrops.isEmpty()) {
@@ -931,12 +933,12 @@ public final class MineCommand implements FppCommand {
     if (state.currentPos == null || !state.currentPos.equals(targetPos)) {
       if (state.currentPos != null) {
         if (fireBlockBreakHook(fp, state.currentPos)) {
-        NmsPlayerSpawner.handleBlockBreakAction(nms,
-            state.currentPos,
-            ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK,
-            Direction.DOWN,
-            nms.level().getMaxY(),
-            -1);
+          NmsPlayerSpawner.handleBlockBreakAction(nms,
+              state.currentPos,
+              ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK,
+              Direction.DOWN,
+              nms.level().getMaxY(),
+              -1);
         }
       }
 
@@ -1070,18 +1072,17 @@ public final class MineCommand implements FppCommand {
     if (block.getState() instanceof InventoryHolder) return false;
     return switch (type) {
       case BEDROCK,
-          BARRIER,
-          END_PORTAL,
-          END_PORTAL_FRAME,
-          NETHER_PORTAL,
-          COMMAND_BLOCK,
-          CHAIN_COMMAND_BLOCK,
-          REPEATING_COMMAND_BLOCK,
-          STRUCTURE_BLOCK,
-          JIGSAW,
-          LIGHT,
-          REINFORCED_DEEPSLATE ->
-          false;
+           BARRIER,
+           END_PORTAL,
+           END_PORTAL_FRAME,
+           NETHER_PORTAL,
+           COMMAND_BLOCK,
+           CHAIN_COMMAND_BLOCK,
+           REPEATING_COMMAND_BLOCK,
+           STRUCTURE_BLOCK,
+           JIGSAW,
+           LIGHT,
+           REINFORCED_DEEPSLATE -> false;
       default -> true;
     };
   }
@@ -1493,9 +1494,9 @@ public final class MineCommand implements FppCommand {
 
   /**
    * Parses a single coordinate token.  Supports:
-   *   "~"         → {@code base}
-   *   "~<offset>" → {@code base + offset}
-   *   "<number>"  → absolute value
+   * "~"         → {@code base}
+   * "~<offset>" → {@code base + offset}
+   * "<number>"  → absolute value
    * Throws {@link NumberFormatException} if the token is unrecognisable.
    */
   static double parseCoord(String token, double base) {

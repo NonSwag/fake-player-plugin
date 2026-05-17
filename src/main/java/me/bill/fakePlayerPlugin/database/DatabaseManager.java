@@ -1,14 +1,27 @@
 package me.bill.fakePlayerPlugin.database;
 
-import java.io.File;
-import java.sql.*;
-import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.*;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.util.BackupManager;
 import me.bill.fakePlayerPlugin.util.FppLogger;
+
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public class DatabaseManager {
 
@@ -143,26 +156,26 @@ public class DatabaseManager {
           + "  head_ai_enabled BOOLEAN DEFAULT 1,"
           + "  nav_parkour     BOOLEAN DEFAULT 0,"
           + "  nav_break_blocks BOOLEAN DEFAULT 0,"
-           + "  nav_place_blocks BOOLEAN DEFAULT 0,"
-           + "  nav_avoid_water BOOLEAN DEFAULT 0,"
-           + "  nav_avoid_lava  BOOLEAN DEFAULT 0,"
-           + "  swim_ai_enabled  BOOLEAN DEFAULT 1,"
-           + "  chunk_load_radius INT     DEFAULT -1,"
-           + "  ping             INT DEFAULT -1,"
-           + "  ping_user_set    BOOLEAN DEFAULT 0,"
-           + "  pve_enabled      BOOLEAN DEFAULT 0,"
+          + "  nav_place_blocks BOOLEAN DEFAULT 0,"
+          + "  nav_avoid_water BOOLEAN DEFAULT 0,"
+          + "  nav_avoid_lava  BOOLEAN DEFAULT 0,"
+          + "  swim_ai_enabled  BOOLEAN DEFAULT 1,"
+          + "  chunk_load_radius INT     DEFAULT -1,"
+          + "  ping             INT DEFAULT -1,"
+          + "  ping_user_set    BOOLEAN DEFAULT 0,"
+          + "  pve_enabled      BOOLEAN DEFAULT 0,"
           + "  pve_range        DOUBLE  DEFAULT 16.0,"
           + "  pve_priority     VARCHAR(16) DEFAULT NULL,"
           + "  pve_mob_type     VARCHAR(64) DEFAULT NULL,"
-           + "  pve_smart_attack_mode VARCHAR(16) DEFAULT 'OFF',"
+          + "  pve_smart_attack_mode VARCHAR(16) DEFAULT 'OFF',"
           + "  auto_milk_enabled BOOLEAN DEFAULT 1,"
           + "  prevent_bad_omen  BOOLEAN DEFAULT 1,"
           + "  respawn_on_death   BOOLEAN DEFAULT 0,"
           + "  skin_texture   TEXT DEFAULT NULL,"
           + "  skin_signature TEXT DEFAULT NULL"
-            + ")";
+          + ")";
 
-   private static final String CREATE_SLEEPING_SQLITE =
+  private static final String CREATE_SLEEPING_SQLITE =
       "CREATE TABLE IF NOT EXISTS fpp_sleeping_bots ("
           + "  sleep_order INTEGER NOT NULL,"
           + "  bot_name    VARCHAR(16)  NOT NULL,"
@@ -343,185 +356,185 @@ public class DatabaseManager {
           + ")";
 
   private static final String[][] MIGRATIONS = {
-    {
-      "ALTER TABLE fpp_bot_sessions ADD COLUMN last_yaw   FLOAT",
-      "ALTER TABLE fpp_bot_sessions ADD COLUMN last_pitch FLOAT"
-    },
-    {},
-    {
-      "ALTER TABLE fpp_bot_sessions ADD COLUMN bot_display VARCHAR(128) DEFAULT NULL",
-      "ALTER TABLE fpp_active_bots  ADD COLUMN bot_display VARCHAR(128) DEFAULT NULL",
-      "CREATE INDEX IF NOT EXISTS idx_sessions_bot_name    ON fpp_bot_sessions(bot_name)",
-      "CREATE INDEX IF NOT EXISTS idx_sessions_spawned_by  ON fpp_bot_sessions(spawned_by)",
-      "CREATE INDEX IF NOT EXISTS idx_sessions_removed_at  ON fpp_bot_sessions(removed_at)",
-      "CREATE INDEX IF NOT EXISTS idx_sessions_spawned_at  ON fpp_bot_sessions(spawned_at)",
-      "CREATE INDEX IF NOT EXISTS idx_sessions_bot_uuid    ON fpp_bot_sessions(bot_uuid)"
-    },
-    {
-      "ALTER TABLE fpp_bot_sessions ADD COLUMN luckperms_group VARCHAR(64) DEFAULT NULL",
-      "ALTER TABLE fpp_active_bots  ADD COLUMN luckperms_group VARCHAR(64) DEFAULT NULL"
-    },
-    {
-      "ALTER TABLE fpp_bot_sessions ADD COLUMN server_id VARCHAR(64) NOT NULL DEFAULT"
-          + " 'default'",
-      "ALTER TABLE fpp_active_bots  ADD COLUMN server_id VARCHAR(64) NOT NULL DEFAULT"
-          + " 'default'",
-      "CREATE INDEX IF NOT EXISTS idx_sessions_server_id ON fpp_bot_sessions(server_id)",
-      "CREATE INDEX IF NOT EXISTS idx_active_server_id   ON fpp_active_bots(server_id)"
-    },
-    {
-      "CREATE TABLE IF NOT EXISTS fpp_sleeping_bots ("
-          + "  sleep_order INTEGER NOT NULL,"
-          + "  bot_name    VARCHAR(16)  NOT NULL,"
-          + "  world_name  VARCHAR(64)  NOT NULL,"
-          + "  pos_x       DOUBLE NOT NULL,"
-          + "  pos_y       DOUBLE NOT NULL,"
-          + "  pos_z       DOUBLE NOT NULL,"
-          + "  pos_yaw     FLOAT  NOT NULL DEFAULT 0,"
-          + "  pos_pitch   FLOAT  NOT NULL DEFAULT 0,"
-          + "  server_id   VARCHAR(64)  NOT NULL DEFAULT 'default',"
-          + "  PRIMARY KEY (server_id, sleep_order)"
-          + ")"
-    },
-    {
-      "CREATE TABLE IF NOT EXISTS fpp_bot_identities ("
-          + "  bot_name   VARCHAR(16) NOT NULL,"
-          + "  server_id  VARCHAR(64) NOT NULL DEFAULT 'default',"
-          + "  bot_uuid   VARCHAR(36) NOT NULL,"
-          + "  created_at BIGINT      NOT NULL,"
-          + "  PRIMARY KEY (bot_name, server_id)"
-          + ")"
-    },
-    {
-      "ALTER TABLE fpp_active_bots ADD COLUMN frozen            BOOLEAN DEFAULT 0",
-      "ALTER TABLE fpp_active_bots ADD COLUMN chat_enabled      BOOLEAN DEFAULT 1",
-      "ALTER TABLE fpp_active_bots ADD COLUMN chat_tier         VARCHAR(16) DEFAULT NULL",
-      "ALTER TABLE fpp_active_bots ADD COLUMN right_click_cmd   VARCHAR(256) DEFAULT NULL"
-    },
-    {"ALTER TABLE fpp_active_bots ADD COLUMN ai_personality    VARCHAR(64) DEFAULT NULL"},
-    {
-      "ALTER TABLE fpp_active_bots ADD COLUMN pickup_items      BOOLEAN DEFAULT 0",
-      "ALTER TABLE fpp_active_bots ADD COLUMN pickup_xp         BOOLEAN DEFAULT 1"
-    },
-    {
-      "ALTER TABLE fpp_active_bots ADD COLUMN head_ai_enabled   BOOLEAN DEFAULT 1",
-      "ALTER TABLE fpp_active_bots ADD COLUMN nav_parkour       BOOLEAN DEFAULT 0",
-      "ALTER TABLE fpp_active_bots ADD COLUMN nav_break_blocks  BOOLEAN DEFAULT 0",
-      "ALTER TABLE fpp_active_bots ADD COLUMN nav_place_blocks  BOOLEAN DEFAULT 0"
-    },
-    {
-      "CREATE TABLE IF NOT EXISTS fpp_bot_tasks ("
-          + "  bot_uuid    VARCHAR(36)  NOT NULL,"
-          + "  server_id   VARCHAR(64)  NOT NULL DEFAULT 'default',"
-          + "  task_type   VARCHAR(16)  NOT NULL,"
-          + "  world_name  VARCHAR(64)  DEFAULT NULL,"
-          + "  pos_x       DOUBLE       DEFAULT 0,"
-          + "  pos_y       DOUBLE       DEFAULT 0,"
-          + "  pos_z       DOUBLE       DEFAULT 0,"
-          + "  pos_yaw     FLOAT        DEFAULT 0,"
-          + "  pos_pitch   FLOAT        DEFAULT 0,"
-          + "  once_flag   BOOLEAN      DEFAULT 0,"
-          + "  extra_str   VARCHAR(256) DEFAULT NULL,"
-          + "  extra_bool  BOOLEAN      DEFAULT 0,"
-          + "  PRIMARY KEY (bot_uuid, server_id, task_type)"
-          + ")"
-    },
-    {
-      "ALTER TABLE fpp_active_bots ADD COLUMN swim_ai_enabled   BOOLEAN DEFAULT 1",
-      "ALTER TABLE fpp_active_bots ADD COLUMN chunk_load_radius  INT     DEFAULT -1"
-    },
-    {
-      "ALTER TABLE fpp_active_bots ADD COLUMN nav_avoid_water   BOOLEAN DEFAULT 0",
-      "ALTER TABLE fpp_active_bots ADD COLUMN nav_avoid_lava    BOOLEAN DEFAULT 0"
-    },
-    {"ALTER TABLE fpp_active_bots ADD COLUMN ping INT DEFAULT -1"},
-    {
-      "CREATE TABLE IF NOT EXISTS fpp_skin_cache ("
-          + "  skin_name         VARCHAR(16)  NOT NULL PRIMARY KEY,"
-          + "  texture_value     TEXT         NOT NULL,"
-          + "  texture_signature TEXT         DEFAULT NULL,"
-          + "  source            VARCHAR(64)  DEFAULT NULL,"
-          + "  cached_at         BIGINT       NOT NULL"
-          + ")",
-      "CREATE INDEX IF NOT EXISTS idx_skin_cache_cached_at ON fpp_skin_cache(cached_at)"
-    },
-    {
-      "ALTER TABLE fpp_active_bots ADD COLUMN pve_enabled      BOOLEAN DEFAULT 0",
-      "ALTER TABLE fpp_active_bots ADD COLUMN pve_range        DOUBLE  DEFAULT 16.0",
-      "ALTER TABLE fpp_active_bots ADD COLUMN pve_priority     VARCHAR(16) DEFAULT NULL",
-      "ALTER TABLE fpp_active_bots ADD COLUMN pve_mob_type     VARCHAR(64) DEFAULT NULL"
-    },
-    {
-      "ALTER TABLE fpp_active_bots ADD COLUMN skin_texture   TEXT DEFAULT NULL",
-      "ALTER TABLE fpp_active_bots ADD COLUMN skin_signature TEXT DEFAULT NULL"
-    },
-    {
-      "CREATE TABLE IF NOT EXISTS fpp_despawn_snapshots ("
-          + "  bot_name       VARCHAR(64)  NOT NULL,"
-          + "  server_id      VARCHAR(64)  NOT NULL DEFAULT 'default',"
-          + "  inventory_data TEXT         DEFAULT NULL,"
-          + "  xp_total       INTEGER      DEFAULT 0,"
-          + "  xp_level       INTEGER      DEFAULT 0,"
-          + "  xp_progress    REAL         DEFAULT 0.0,"
-          + "  saved_at       BIGINT       NOT NULL,"
-          + "  PRIMARY KEY (bot_name, server_id)"
-          + ")"
-    },
-    {
-      "ALTER TABLE fpp_active_bots ADD COLUMN pve_smart_attack_mode VARCHAR(16) DEFAULT 'OFF'"
-    },
-    {
-      "ALTER TABLE fpp_active_bots ADD COLUMN auto_milk_enabled BOOLEAN DEFAULT 1",
-      "ALTER TABLE fpp_active_bots ADD COLUMN prevent_bad_omen BOOLEAN DEFAULT 1",
-      "ALTER TABLE fpp_active_bots ADD COLUMN respawn_on_death BOOLEAN DEFAULT 0"
-    },
-    {
-      "ALTER TABLE fpp_active_bots ADD COLUMN ping_user_set BOOLEAN DEFAULT 0"
-    },
-    {
-      "ALTER TABLE fpp_despawn_snapshots ADD COLUMN skin_texture   TEXT DEFAULT NULL",
-      "ALTER TABLE fpp_despawn_snapshots ADD COLUMN skin_signature TEXT DEFAULT NULL"
-    },
-    {
-      "CREATE TABLE IF NOT EXISTS fpp_network_bots ("
-          + "  bot_uuid     VARCHAR(36)  NOT NULL PRIMARY KEY,"
-          + "  bot_name     VARCHAR(16)  NOT NULL,"
-          + "  bot_display  VARCHAR(128) DEFAULT NULL,"
-          + "  server_id    VARCHAR(64)  NOT NULL,"
-          + "  spawned_by   VARCHAR(16)  NOT NULL,"
-          + "  world_name   VARCHAR(64)  DEFAULT NULL,"
-          + "  pos_x        DOUBLE       DEFAULT 0,"
-          + "  pos_y        DOUBLE       DEFAULT 0,"
-          + "  pos_z        DOUBLE       DEFAULT 0,"
-          + "  ping         INT          DEFAULT 0,"
-          + "  frozen       BOOLEAN      DEFAULT 0,"
-          + "  updated_at   BIGINT       NOT NULL,"
-          + "  INDEX idx_server_id (server_id),"
-          + "  INDEX idx_updated_at (updated_at)"
-          + ")",
-      "CREATE TABLE IF NOT EXISTS fpp_server_heartbeat ("
-          + "  server_id     VARCHAR(64)  NOT NULL PRIMARY KEY,"
-          + "  real_players  INT          DEFAULT 0,"
-          + "  bot_count     INT          DEFAULT 0,"
-          + "  last_seen     BIGINT       NOT NULL"
-          + ")",
-      "CREATE TABLE IF NOT EXISTS fpp_network_tasks ("
-          + "  id           BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
-          + "  target_bot   VARCHAR(36)  NOT NULL,"
-          + "  source_server VARCHAR(64) NOT NULL,"
-          + "  target_server VARCHAR(64) NOT NULL,"
-          + "  task_type    VARCHAR(16)  NOT NULL,"
-          + "  task_data    TEXT         DEFAULT NULL,"
-          + "  created_at   BIGINT       NOT NULL,"
-          + "  claimed_at   BIGINT       DEFAULT NULL,"
-          + "  claimed_by   VARCHAR(64)  DEFAULT NULL,"
-          + "  status       VARCHAR(16)  DEFAULT 'PENDING',"
-          + "  result       TEXT         DEFAULT NULL,"
-          + "  INDEX idx_target_bot (target_bot),"
-          + "  INDEX idx_status (status),"
-          + "  INDEX idx_target_server (target_server)"
-          + ")"
-    }
+      {
+          "ALTER TABLE fpp_bot_sessions ADD COLUMN last_yaw   FLOAT",
+          "ALTER TABLE fpp_bot_sessions ADD COLUMN last_pitch FLOAT"
+      },
+      {},
+      {
+          "ALTER TABLE fpp_bot_sessions ADD COLUMN bot_display VARCHAR(128) DEFAULT NULL",
+          "ALTER TABLE fpp_active_bots  ADD COLUMN bot_display VARCHAR(128) DEFAULT NULL",
+          "CREATE INDEX IF NOT EXISTS idx_sessions_bot_name    ON fpp_bot_sessions(bot_name)",
+          "CREATE INDEX IF NOT EXISTS idx_sessions_spawned_by  ON fpp_bot_sessions(spawned_by)",
+          "CREATE INDEX IF NOT EXISTS idx_sessions_removed_at  ON fpp_bot_sessions(removed_at)",
+          "CREATE INDEX IF NOT EXISTS idx_sessions_spawned_at  ON fpp_bot_sessions(spawned_at)",
+          "CREATE INDEX IF NOT EXISTS idx_sessions_bot_uuid    ON fpp_bot_sessions(bot_uuid)"
+      },
+      {
+          "ALTER TABLE fpp_bot_sessions ADD COLUMN luckperms_group VARCHAR(64) DEFAULT NULL",
+          "ALTER TABLE fpp_active_bots  ADD COLUMN luckperms_group VARCHAR(64) DEFAULT NULL"
+      },
+      {
+          "ALTER TABLE fpp_bot_sessions ADD COLUMN server_id VARCHAR(64) NOT NULL DEFAULT"
+              + " 'default'",
+          "ALTER TABLE fpp_active_bots  ADD COLUMN server_id VARCHAR(64) NOT NULL DEFAULT"
+              + " 'default'",
+          "CREATE INDEX IF NOT EXISTS idx_sessions_server_id ON fpp_bot_sessions(server_id)",
+          "CREATE INDEX IF NOT EXISTS idx_active_server_id   ON fpp_active_bots(server_id)"
+      },
+      {
+          "CREATE TABLE IF NOT EXISTS fpp_sleeping_bots ("
+              + "  sleep_order INTEGER NOT NULL,"
+              + "  bot_name    VARCHAR(16)  NOT NULL,"
+              + "  world_name  VARCHAR(64)  NOT NULL,"
+              + "  pos_x       DOUBLE NOT NULL,"
+              + "  pos_y       DOUBLE NOT NULL,"
+              + "  pos_z       DOUBLE NOT NULL,"
+              + "  pos_yaw     FLOAT  NOT NULL DEFAULT 0,"
+              + "  pos_pitch   FLOAT  NOT NULL DEFAULT 0,"
+              + "  server_id   VARCHAR(64)  NOT NULL DEFAULT 'default',"
+              + "  PRIMARY KEY (server_id, sleep_order)"
+              + ")"
+      },
+      {
+          "CREATE TABLE IF NOT EXISTS fpp_bot_identities ("
+              + "  bot_name   VARCHAR(16) NOT NULL,"
+              + "  server_id  VARCHAR(64) NOT NULL DEFAULT 'default',"
+              + "  bot_uuid   VARCHAR(36) NOT NULL,"
+              + "  created_at BIGINT      NOT NULL,"
+              + "  PRIMARY KEY (bot_name, server_id)"
+              + ")"
+      },
+      {
+          "ALTER TABLE fpp_active_bots ADD COLUMN frozen            BOOLEAN DEFAULT 0",
+          "ALTER TABLE fpp_active_bots ADD COLUMN chat_enabled      BOOLEAN DEFAULT 1",
+          "ALTER TABLE fpp_active_bots ADD COLUMN chat_tier         VARCHAR(16) DEFAULT NULL",
+          "ALTER TABLE fpp_active_bots ADD COLUMN right_click_cmd   VARCHAR(256) DEFAULT NULL"
+      },
+      {"ALTER TABLE fpp_active_bots ADD COLUMN ai_personality    VARCHAR(64) DEFAULT NULL"},
+      {
+          "ALTER TABLE fpp_active_bots ADD COLUMN pickup_items      BOOLEAN DEFAULT 0",
+          "ALTER TABLE fpp_active_bots ADD COLUMN pickup_xp         BOOLEAN DEFAULT 1"
+      },
+      {
+          "ALTER TABLE fpp_active_bots ADD COLUMN head_ai_enabled   BOOLEAN DEFAULT 1",
+          "ALTER TABLE fpp_active_bots ADD COLUMN nav_parkour       BOOLEAN DEFAULT 0",
+          "ALTER TABLE fpp_active_bots ADD COLUMN nav_break_blocks  BOOLEAN DEFAULT 0",
+          "ALTER TABLE fpp_active_bots ADD COLUMN nav_place_blocks  BOOLEAN DEFAULT 0"
+      },
+      {
+          "CREATE TABLE IF NOT EXISTS fpp_bot_tasks ("
+              + "  bot_uuid    VARCHAR(36)  NOT NULL,"
+              + "  server_id   VARCHAR(64)  NOT NULL DEFAULT 'default',"
+              + "  task_type   VARCHAR(16)  NOT NULL,"
+              + "  world_name  VARCHAR(64)  DEFAULT NULL,"
+              + "  pos_x       DOUBLE       DEFAULT 0,"
+              + "  pos_y       DOUBLE       DEFAULT 0,"
+              + "  pos_z       DOUBLE       DEFAULT 0,"
+              + "  pos_yaw     FLOAT        DEFAULT 0,"
+              + "  pos_pitch   FLOAT        DEFAULT 0,"
+              + "  once_flag   BOOLEAN      DEFAULT 0,"
+              + "  extra_str   VARCHAR(256) DEFAULT NULL,"
+              + "  extra_bool  BOOLEAN      DEFAULT 0,"
+              + "  PRIMARY KEY (bot_uuid, server_id, task_type)"
+              + ")"
+      },
+      {
+          "ALTER TABLE fpp_active_bots ADD COLUMN swim_ai_enabled   BOOLEAN DEFAULT 1",
+          "ALTER TABLE fpp_active_bots ADD COLUMN chunk_load_radius  INT     DEFAULT -1"
+      },
+      {
+          "ALTER TABLE fpp_active_bots ADD COLUMN nav_avoid_water   BOOLEAN DEFAULT 0",
+          "ALTER TABLE fpp_active_bots ADD COLUMN nav_avoid_lava    BOOLEAN DEFAULT 0"
+      },
+      {"ALTER TABLE fpp_active_bots ADD COLUMN ping INT DEFAULT -1"},
+      {
+          "CREATE TABLE IF NOT EXISTS fpp_skin_cache ("
+              + "  skin_name         VARCHAR(16)  NOT NULL PRIMARY KEY,"
+              + "  texture_value     TEXT         NOT NULL,"
+              + "  texture_signature TEXT         DEFAULT NULL,"
+              + "  source            VARCHAR(64)  DEFAULT NULL,"
+              + "  cached_at         BIGINT       NOT NULL"
+              + ")",
+          "CREATE INDEX IF NOT EXISTS idx_skin_cache_cached_at ON fpp_skin_cache(cached_at)"
+      },
+      {
+          "ALTER TABLE fpp_active_bots ADD COLUMN pve_enabled      BOOLEAN DEFAULT 0",
+          "ALTER TABLE fpp_active_bots ADD COLUMN pve_range        DOUBLE  DEFAULT 16.0",
+          "ALTER TABLE fpp_active_bots ADD COLUMN pve_priority     VARCHAR(16) DEFAULT NULL",
+          "ALTER TABLE fpp_active_bots ADD COLUMN pve_mob_type     VARCHAR(64) DEFAULT NULL"
+      },
+      {
+          "ALTER TABLE fpp_active_bots ADD COLUMN skin_texture   TEXT DEFAULT NULL",
+          "ALTER TABLE fpp_active_bots ADD COLUMN skin_signature TEXT DEFAULT NULL"
+      },
+      {
+          "CREATE TABLE IF NOT EXISTS fpp_despawn_snapshots ("
+              + "  bot_name       VARCHAR(64)  NOT NULL,"
+              + "  server_id      VARCHAR(64)  NOT NULL DEFAULT 'default',"
+              + "  inventory_data TEXT         DEFAULT NULL,"
+              + "  xp_total       INTEGER      DEFAULT 0,"
+              + "  xp_level       INTEGER      DEFAULT 0,"
+              + "  xp_progress    REAL         DEFAULT 0.0,"
+              + "  saved_at       BIGINT       NOT NULL,"
+              + "  PRIMARY KEY (bot_name, server_id)"
+              + ")"
+      },
+      {
+          "ALTER TABLE fpp_active_bots ADD COLUMN pve_smart_attack_mode VARCHAR(16) DEFAULT 'OFF'"
+      },
+      {
+          "ALTER TABLE fpp_active_bots ADD COLUMN auto_milk_enabled BOOLEAN DEFAULT 1",
+          "ALTER TABLE fpp_active_bots ADD COLUMN prevent_bad_omen BOOLEAN DEFAULT 1",
+          "ALTER TABLE fpp_active_bots ADD COLUMN respawn_on_death BOOLEAN DEFAULT 0"
+      },
+      {
+          "ALTER TABLE fpp_active_bots ADD COLUMN ping_user_set BOOLEAN DEFAULT 0"
+      },
+      {
+          "ALTER TABLE fpp_despawn_snapshots ADD COLUMN skin_texture   TEXT DEFAULT NULL",
+          "ALTER TABLE fpp_despawn_snapshots ADD COLUMN skin_signature TEXT DEFAULT NULL"
+      },
+      {
+          "CREATE TABLE IF NOT EXISTS fpp_network_bots ("
+              + "  bot_uuid     VARCHAR(36)  NOT NULL PRIMARY KEY,"
+              + "  bot_name     VARCHAR(16)  NOT NULL,"
+              + "  bot_display  VARCHAR(128) DEFAULT NULL,"
+              + "  server_id    VARCHAR(64)  NOT NULL,"
+              + "  spawned_by   VARCHAR(16)  NOT NULL,"
+              + "  world_name   VARCHAR(64)  DEFAULT NULL,"
+              + "  pos_x        DOUBLE       DEFAULT 0,"
+              + "  pos_y        DOUBLE       DEFAULT 0,"
+              + "  pos_z        DOUBLE       DEFAULT 0,"
+              + "  ping         INT          DEFAULT 0,"
+              + "  frozen       BOOLEAN      DEFAULT 0,"
+              + "  updated_at   BIGINT       NOT NULL,"
+              + "  INDEX idx_server_id (server_id),"
+              + "  INDEX idx_updated_at (updated_at)"
+              + ")",
+          "CREATE TABLE IF NOT EXISTS fpp_server_heartbeat ("
+              + "  server_id     VARCHAR(64)  NOT NULL PRIMARY KEY,"
+              + "  real_players  INT          DEFAULT 0,"
+              + "  bot_count     INT          DEFAULT 0,"
+              + "  last_seen     BIGINT       NOT NULL"
+              + ")",
+          "CREATE TABLE IF NOT EXISTS fpp_network_tasks ("
+              + "  id           BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
+              + "  target_bot   VARCHAR(36)  NOT NULL,"
+              + "  source_server VARCHAR(64) NOT NULL,"
+              + "  target_server VARCHAR(64) NOT NULL,"
+              + "  task_type    VARCHAR(16)  NOT NULL,"
+              + "  task_data    TEXT         DEFAULT NULL,"
+              + "  created_at   BIGINT       NOT NULL,"
+              + "  claimed_at   BIGINT       DEFAULT NULL,"
+              + "  claimed_by   VARCHAR(64)  DEFAULT NULL,"
+              + "  status       VARCHAR(16)  DEFAULT 'PENDING',"
+              + "  result       TEXT         DEFAULT NULL,"
+              + "  INDEX idx_target_bot (target_bot),"
+              + "  INDEX idx_status (status),"
+              + "  INDEX idx_target_server (target_server)"
+              + ")"
+      }
   };
 
   private volatile Connection connection;
@@ -622,11 +635,11 @@ public class DatabaseManager {
 
   private boolean tableExists(String tableName) {
     try (PreparedStatement ps =
-        connection.prepareStatement(
-            isMysql
-                ? "SELECT 1 FROM information_schema.tables WHERE"
-                    + " table_schema=DATABASE() AND table_name=?"
-                : "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?")) {
+             connection.prepareStatement(
+                 isMysql
+                     ? "SELECT 1 FROM information_schema.tables WHERE"
+                       + " table_schema=DATABASE() AND table_name=?"
+                     : "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?")) {
       ps.setString(1, tableName);
       try (java.sql.ResultSet rs = ps.executeQuery()) {
         return rs.next();
@@ -776,9 +789,9 @@ public class DatabaseManager {
 
   private int getSchemaVersion() {
     try (PreparedStatement ps =
-            connection.prepareStatement(
-                "SELECT value FROM fpp_meta WHERE key_name='schema_version'");
-        ResultSet rs = ps.executeQuery()) {
+             connection.prepareStatement(
+                 "SELECT value FROM fpp_meta WHERE key_name='schema_version'");
+         ResultSet rs = ps.executeQuery()) {
       if (rs.next()) return Integer.parseInt(rs.getString(1));
     } catch (Exception ignored) {
     }
@@ -789,7 +802,7 @@ public class DatabaseManager {
     String sql =
         isMysql
             ? "INSERT INTO fpp_meta(key_name,value) VALUES('schema_version',?) ON"
-                + " DUPLICATE KEY UPDATE value=?"
+              + " DUPLICATE KEY UPDATE value=?"
             : "INSERT OR REPLACE INTO fpp_meta(key_name,value)" + " VALUES('schema_version',?)";
     try (PreparedStatement ps = connection.prepareStatement(sql)) {
       ps.setString(1, String.valueOf(v));
@@ -868,13 +881,13 @@ public class DatabaseManager {
           String sql =
               isMysql
                   ? "INSERT INTO fpp_skin_cache(skin_name, texture_value,"
-                      + " texture_signature, source, cached_at)"
-                      + " VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE"
-                      + " texture_value=?, texture_signature=?, source=?,"
-                      + " cached_at=?"
+                    + " texture_signature, source, cached_at)"
+                    + " VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE"
+                    + " texture_value=?, texture_signature=?, source=?,"
+                    + " cached_at=?"
                   : "INSERT OR REPLACE INTO fpp_skin_cache(skin_name,"
-                      + " texture_value, texture_signature, source, cached_at)"
-                      + " VALUES(?,?,?,?,?)";
+                    + " texture_value, texture_signature, source, cached_at)"
+                    + " VALUES(?,?,?,?,?)";
 
           try (PreparedStatement ps = connection.prepareStatement(sql)) {
             String lowerName = skinName.toLowerCase(java.util.Locale.ROOT);
@@ -922,7 +935,7 @@ public class DatabaseManager {
   public int getSkinCacheSize() {
     String sql = "SELECT COUNT(*) FROM fpp_skin_cache";
     try (PreparedStatement ps = connection.prepareStatement(sql);
-        ResultSet rs = ps.executeQuery()) {
+         ResultSet rs = ps.executeQuery()) {
       if (rs.next()) {
         return rs.getInt(1);
       }
@@ -1051,9 +1064,9 @@ public class DatabaseManager {
           if (!isAlive()) return;
           long ts = now.toEpochMilli();
           try (PreparedStatement ps =
-              connection.prepareStatement(
-                  "UPDATE fpp_bot_sessions SET removed_at=?,remove_reason=? WHERE"
-                      + " bot_uuid=? AND removed_at IS NULL")) {
+                   connection.prepareStatement(
+                       "UPDATE fpp_bot_sessions SET removed_at=?,remove_reason=? WHERE"
+                           + " bot_uuid=? AND removed_at IS NULL")) {
             ps.setLong(1, ts);
             ps.setString(2, reason);
             ps.setString(3, key);
@@ -1062,7 +1075,7 @@ public class DatabaseManager {
             FppLogger.error("DB recordRemoval (session): " + e.getMessage());
           }
           try (PreparedStatement ps =
-              connection.prepareStatement("DELETE FROM fpp_active_bots WHERE bot_uuid=?")) {
+                   connection.prepareStatement("DELETE FROM fpp_active_bots WHERE bot_uuid=?")) {
             ps.setString(1, key);
             ps.executeUpdate();
           } catch (SQLException e) {
@@ -1079,9 +1092,9 @@ public class DatabaseManager {
     activeRecords.clear();
     if (!isAlive()) return;
     try (PreparedStatement ps =
-        connection.prepareStatement(
-            "UPDATE fpp_bot_sessions SET removed_at=?,remove_reason='SHUTDOWN' "
-                + "WHERE removed_at IS NULL AND server_id=?")) {
+             connection.prepareStatement(
+                 "UPDATE fpp_bot_sessions SET removed_at=?,remove_reason='SHUTDOWN' "
+                     + "WHERE removed_at IS NULL AND server_id=?")) {
       ps.setLong(1, Instant.now().toEpochMilli());
       ps.setString(2, Config.serverId());
       int rows = ps.executeUpdate();
@@ -1097,7 +1110,7 @@ public class DatabaseManager {
         () -> {
           if (!isAlive()) return;
           try (PreparedStatement ps =
-              connection.prepareStatement("DELETE FROM fpp_active_bots WHERE server_id=?")) {
+                   connection.prepareStatement("DELETE FROM fpp_active_bots WHERE server_id=?")) {
             ps.setString(1, sid);
             int rows = ps.executeUpdate();
             Config.debug("DB cleared " + rows + " active_bot(s) for server='" + sid + "'.");
@@ -1178,7 +1191,8 @@ public class DatabaseManager {
     return list;
   }
 
-  public record NetworkBotPreview(String botUuid, String botName, String botDisplay, String serverId) {}
+  public record NetworkBotPreview(String botUuid, String botName, String botDisplay, String serverId) {
+  }
 
   private ActiveBotRow mapActiveBotRow(ResultSet rs) throws SQLException {
     String lpGroup = null;
@@ -1376,8 +1390,8 @@ public class DatabaseManager {
     if (!isAlive()) return list;
 
     try (PreparedStatement ps =
-        connection.prepareStatement(
-            "SELECT * FROM fpp_bot_sessions WHERE removed_at IS NULL AND " + serverCond())) {
+             connection.prepareStatement(
+                 "SELECT * FROM fpp_bot_sessions WHERE removed_at IS NULL AND " + serverCond())) {
       bindServer(ps, 1);
       try (ResultSet rs = ps.executeQuery()) {
         while (rs.next()) list.add(mapSession(rs));
@@ -1392,10 +1406,10 @@ public class DatabaseManager {
     List<BotRecord> list = new ArrayList<>();
     if (!isAlive()) return list;
     try (PreparedStatement ps =
-        connection.prepareStatement(
-            "SELECT * FROM fpp_bot_sessions WHERE "
-                + serverCond()
-                + " ORDER BY spawned_at DESC LIMIT ?")) {
+             connection.prepareStatement(
+                 "SELECT * FROM fpp_bot_sessions WHERE "
+                     + serverCond()
+                     + " ORDER BY spawned_at DESC LIMIT ?")) {
       int next = bindServer(ps, 1);
       ps.setInt(next, limit);
       try (ResultSet rs = ps.executeQuery()) {
@@ -1416,10 +1430,10 @@ public class DatabaseManager {
     if (!isAlive()) return list;
 
     try (PreparedStatement ps =
-        connection.prepareStatement(
-            "SELECT * FROM fpp_bot_sessions WHERE spawned_by=?"
-                + serverAnd()
-                + " ORDER BY spawned_at DESC LIMIT ?")) {
+             connection.prepareStatement(
+                 "SELECT * FROM fpp_bot_sessions WHERE spawned_by=?"
+                     + serverAnd()
+                     + " ORDER BY spawned_at DESC LIMIT ?")) {
       ps.setString(1, playerName);
       ps.setInt(2, limit);
       try (ResultSet rs = ps.executeQuery()) {
@@ -1440,10 +1454,10 @@ public class DatabaseManager {
     if (!isAlive()) return list;
 
     try (PreparedStatement ps =
-        connection.prepareStatement(
-            "SELECT * FROM fpp_bot_sessions WHERE bot_name=?"
-                + serverAnd()
-                + " ORDER BY spawned_at DESC LIMIT ?")) {
+             connection.prepareStatement(
+                 "SELECT * FROM fpp_bot_sessions WHERE bot_name=?"
+                     + serverAnd()
+                     + " ORDER BY spawned_at DESC LIMIT ?")) {
       ps.setString(1, botName);
       ps.setInt(2, limit);
       try (ResultSet rs = ps.executeQuery()) {
@@ -1460,10 +1474,10 @@ public class DatabaseManager {
     if (!isAlive()) return list;
 
     try (PreparedStatement ps =
-        connection.prepareStatement(
-            "SELECT * FROM fpp_bot_sessions WHERE bot_uuid=?"
-                + serverAnd()
-                + " ORDER BY spawned_at DESC")) {
+             connection.prepareStatement(
+                 "SELECT * FROM fpp_bot_sessions WHERE bot_uuid=?"
+                     + serverAnd()
+                     + " ORDER BY spawned_at DESC")) {
       ps.setString(1, botUuid.toString());
       try (ResultSet rs = ps.executeQuery()) {
         while (rs.next()) list.add(mapSession(rs));
@@ -1479,10 +1493,10 @@ public class DatabaseManager {
     if (!isAlive()) return list;
 
     try (PreparedStatement ps =
-        connection.prepareStatement(
-            "SELECT * FROM fpp_bot_sessions WHERE remove_reason=?"
-                + serverAnd()
-                + " ORDER BY removed_at DESC LIMIT ?")) {
+             connection.prepareStatement(
+                 "SELECT * FROM fpp_bot_sessions WHERE remove_reason=?"
+                     + serverAnd()
+                     + " ORDER BY removed_at DESC LIMIT ?")) {
       ps.setString(1, reason);
       ps.setInt(2, limit);
       try (ResultSet rs = ps.executeQuery()) {
@@ -1497,7 +1511,7 @@ public class DatabaseManager {
   public int getTotalSessionCount() {
     if (!isAlive()) return 0;
     try (Statement st = connection.createStatement();
-        ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM fpp_bot_sessions" + serverWhere())) {
+         ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM fpp_bot_sessions" + serverWhere())) {
       if (rs.next()) return rs.getInt(1);
     } catch (SQLException e) {
       FppLogger.error("DB getTotalSessionCount: " + e.getMessage());
@@ -1508,9 +1522,9 @@ public class DatabaseManager {
   public int getActiveSessionCount() {
     if (!isAlive()) return 0;
     try (Statement st = connection.createStatement();
-        ResultSet rs =
-            st.executeQuery(
-                "SELECT COUNT(*) FROM fpp_bot_sessions WHERE removed_at IS NULL" + serverAnd())) {
+         ResultSet rs =
+             st.executeQuery(
+                 "SELECT COUNT(*) FROM fpp_bot_sessions WHERE removed_at IS NULL" + serverAnd())) {
       if (rs.next()) return rs.getInt(1);
     } catch (SQLException e) {
       FppLogger.error("DB getActiveSessionCount: " + e.getMessage());
@@ -1521,9 +1535,9 @@ public class DatabaseManager {
   public int getUniqueBotCount() {
     if (!isAlive()) return 0;
     try (Statement st = connection.createStatement();
-        ResultSet rs =
-            st.executeQuery(
-                "SELECT COUNT(DISTINCT bot_name) FROM fpp_bot_sessions" + serverWhere())) {
+         ResultSet rs =
+             st.executeQuery(
+                 "SELECT COUNT(DISTINCT bot_name) FROM fpp_bot_sessions" + serverWhere())) {
       if (rs.next()) return rs.getInt(1);
     } catch (SQLException e) {
       FppLogger.error("DB getUniqueBotCount: " + e.getMessage());
@@ -1534,9 +1548,9 @@ public class DatabaseManager {
   public int getUniqueSpawnerCount() {
     if (!isAlive()) return 0;
     try (Statement st = connection.createStatement();
-        ResultSet rs =
-            st.executeQuery(
-                "SELECT COUNT(DISTINCT spawned_by) FROM fpp_bot_sessions" + serverWhere())) {
+         ResultSet rs =
+             st.executeQuery(
+                 "SELECT COUNT(DISTINCT spawned_by) FROM fpp_bot_sessions" + serverWhere())) {
       if (rs.next()) return rs.getInt(1);
     } catch (SQLException e) {
       FppLogger.error("DB getUniqueSpawnerCount: " + e.getMessage());
@@ -1548,10 +1562,10 @@ public class DatabaseManager {
     Map<String, Integer> result = new LinkedHashMap<>();
     if (!isAlive()) return result;
     try (PreparedStatement ps =
-        connection.prepareStatement(
-            "SELECT spawned_by, COUNT(*) AS cnt FROM fpp_bot_sessions WHERE "
-                + serverCond()
-                + " GROUP BY spawned_by ORDER BY cnt DESC LIMIT ?")) {
+             connection.prepareStatement(
+                 "SELECT spawned_by, COUNT(*) AS cnt FROM fpp_bot_sessions WHERE "
+                     + serverCond()
+                     + " GROUP BY spawned_by ORDER BY cnt DESC LIMIT ?")) {
       int next = bindServer(ps, 1);
       ps.setInt(next, limit);
       try (ResultSet rs = ps.executeQuery()) {
@@ -1569,29 +1583,29 @@ public class DatabaseManager {
     long totalUptimeMs = 0L;
     try (Statement st = connection.createStatement()) {
       try (ResultSet rs =
-          st.executeQuery("SELECT COUNT(*) FROM fpp_bot_sessions" + serverWhere())) {
+               st.executeQuery("SELECT COUNT(*) FROM fpp_bot_sessions" + serverWhere())) {
         if (rs.next()) total = rs.getInt(1);
       }
       try (ResultSet rs =
-          st.executeQuery(
-              "SELECT COUNT(*) FROM fpp_bot_sessions WHERE removed_at IS NULL" + serverAnd())) {
+               st.executeQuery(
+                   "SELECT COUNT(*) FROM fpp_bot_sessions WHERE removed_at IS NULL" + serverAnd())) {
         if (rs.next()) active = rs.getInt(1);
       }
       try (ResultSet rs =
-          st.executeQuery(
-              "SELECT COUNT(DISTINCT bot_name) FROM fpp_bot_sessions" + serverWhere())) {
+               st.executeQuery(
+                   "SELECT COUNT(DISTINCT bot_name) FROM fpp_bot_sessions" + serverWhere())) {
         if (rs.next()) unique = rs.getInt(1);
       }
       try (ResultSet rs =
-          st.executeQuery(
-              "SELECT COUNT(DISTINCT spawned_by) FROM fpp_bot_sessions" + serverWhere())) {
+               st.executeQuery(
+                   "SELECT COUNT(DISTINCT spawned_by) FROM fpp_bot_sessions" + serverWhere())) {
         if (rs.next()) uniqueSpawners = rs.getInt(1);
       }
       try (ResultSet rs =
-          st.executeQuery(
-              "SELECT SUM(removed_at - spawned_at) FROM fpp_bot_sessions "
-                  + "WHERE removed_at IS NOT NULL"
-                  + serverAnd())) {
+               st.executeQuery(
+                   "SELECT SUM(removed_at - spawned_at) FROM fpp_bot_sessions "
+                       + "WHERE removed_at IS NOT NULL"
+                       + serverAnd())) {
         if (rs.next()) totalUptimeMs = rs.getLong(1);
       }
     } catch (SQLException e) {
@@ -1630,23 +1644,23 @@ public class DatabaseManager {
     String sql =
         isMysql
             ? "INSERT INTO"
-                  + " fpp_active_bots(bot_uuid,bot_name,bot_display,spawned_by,spawned_by_uuid,"
-                  + "world_name,pos_x,pos_y,pos_z,pos_yaw,pos_pitch,updated_at,server_id,"
-                  + "frozen,pickup_items,pickup_xp,head_ai_enabled,nav_parkour,nav_break_blocks,nav_place_blocks)"
-                  + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY"
-                  + " UPDATE bot_name=VALUES(bot_name),bot_display=VALUES(bot_display),"
-                  + "spawned_by=VALUES(spawned_by),spawned_by_uuid=VALUES(spawned_by_uuid),"
-                  + "world_name=VALUES(world_name),pos_x=VALUES(pos_x),pos_y=VALUES(pos_y),"
-                  + "pos_z=VALUES(pos_z),pos_yaw=VALUES(pos_yaw),pos_pitch=VALUES(pos_pitch),"
-                  + "updated_at=VALUES(updated_at),server_id=VALUES(server_id),frozen=VALUES(frozen),"
-                  + "pickup_items=VALUES(pickup_items),pickup_xp=VALUES(pickup_xp),"
-                  + "head_ai_enabled=VALUES(head_ai_enabled),nav_parkour=VALUES(nav_parkour),"
-                  + "nav_break_blocks=VALUES(nav_break_blocks),nav_place_blocks=VALUES(nav_place_blocks)"
+              + " fpp_active_bots(bot_uuid,bot_name,bot_display,spawned_by,spawned_by_uuid,"
+              + "world_name,pos_x,pos_y,pos_z,pos_yaw,pos_pitch,updated_at,server_id,"
+              + "frozen,pickup_items,pickup_xp,head_ai_enabled,nav_parkour,nav_break_blocks,nav_place_blocks)"
+              + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY"
+              + " UPDATE bot_name=VALUES(bot_name),bot_display=VALUES(bot_display),"
+              + "spawned_by=VALUES(spawned_by),spawned_by_uuid=VALUES(spawned_by_uuid),"
+              + "world_name=VALUES(world_name),pos_x=VALUES(pos_x),pos_y=VALUES(pos_y),"
+              + "pos_z=VALUES(pos_z),pos_yaw=VALUES(pos_yaw),pos_pitch=VALUES(pos_pitch),"
+              + "updated_at=VALUES(updated_at),server_id=VALUES(server_id),frozen=VALUES(frozen),"
+              + "pickup_items=VALUES(pickup_items),pickup_xp=VALUES(pickup_xp),"
+              + "head_ai_enabled=VALUES(head_ai_enabled),nav_parkour=VALUES(nav_parkour),"
+              + "nav_break_blocks=VALUES(nav_break_blocks),nav_place_blocks=VALUES(nav_place_blocks)"
             : "INSERT OR REPLACE INTO"
-                  + " fpp_active_bots(bot_uuid,bot_name,bot_display,spawned_by,spawned_by_uuid,"
-                  + "world_name,pos_x,pos_y,pos_z,pos_yaw,pos_pitch,updated_at,server_id,"
-                  + "frozen,pickup_items,pickup_xp,head_ai_enabled,nav_parkour,nav_break_blocks,nav_place_blocks)"
-                  + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+              + " fpp_active_bots(bot_uuid,bot_name,bot_display,spawned_by,spawned_by_uuid,"
+              + "world_name,pos_x,pos_y,pos_z,pos_yaw,pos_pitch,updated_at,server_id,"
+              + "frozen,pickup_items,pickup_xp,head_ai_enabled,nav_parkour,nav_break_blocks,nav_place_blocks)"
+              + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     try (PreparedStatement ps = connection.prepareStatement(sql)) {
       ps.setString(1, uuid);
       ps.setString(2, name);
@@ -1686,7 +1700,7 @@ public class DatabaseManager {
             + " world_name=?,pos_x=?,pos_y=?,pos_z=?,pos_yaw=?,pos_pitch=?,updated_at=?"
             + " WHERE bot_uuid=?";
     try (PreparedStatement ps1 = connection.prepareStatement(s1);
-        PreparedStatement ps2 = connection.prepareStatement(s2)) {
+         PreparedStatement ps2 = connection.prepareStatement(s2)) {
       for (Map.Entry<String, PendingLocation> e : snapshot.entrySet()) {
         PendingLocation l = e.getValue();
         ps1.setString(1, l.world);
@@ -1800,17 +1814,17 @@ public class DatabaseManager {
     String sql =
         isMysql
             ? "INSERT IGNORE INTO"
-                + " fpp_bot_identities(bot_name,server_id,bot_uuid,created_at) SELECT"
-                + " bot_name, server_id, (SELECT s2.bot_uuid FROM fpp_bot_sessions s2"
-                + "  WHERE s2.bot_name=s1.bot_name AND s2.server_id=s1.server_id "
-                + " ORDER BY s2.spawned_at ASC LIMIT 1), MIN(spawned_at) FROM"
-                + " fpp_bot_sessions s1 GROUP BY bot_name, server_id"
+              + " fpp_bot_identities(bot_name,server_id,bot_uuid,created_at) SELECT"
+              + " bot_name, server_id, (SELECT s2.bot_uuid FROM fpp_bot_sessions s2"
+              + "  WHERE s2.bot_name=s1.bot_name AND s2.server_id=s1.server_id "
+              + " ORDER BY s2.spawned_at ASC LIMIT 1), MIN(spawned_at) FROM"
+              + " fpp_bot_sessions s1 GROUP BY bot_name, server_id"
             : "INSERT OR IGNORE INTO"
-                + " fpp_bot_identities(bot_name,server_id,bot_uuid,created_at) SELECT"
-                + " bot_name, server_id, (SELECT s2.bot_uuid FROM fpp_bot_sessions s2"
-                + "  WHERE s2.bot_name=s1.bot_name AND s2.server_id=s1.server_id "
-                + " ORDER BY s2.spawned_at ASC LIMIT 1), MIN(spawned_at) FROM"
-                + " fpp_bot_sessions s1 GROUP BY bot_name, server_id";
+              + " fpp_bot_identities(bot_name,server_id,bot_uuid,created_at) SELECT"
+              + " bot_name, server_id, (SELECT s2.bot_uuid FROM fpp_bot_sessions s2"
+              + "  WHERE s2.bot_name=s1.bot_name AND s2.server_id=s1.server_id "
+              + " ORDER BY s2.spawned_at ASC LIMIT 1), MIN(spawned_at) FROM"
+              + " fpp_bot_sessions s1 GROUP BY bot_name, server_id";
     try (Statement st = connection.createStatement()) {
       int rows = st.executeUpdate(sql);
       if (rows > 0) {
@@ -1830,8 +1844,8 @@ public class DatabaseManager {
   public UUID lookupBotUuid(String botName, String serverId) {
     if (!isAlive()) return null;
     try (PreparedStatement ps =
-        connection.prepareStatement(
-            "SELECT bot_uuid FROM fpp_bot_identities WHERE bot_name=? AND" + " server_id=?")) {
+             connection.prepareStatement(
+                 "SELECT bot_uuid FROM fpp_bot_identities WHERE bot_name=? AND" + " server_id=?")) {
       ps.setString(1, botName);
       ps.setString(2, serverId);
       try (ResultSet rs = ps.executeQuery()) {
@@ -1855,11 +1869,11 @@ public class DatabaseManager {
           String sql =
               isMysql
                   ? "INSERT IGNORE INTO"
-                      + " fpp_bot_identities(bot_name,server_id,bot_uuid,created_at)"
-                      + " VALUES(?,?,?,?)"
+                    + " fpp_bot_identities(bot_name,server_id,bot_uuid,created_at)"
+                    + " VALUES(?,?,?,?)"
                   : "INSERT OR IGNORE INTO"
-                      + " fpp_bot_identities(bot_name,server_id,bot_uuid,created_at)"
-                      + " VALUES(?,?,?,?)";
+                    + " fpp_bot_identities(bot_name,server_id,bot_uuid,created_at)"
+                    + " VALUES(?,?,?,?)";
           try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, botName);
             ps.setString(2, sid);
@@ -1874,13 +1888,14 @@ public class DatabaseManager {
         });
   }
 
-  public record BotIdentityRow(String botName, String serverId, String botUuid, String createdAt) {}
+  public record BotIdentityRow(String botName, String serverId, String botUuid, String createdAt) {
+  }
 
   public List<BotIdentityRow> getBotIdentityRows() {
     List<BotIdentityRow> rows = new ArrayList<>();
     if (!isAlive()) return rows;
     try (PreparedStatement ps =
-        connection.prepareStatement("SELECT bot_name, server_id, bot_uuid, created_at FROM fpp_bot_identities")) {
+             connection.prepareStatement("SELECT bot_name, server_id, bot_uuid, created_at FROM fpp_bot_identities")) {
       ResultSet rs = ps.executeQuery();
       while (rs.next()) {
         rows.add(new BotIdentityRow(
@@ -1897,7 +1912,7 @@ public class DatabaseManager {
 
   public boolean migrateBotUuid(String botName, String serverId, UUID oldUuid, UUID newUuid) {
     try (PreparedStatement ps =
-        connection.prepareStatement("UPDATE fpp_bot_identities SET bot_uuid=? WHERE bot_name=? AND server_id=? AND bot_uuid=?")) {
+             connection.prepareStatement("UPDATE fpp_bot_identities SET bot_uuid=? WHERE bot_name=? AND server_id=? AND bot_uuid=?")) {
       ps.setString(1, newUuid.toString());
       ps.setString(2, botName);
       ps.setString(3, serverId);
@@ -1917,7 +1932,7 @@ public class DatabaseManager {
           if (!isAlive()) return;
 
           try (PreparedStatement del =
-              connection.prepareStatement("DELETE FROM fpp_sleeping_bots WHERE server_id=?")) {
+                   connection.prepareStatement("DELETE FROM fpp_sleeping_bots WHERE server_id=?")) {
             del.setString(1, sid);
             del.executeUpdate();
           } catch (SQLException e) {
@@ -1982,7 +1997,7 @@ public class DatabaseManager {
         () -> {
           if (!isAlive()) return;
           try (PreparedStatement ps =
-              connection.prepareStatement("DELETE FROM fpp_sleeping_bots WHERE server_id=?")) {
+                   connection.prepareStatement("DELETE FROM fpp_sleeping_bots WHERE server_id=?")) {
             ps.setString(1, sid);
             int rows = ps.executeUpdate();
             Config.debug("DB cleared " + rows + " sleeping bot(s) for server='" + sid + "'.");
@@ -2025,15 +2040,15 @@ public class DatabaseManager {
     String sql =
         isMysql
             ? "INSERT IGNORE INTO fpp_bot_sessions"
-                  + "(bot_name,bot_display,bot_uuid,spawned_by,spawned_by_uuid,world_name,"
-                  + "spawn_x,spawn_y,spawn_z,spawn_yaw,spawn_pitch,"
-                  + "last_world,last_x,last_y,last_z,last_yaw,last_pitch,entity_type,spawned_at,removed_at,remove_reason,server_id)"
-                  + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+              + "(bot_name,bot_display,bot_uuid,spawned_by,spawned_by_uuid,world_name,"
+              + "spawn_x,spawn_y,spawn_z,spawn_yaw,spawn_pitch,"
+              + "last_world,last_x,last_y,last_z,last_yaw,last_pitch,entity_type,spawned_at,removed_at,remove_reason,server_id)"
+              + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
             : "INSERT OR IGNORE INTO fpp_bot_sessions"
-                  + "(bot_name,bot_display,bot_uuid,spawned_by,spawned_by_uuid,world_name,"
-                  + "spawn_x,spawn_y,spawn_z,spawn_yaw,spawn_pitch,"
-                  + "last_world,last_x,last_y,last_z,last_yaw,last_pitch,entity_type,spawned_at,removed_at,remove_reason,server_id)"
-                  + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+              + "(bot_name,bot_display,bot_uuid,spawned_by,spawned_by_uuid,world_name,"
+              + "spawn_x,spawn_y,spawn_z,spawn_yaw,spawn_pitch,"
+              + "last_world,last_x,last_y,last_z,last_yaw,last_pitch,entity_type,spawned_at,removed_at,remove_reason,server_id)"
+              + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     try (PreparedStatement ps = connection.prepareStatement(sql)) {
       ps.setString(1, botName);
@@ -2086,11 +2101,11 @@ public class DatabaseManager {
     String sql =
         isMysql
             ? "INSERT IGNORE INTO fpp_active_bots"
-                  + "(bot_uuid,bot_name,bot_display,spawned_by,spawned_by_uuid,world_name,pos_x,pos_y,pos_z,pos_yaw,pos_pitch,updated_at,server_id)"
-                  + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)"
+              + "(bot_uuid,bot_name,bot_display,spawned_by,spawned_by_uuid,world_name,pos_x,pos_y,pos_z,pos_yaw,pos_pitch,updated_at,server_id)"
+              + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)"
             : "INSERT OR IGNORE INTO fpp_active_bots"
-                  + "(bot_uuid,bot_name,bot_display,spawned_by,spawned_by_uuid,world_name,pos_x,pos_y,pos_z,pos_yaw,pos_pitch,updated_at,server_id)"
-                  + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)";
+              + "(bot_uuid,bot_name,bot_display,spawned_by,spawned_by_uuid,world_name,pos_x,pos_y,pos_z,pos_yaw,pos_pitch,updated_at,server_id)"
+              + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     try (PreparedStatement ps = connection.prepareStatement(sql)) {
       ps.setString(1, botUuid);
@@ -2119,7 +2134,7 @@ public class DatabaseManager {
   public int countActiveBotRows() {
     if (!isAlive()) return 0;
     try (Statement st = connection.createStatement();
-        ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM fpp_active_bots")) {
+         ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM fpp_active_bots")) {
       if (rs.next()) return rs.getInt(1);
     } catch (SQLException e) {
       FppLogger.error("DB countActiveBotRows: " + e.getMessage());
@@ -2171,8 +2186,8 @@ public class DatabaseManager {
         () -> {
           if (!isAlive()) return;
           try (PreparedStatement ps =
-              connection.prepareStatement(
-                  "UPDATE fpp_active_bots SET chat_enabled=?,chat_tier=? WHERE bot_uuid=?")) {
+                   connection.prepareStatement(
+                       "UPDATE fpp_active_bots SET chat_enabled=?,chat_tier=? WHERE bot_uuid=?")) {
             ps.setBoolean(1, chatEnabled);
             if (chatTier != null && !chatTier.isBlank()) ps.setString(2, chatTier);
             else ps.setNull(2, java.sql.Types.VARCHAR);
@@ -2198,8 +2213,8 @@ public class DatabaseManager {
         () -> {
           if (!isAlive()) return;
           try (PreparedStatement ps =
-              connection.prepareStatement(
-                  "UPDATE fpp_active_bots SET ping=?,ping_user_set=? WHERE bot_uuid=?")) {
+                   connection.prepareStatement(
+                       "UPDATE fpp_active_bots SET ping=?,ping_user_set=? WHERE bot_uuid=?")) {
             ps.setInt(1, ping);
             ps.setBoolean(2, userSet);
             ps.setString(3, uuid);
@@ -2216,8 +2231,8 @@ public class DatabaseManager {
         () -> {
           if (!isAlive()) return;
           try (PreparedStatement ps =
-              connection.prepareStatement(
-                  "UPDATE fpp_active_bots SET " + column + "=? WHERE bot_uuid=?")) {
+                   connection.prepareStatement(
+                       "UPDATE fpp_active_bots SET " + column + "=? WHERE bot_uuid=?")) {
             if (value != null && !value.isBlank()) ps.setString(1, value);
             else ps.setNull(1, java.sql.Types.VARCHAR);
             ps.setString(2, uuid);
@@ -2352,8 +2367,8 @@ public class DatabaseManager {
         () -> {
           if (!isAlive()) return;
           try (PreparedStatement ps =
-              connection.prepareStatement(
-                  "UPDATE fpp_active_bots SET skin_texture=?,skin_signature=? WHERE bot_uuid=?")) {
+                   connection.prepareStatement(
+                       "UPDATE fpp_active_bots SET skin_texture=?,skin_signature=? WHERE bot_uuid=?")) {
             if (skinTexture != null && !skinTexture.isBlank()) ps.setString(1, skinTexture);
             else ps.setNull(1, java.sql.Types.CLOB);
             if (skinSignature != null && !skinSignature.isBlank()) ps.setString(2, skinSignature);
@@ -2372,8 +2387,8 @@ public class DatabaseManager {
         () -> {
           if (!isAlive()) return;
           try (PreparedStatement ps =
-              connection.prepareStatement(
-                  "UPDATE fpp_active_bots SET spawned_by=?,spawned_by_uuid=? WHERE bot_uuid=?")) {
+                   connection.prepareStatement(
+                       "UPDATE fpp_active_bots SET spawned_by=?,spawned_by_uuid=? WHERE bot_uuid=?")) {
             ps.setString(1, ownerName);
             ps.setString(2, ownerUuid);
             ps.setString(3, uuid);
@@ -2403,9 +2418,9 @@ public class DatabaseManager {
           String sql =
               isMysql
                   ? "INSERT INTO fpp_bot_extension_data(bot_uuid,extension_key,data_key,data_value,updated_at)"
-                      + " VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE data_value=VALUES(data_value),updated_at=VALUES(updated_at)"
+                    + " VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE data_value=VALUES(data_value),updated_at=VALUES(updated_at)"
                   : "INSERT OR REPLACE INTO fpp_bot_extension_data(bot_uuid,extension_key,data_key,data_value,updated_at)"
-                      + " VALUES(?,?,?,?,?)";
+                    + " VALUES(?,?,?,?,?)";
           try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, botUuid);
             ps.setString(2, ext);
@@ -2429,8 +2444,8 @@ public class DatabaseManager {
         () -> {
           if (!isAlive()) return;
           try (PreparedStatement ps =
-              connection.prepareStatement(
-                  "DELETE FROM fpp_bot_extension_data WHERE bot_uuid=? AND extension_key=? AND data_key=?")) {
+                   connection.prepareStatement(
+                       "DELETE FROM fpp_bot_extension_data WHERE bot_uuid=? AND extension_key=? AND data_key=?")) {
             ps.setString(1, botUuid);
             ps.setString(2, ext);
             ps.setString(3, key);
@@ -2447,8 +2462,8 @@ public class DatabaseManager {
     String ext = normalizeExtensionKey(extensionKey);
     if (botUuid == null || botUuid.isBlank() || ext.isBlank()) return out;
     try (PreparedStatement ps =
-        connection.prepareStatement(
-            "SELECT data_key,data_value FROM fpp_bot_extension_data WHERE bot_uuid=? AND extension_key=?")) {
+             connection.prepareStatement(
+                 "SELECT data_key,data_value FROM fpp_bot_extension_data WHERE bot_uuid=? AND extension_key=?")) {
       ps.setString(1, botUuid);
       ps.setString(2, ext);
       try (ResultSet rs = ps.executeQuery()) {
@@ -2464,8 +2479,8 @@ public class DatabaseManager {
     Map<String, Map<String, String>> out = new HashMap<>();
     if (!isAlive() || botUuid == null || botUuid.isBlank()) return out;
     try (PreparedStatement ps =
-        connection.prepareStatement(
-            "SELECT extension_key,data_key,data_value FROM fpp_bot_extension_data WHERE bot_uuid=?")) {
+             connection.prepareStatement(
+                 "SELECT extension_key,data_key,data_value FROM fpp_bot_extension_data WHERE bot_uuid=?")) {
       ps.setString(1, botUuid);
       try (ResultSet rs = ps.executeQuery()) {
         while (rs.next()) {
@@ -2492,7 +2507,7 @@ public class DatabaseManager {
           if (!isAlive()) return;
 
           try (PreparedStatement ps =
-              connection.prepareStatement("DELETE FROM fpp_bot_tasks WHERE server_id=?")) {
+                   connection.prepareStatement("DELETE FROM fpp_bot_tasks WHERE server_id=?")) {
             ps.setString(1, sid);
             ps.executeUpdate();
           } catch (SQLException e) {
@@ -2504,15 +2519,15 @@ public class DatabaseManager {
           String sql =
               isMysql
                   ? "INSERT INTO fpp_bot_tasks"
-                        + " (bot_uuid,server_id,task_type,world_name,pos_x,pos_y,pos_z,pos_yaw,pos_pitch,once_flag,extra_str,extra_bool)"
-                        + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE"
-                        + " world_name=VALUES(world_name),pos_x=VALUES(pos_x),"
-                        + "pos_y=VALUES(pos_y),pos_z=VALUES(pos_z),pos_yaw=VALUES(pos_yaw),"
-                        + "pos_pitch=VALUES(pos_pitch),once_flag=VALUES(once_flag),"
-                        + "extra_str=VALUES(extra_str),extra_bool=VALUES(extra_bool)"
+                    + " (bot_uuid,server_id,task_type,world_name,pos_x,pos_y,pos_z,pos_yaw,pos_pitch,once_flag,extra_str,extra_bool)"
+                    + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE"
+                    + " world_name=VALUES(world_name),pos_x=VALUES(pos_x),"
+                    + "pos_y=VALUES(pos_y),pos_z=VALUES(pos_z),pos_yaw=VALUES(pos_yaw),"
+                    + "pos_pitch=VALUES(pos_pitch),once_flag=VALUES(once_flag),"
+                    + "extra_str=VALUES(extra_str),extra_bool=VALUES(extra_bool)"
                   : "INSERT OR REPLACE INTO fpp_bot_tasks"
-                        + " (bot_uuid,server_id,task_type,world_name,pos_x,pos_y,pos_z,pos_yaw,pos_pitch,once_flag,extra_str,extra_bool)"
-                        + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+                    + " (bot_uuid,server_id,task_type,world_name,pos_x,pos_y,pos_z,pos_yaw,pos_pitch,once_flag,extra_str,extra_bool)"
+                    + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
           try (PreparedStatement ps = connection.prepareStatement(sql)) {
             for (BotTaskRow row : snap) {
               ps.setString(1, row.botUuid());
@@ -2560,7 +2575,7 @@ public class DatabaseManager {
         () -> {
           if (!isAlive()) return;
           try (PreparedStatement ps =
-              connection.prepareStatement("DELETE FROM fpp_bot_tasks WHERE server_id=?")) {
+                   connection.prepareStatement("DELETE FROM fpp_bot_tasks WHERE server_id=?")) {
             ps.setString(1, sid);
             int rows = ps.executeUpdate();
             Config.debug("DB cleared " + rows + " bot task row(s) for server='" + sid + "'.");
@@ -2596,14 +2611,14 @@ public class DatabaseManager {
           String sql =
               isMysql
                   ? "INSERT INTO fpp_despawn_snapshots"
-                      + " (bot_name,server_id,inventory_data,xp_total,xp_level,xp_progress,skin_texture,skin_signature,saved_at)"
-                      + " VALUES (?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE"
-                      + " inventory_data=VALUES(inventory_data),xp_total=VALUES(xp_total),"
-                      + " xp_level=VALUES(xp_level),xp_progress=VALUES(xp_progress),"
-                      + " skin_texture=VALUES(skin_texture),skin_signature=VALUES(skin_signature),saved_at=VALUES(saved_at)"
+                    + " (bot_name,server_id,inventory_data,xp_total,xp_level,xp_progress,skin_texture,skin_signature,saved_at)"
+                    + " VALUES (?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE"
+                    + " inventory_data=VALUES(inventory_data),xp_total=VALUES(xp_total),"
+                    + " xp_level=VALUES(xp_level),xp_progress=VALUES(xp_progress),"
+                    + " skin_texture=VALUES(skin_texture),skin_signature=VALUES(skin_signature),saved_at=VALUES(saved_at)"
                   : "INSERT OR REPLACE INTO fpp_despawn_snapshots"
-                      + " (bot_name,server_id,inventory_data,xp_total,xp_level,xp_progress,skin_texture,skin_signature,saved_at)"
-                      + " VALUES (?,?,?,?,?,?,?,?,?)";
+                    + " (bot_name,server_id,inventory_data,xp_total,xp_level,xp_progress,skin_texture,skin_signature,saved_at)"
+                    + " VALUES (?,?,?,?,?,?,?,?,?)";
           try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, botName);
             ps.setString(2, serverId);
@@ -2625,15 +2640,17 @@ public class DatabaseManager {
         });
   }
 
-  /** Removes the despawn snapshot for a bot (called after inventory is restored on respawn). */
+  /**
+   * Removes the despawn snapshot for a bot (called after inventory is restored on respawn).
+   */
   public void deleteDespawnSnapshot(String botName, String serverId) {
     if (!isAlive()) return;
     enqueue(
         () -> {
           if (!isAlive()) return;
           try (PreparedStatement ps =
-              connection.prepareStatement(
-                  "DELETE FROM fpp_despawn_snapshots WHERE bot_name=? AND server_id=?")) {
+                   connection.prepareStatement(
+                       "DELETE FROM fpp_despawn_snapshots WHERE bot_name=? AND server_id=?")) {
             ps.setString(1, botName);
             ps.setString(2, serverId);
             ps.executeUpdate();
@@ -2651,9 +2668,9 @@ public class DatabaseManager {
     List<DespawnSnapshotRow> list = new ArrayList<>();
     if (!isAlive()) return list;
     try (PreparedStatement ps =
-        connection.prepareStatement(
-            "SELECT bot_name,server_id,inventory_data,xp_total,xp_level,xp_progress,skin_texture,skin_signature,saved_at"
-                + " FROM fpp_despawn_snapshots WHERE server_id=?")) {
+             connection.prepareStatement(
+                 "SELECT bot_name,server_id,inventory_data,xp_total,xp_level,xp_progress,skin_texture,skin_signature,saved_at"
+                     + " FROM fpp_despawn_snapshots WHERE server_id=?")) {
       ps.setString(1, serverId);
       try (ResultSet rs = ps.executeQuery()) {
         while (rs.next()) {
@@ -2708,7 +2725,8 @@ public class DatabaseManager {
   }
 
   private record PendingLocation(
-      String world, double x, double y, double z, float yaw, float pitch) {}
+      String world, double x, double y, double z, float yaw, float pitch) {
+  }
 
   public record ActiveBotRow(
       String botUuid,
@@ -2750,7 +2768,8 @@ public class DatabaseManager {
       boolean autoMilkEnabled,
       boolean preventBadOmen,
       boolean respawnOnDeath,
-      boolean pingUserSet) {}
+      boolean pingUserSet) {
+  }
 
   public record SleepingBotRow(
       int sleepOrder,
@@ -2760,7 +2779,8 @@ public class DatabaseManager {
       double y,
       double z,
       float yaw,
-      float pitch) {}
+      float pitch) {
+  }
 
   public record DespawnSnapshotRow(
       String botName,
@@ -2771,7 +2791,8 @@ public class DatabaseManager {
       float xpProgress,
       String skinTexture,
       String skinSignature,
-      long savedAt) {}
+      long savedAt) {
+  }
 
   public record BotTaskRow(
       String botUuid,
@@ -2785,7 +2806,8 @@ public class DatabaseManager {
       float posPitch,
       boolean onceFlag,
       String extraStr,
-      boolean extraBool) {}
+      boolean extraBool) {
+  }
 
   public record DbStats(
       int totalSessions,

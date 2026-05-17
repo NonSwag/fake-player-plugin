@@ -1,7 +1,5 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
@@ -30,6 +28,16 @@ import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class AttackCommand implements FppCommand {
 
@@ -78,7 +86,9 @@ public final class AttackCommand implements FppCommand {
 
   private final Map<UUID, Integer> attackTasks = new ConcurrentHashMap<>();
 
-  /** Separate repeating-scan task IDs for --hunt mode (20-tick navigation-to-next-target loop). */
+  /**
+   * Separate repeating-scan task IDs for --hunt mode (20-tick navigation-to-next-target loop).
+   */
   private final Map<UUID, Integer> huntScanTasks = new ConcurrentHashMap<>();
 
   private final Map<UUID, Location> activeAttackLocations = new ConcurrentHashMap<>();
@@ -103,7 +113,9 @@ public final class AttackCommand implements FppCommand {
     FakePlayer.PveSmartAttackMode smartAttackMode = FakePlayer.PveSmartAttackMode.OFF;
     boolean moveToTarget = false;
 
-    /** True when in --hunt mode (PathfindingService drives movement, not raw input). */
+    /**
+     * True when in --hunt mode (PathfindingService drives movement, not raw input).
+     */
     boolean huntMode = false;
 
     @Nullable UUID currentTargetUuid = null;
@@ -119,7 +131,9 @@ public final class AttackCommand implements FppCommand {
       Set<EntityType> filterTypes,
       FakePlayer.PveSmartAttackMode smartAttackMode,
       boolean huntMode) {
-    /** Backward-compat 4-arg constructor used by persistence-resume and settings paths. */
+    /**
+     * Backward-compat 4-arg constructor used by persistence-resume and settings paths.
+     */
     MobFlags(double range, String priority, Set<EntityType> filterTypes, boolean moveToTarget) {
       this(
           range,
@@ -140,7 +154,7 @@ public final class AttackCommand implements FppCommand {
   @Override
   public String getUsage() {
     return "<bot|all> [--once|--stop|--mob [--range <n>] [--type <mob>] [--priority <mode>] [--move]"
-               + "  |  --hunt [<mob>] [--range <n>] [--priority <mode>]]  |  --stop";
+        + "  |  --hunt [<mob>] [--range <n>] [--priority <mode>]]  |  --stop";
   }
 
   @Override
@@ -262,13 +276,13 @@ public final class AttackCommand implements FppCommand {
     MobFlags mobFlags =
         mobMode
             ? new MobFlags(
-                range,
-                priority,
-                filterType != null ? Set.of(filterType) : Set.of(),
-                moveToTarget
-                    ? FakePlayer.PveSmartAttackMode.ON_MOVE
-                    : FakePlayer.PveSmartAttackMode.ON_NO_MOVE,
-                huntMode)
+            range,
+            priority,
+            filterType != null ? Set.of(filterType) : Set.of(),
+            moveToTarget
+            ? FakePlayer.PveSmartAttackMode.ON_MOVE
+            : FakePlayer.PveSmartAttackMode.ON_NO_MOVE,
+            huntMode)
             : null;
 
     if (botName.equalsIgnoreCase("--all")) {
@@ -668,9 +682,12 @@ public final class AttackCommand implements FppCommand {
             2.2,  // arrival distance — close enough to melee
             3.5,  // recalc when target moves this far
             3,    // max null-path recalculations before giving up
-            () -> {},    // onArrive — combat tick handles the attack
-            () -> {},    // onCancel
-            () -> {}     // onPathFailure
+            () -> {
+            },    // onArrive — combat tick handles the attack
+            () -> {
+            },    // onCancel
+            () -> {
+            }     // onPathFailure
         );
     pathfinding.navigate(fp, req);
   }

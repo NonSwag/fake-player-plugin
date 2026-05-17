@@ -1,15 +1,17 @@
 package me.bill.fakePlayerPlugin.util;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public final class TextUtil {
 
-  private TextUtil() {}
+  private TextUtil() {
+  }
 
   private static final MiniMessage MM = MiniMessage.miniMessage();
 
@@ -77,9 +79,9 @@ public final class TextUtil {
     boolean hasMiniMessageTags =
         s.indexOf('<') >= 0
             && (s.contains("<rainbow>")
-                || s.contains("<gradient")
-                || HEX_TAG_ANYWHERE.matcher(s).find()
-                || MINI_TAG_ANYWHERE.matcher(s).find());
+            || s.contains("<gradient")
+            || HEX_TAG_ANYWHERE.matcher(s).find()
+            || MINI_TAG_ANYWHERE.matcher(s).find());
 
     if (hasMiniMessageTags && (s.indexOf('&') >= 0 || s.indexOf('§') >= 0)) {
       s = convertMixedFormat(s);

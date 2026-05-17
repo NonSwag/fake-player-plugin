@@ -22,9 +22,20 @@ public class FppBotFollowEvent extends FppBotEvent {
     this.target = target;
   }
 
-  public @NotNull Action getAction() { return action; }
-  public @Nullable Entity getTarget() { return target; }
+  public @NotNull Action getAction() {
+    return action;
+  }
 
-  @Override public @NotNull HandlerList getHandlers() { return HANDLERS; }
-  public static @NotNull HandlerList getHandlerList() { return HANDLERS; }
+  public @Nullable Entity getTarget() {
+    return target;
+  }
+
+  @Override
+  public @NotNull HandlerList getHandlers() {
+    return HANDLERS;
+  }
+
+  public static @NotNull HandlerList getHandlerList() {
+    return HANDLERS;
+  }
 }
