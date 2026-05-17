@@ -26,17 +26,16 @@ FPP spawns server-side bot entities that behave like players — useful for **AF
 
 ## Building from Source
 
-Requires JDK 21 and Maven.
+Requires JDK 21 and Gradle.
 
 ```bash
-mvn clean package
+./gradlew clean shadowJar
 ```
 
-- Output: `build/fpp.jar`
-- Auto-deploys to `~/Desktop/dmc/plugins/fpp.jar` by default (override with `-Ddeploy.dir=...`)
+- Output: `build/libs/fake-player-plugin-<version>-all.jar`
 - Optional profiles: `-Pbuild-velocity-companion`, `-Pbuild-bungee-companion`
 
-The build depends on a **system-scoped** Mojang-mapped Paper JAR at `libs/paper-1.21.11-mojang-mapped.jar`. Do not remove or rename this file.
+The build depends on the **paperweight** Paper dev bundle (`paper-1.21.11-R0.1-SNAPSHOT`). Gradle downloads this automatically via the Paperweight plugin.
 
 ## First Steps
 

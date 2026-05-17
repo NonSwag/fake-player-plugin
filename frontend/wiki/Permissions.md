@@ -50,12 +50,16 @@ FPP uses a two-tier permission system with granular sub-nodes.
 ### Automation
 - `fpp.mine` — bot mining
   - `fpp.mine.start`, `fpp.mine.once`, `fpp.mine.stop`, `fpp.mine.area`
+  - `fpp.mine.wesel` — WorldEdit selection as mining area
 - `fpp.place` — block placement
   - `fpp.place.start`, `fpp.place.once`, `fpp.place.stop`
+  - `fpp.place.wesel` — WorldEdit selection as placement area
 - `fpp.use.cmd` (alias: `fpp.useitem`) — right-click automation
   - `fpp.useitem.start`, `fpp.useitem.once`, `fpp.useitem.stop`
 - `fpp.attack` — PvE attack
-  - `fpp.attack.hunt` — `--hunt` roaming mob hunt
+  - `fpp.mine.wesel` — use WorldEdit selection for mining area
+- `fpp.place.wesel` — use WorldEdit selection for placement area
+- `fpp.attack.hunt` — `--hunt` roaming mob hunt
 - `fpp.find` — find-and-mine nearby blocks
 - `fpp.follow` — make bot follow a player
 - `fpp.sleep` — auto-sleep at night
