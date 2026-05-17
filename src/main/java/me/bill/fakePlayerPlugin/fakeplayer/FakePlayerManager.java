@@ -2,14 +2,27 @@ package me.bill.fakePlayerPlugin.fakeplayer;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.api.event.FppBotDespawnEvent;
+import me.bill.fakePlayerPlugin.api.event.FppBotSpawnEvent;
 import me.bill.fakePlayerPlugin.api.event.FppBotTeleportEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.BotRecord;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
+import me.bill.fakePlayerPlugin.listener.PlayerJoinListener;
+import me.bill.fakePlayerPlugin.util.AttributeCompat;
+import me.bill.fakePlayerPlugin.util.AttributionApiManager;
+import me.bill.fakePlayerPlugin.util.AttributionManager;
+import me.bill.fakePlayerPlugin.util.BadwordFilter;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import me.bill.fakePlayerPlugin.util.RandomNameGenerator;
+import me.bill.fakePlayerPlugin.util.TextUtil;
+import me.bill.fakePlayerPlugin.util.WorldGuardHelper;
+import me.clip.placeholderapi.PlaceholderAPI;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -19,17 +32,29 @@ import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.Tag;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.BlockIterator;
+import org.bukkit.util.Vector;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -40,6 +65,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class FakePlayerManager {
@@ -51,7 +78,7 @@ public class FakePlayerManager {
 
   private final Map<Integer, FakePlayer> entityIdIndex = new ConcurrentHashMap<>();
 
-  private static final org.bukkit.util.Vector ZERO_VELOCITY = new org.bukkit.util.Vector(0, 0, 0);
+  private static final Vector ZERO_VELOCITY = new Vector(0, 0, 0);
 
   /**
    * Cosine of the maximum gaze angle for head-AI player tracking.
@@ -124,7 +151,7 @@ public class FakePlayerManager {
   /**
    * YAML fallback file for despawn snapshots (used when DB is disabled).
    */
-  private volatile java.io.File despawnSnapshotFile = null;
+  private volatile File despawnSnapshotFile = null;
 
   private ChunkLoader chunkLoader;
   private DatabaseManager db;
@@ -156,15 +183,15 @@ public class FakePlayerManager {
   }
 
   public void refreshCleanNamePool() {
-    List<String> raw = me.bill.fakePlayerPlugin.config.Config.namePool();
+    List<String> raw = Config.namePool();
     List<String> clean = new ArrayList<>(raw.size());
     for (String n : raw) {
       if (n == null || n.isEmpty() || n.length() > 16 || !n.matches("[a-zA-Z0-9_]+")) continue;
-      if (!me.bill.fakePlayerPlugin.util.BadwordFilter.isAllowed(n)) continue;
+      if (!BadwordFilter.isAllowed(n)) continue;
       clean.add(n);
     }
     cleanNamePool = Collections.unmodifiableList(clean);
-    me.bill.fakePlayerPlugin.config.Config.debugStartup(
+    Config.debugStartup(
         "Clean name pool refreshed: "
             + clean.size()
             + "/"
@@ -184,8 +211,8 @@ public class FakePlayerManager {
     this.plugin = plugin;
     FAKE_PLAYER_KEY = new NamespacedKey(plugin, "fake_player_name");
 
-    if (!me.bill.fakePlayerPlugin.util.AttributionManager.quickAuthorCheck()
-        || !me.bill.fakePlayerPlugin.util.AttributionApiManager.quickEndpointCheck()) {
+    if (!AttributionManager.quickAuthorCheck()
+        || !AttributionApiManager.quickEndpointCheck()) {
       FppLogger.warn("Plugin attribution integrity check failed in FakePlayerManager.");
     }
 
@@ -196,7 +223,7 @@ public class FakePlayerManager {
           if (activePlayers.isEmpty()) return;
           for (FakePlayer fp : activePlayers.values()) {
 
-            org.bukkit.Location loc = fp.getLiveLocation();
+            Location loc = fp.getLiveLocation();
             if (loc == null || loc.getWorld() == null) continue;
             String world = loc.getWorld().getName();
 
@@ -325,7 +352,7 @@ public class FakePlayerManager {
           final double[] playerX = new double[onlineCount];
           final double[] playerY = new double[onlineCount];
           final double[] playerZ = new double[onlineCount];
-          final org.bukkit.World[] playerWorld = new org.bukkit.World[onlineCount];
+          final World[] playerWorld = new World[onlineCount];
           for (int pi = 0; pi < onlineCount; pi++) {
             Location pl = online.get(pi).getLocation();
             playerX[pi] = pl.getX();
@@ -365,8 +392,8 @@ public class FakePlayerManager {
               // rather than waiting for the 40-tick nightWatchTick sweep means the
               // bot stands up on the exact same tick the bed is removed.
               if (fp.isSleeping()) {
-                net.minecraft.server.level.ServerPlayer nmsBot =
-                    ((org.bukkit.craftbukkit.entity.CraftPlayer) bot).getHandle();
+                ServerPlayer nmsBot =
+                    ((CraftPlayer) bot).getHandle();
                 if (!nmsBot.isSleeping()) {
                   // NMS already woke the bot — clear flag and fall through to normal tick.
                   fp.setSleeping(false);
@@ -415,7 +442,7 @@ public class FakePlayerManager {
                   // Check that the player is looking toward this bot (gaze test).
                   // We compare the player's look direction against the unit vector
                   // from the player's eye to the bot's eye.
-                  org.bukkit.util.Vector lookDir = p.getEyeLocation().getDirection();
+                  Vector lookDir = p.getEyeLocation().getDirection();
                   double botEyeX = before.getX() - playerX[pi2];
                   double botEyeY = (before.getY() + 1.62) - (playerY[pi2] + 1.62);
                   double botEyeZ = before.getZ() - playerZ[pi2];
@@ -517,7 +544,7 @@ public class FakePlayerManager {
             double dyM = before.getY() - after.getY();
             double dzM = before.getZ() - after.getZ();
 
-            org.bukkit.util.Vector vel2 = bot.getVelocity();
+            Vector vel2 = bot.getVelocity();
             boolean moved =
                 before.getWorld() == after.getWorld()
                     && (dxM * dxM + dyM * dyM + dzM * dzM) > 1e-8;
@@ -712,22 +739,22 @@ public class FakePlayerManager {
       FakePlayer fp,
       String displayName,
       boolean useDefaultMessage,
-      org.bukkit.event.player.PlayerQuitEvent.QuitReason reason) {
+      PlayerQuitEvent.QuitReason reason) {
     if (fp == null) return;
     Player player = fp.getPlayer();
     if (player == null) player = fp.getPhysicsEntity();
     if (player == null) return;
 
-    net.kyori.adventure.text.Component defaultMessage =
+    Component defaultMessage =
         useDefaultMessage && displayName != null && !displayName.isBlank()
             ? BotBroadcast.leaveComponent(fp)
             : null;
-    org.bukkit.event.player.PlayerQuitEvent quitEvent =
-        new org.bukkit.event.player.PlayerQuitEvent(player, defaultMessage, reason);
+    PlayerQuitEvent quitEvent =
+        new PlayerQuitEvent(player, defaultMessage, reason);
     Bukkit.getPluginManager().callEvent(quitEvent);
     syntheticQuitBotIds.add(fp.getUuid());
 
-    net.kyori.adventure.text.Component message = quitEvent.quitMessage();
+    Component message = quitEvent.quitMessage();
     if (message == null) return;
     for (Player online : Bukkit.getOnlinePlayers()) {
       if (online != null && online.isOnline()) online.sendMessage(message);
@@ -892,8 +919,8 @@ public class FakePlayerManager {
         fp.setDbRecord(record);
         db.recordSpawn(
             record,
-            net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
-                .serialize(me.bill.fakePlayerPlugin.util.TextUtil.colorize(ubn.displayName())));
+            PlainTextComponentSerializer.plainText()
+                .serialize(TextUtil.colorize(ubn.displayName())));
         persistActiveSkin(fp);
       }
     }
@@ -1046,8 +1073,8 @@ public class FakePlayerManager {
         fp.setDbRecord(record);
         db.recordSpawn(
             record,
-            net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
-                .serialize(me.bill.fakePlayerPlugin.util.TextUtil.colorize(displayName)));
+            PlainTextComponentSerializer.plainText()
+                .serialize(TextUtil.colorize(displayName)));
         persistActiveSkin(fp);
       }
     }
@@ -1107,7 +1134,7 @@ public class FakePlayerManager {
   }
 
   private void finishSpawn(FakePlayer fp, Location spawnLoc) {
-    fp.setSpawnTime(java.time.Instant.now());
+    fp.setSpawnTime(Instant.now());
     spawnBodyAndFinish(fp, spawnLoc);
   }
 
@@ -1187,10 +1214,10 @@ public class FakePlayerManager {
           Files.move(
               tmp,
               file,
-              java.nio.file.StandardCopyOption.REPLACE_EXISTING,
-              java.nio.file.StandardCopyOption.ATOMIC_MOVE);
-        } catch (java.nio.file.AtomicMoveNotSupportedException ignored) {
-          Files.move(tmp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+              StandardCopyOption.REPLACE_EXISTING,
+              StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException ignored) {
+          Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
         }
         Config.debug("Restored playerdata for explicit UUID bot source '" + fp.getName() + "'.");
       } else if (Boolean.TRUE.equals(fp.getMetadata("fpp.explicit-uuid-playerdata-missing"))) {
@@ -1243,10 +1270,10 @@ public class FakePlayerManager {
               fp.setPacketProfileName(fp.getName());
               // Ping was already set on the NMS ServerPlayer before placeNewPlayer,
               // but update it again here in case the pre-spawn set didn't take effect.
-              me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner.setPing(body, fp.getEffectivePing());
+              NmsPlayerSpawner.setPing(body, fp.getEffectivePing());
 
               if (plugin.isWorldGuardAvailable()
-                  && !me.bill.fakePlayerPlugin.util.WorldGuardHelper.isPvpAllowed(spawnLoc)) {
+                  && !WorldGuardHelper.isPvpAllowed(spawnLoc)) {
                 Config.debug(
                     "WorldGuard: bot '"
                         + fp.getName()
@@ -1260,7 +1287,7 @@ public class FakePlayerManager {
 
               final Player savedBody = body;
               final String savedName = fp.getName();
-              final java.util.UUID savedUuid = fp.getUuid();
+              final UUID savedUuid = fp.getUuid();
               final boolean skipPlayerDataSave = isExplicitUuidSpawn(fp);
               if (wasExplicitUuidOp(fp)) {
                 try {
@@ -1282,7 +1309,7 @@ public class FakePlayerManager {
                     }
                     try {
 
-                      me.bill.fakePlayerPlugin.listener.PlayerJoinListener.stampFirstPlayed(savedBody);
+                      PlayerJoinListener.stampFirstPlayed(savedBody);
                       savedBody.saveData();
                       FppLogger.debug(
                           "FakePlayerManager: initial playerdata"
@@ -1422,9 +1449,9 @@ public class FakePlayerManager {
           // Fire API spawn event.
           var fppApi = plugin.getFppApi();
           if (fppApi != null) {
-            me.bill.fakePlayerPlugin.api.event.FppBotSpawnEvent spawnEvt =
-                new me.bill.fakePlayerPlugin.api.event.FppBotSpawnEvent(
-                    new me.bill.fakePlayerPlugin.api.impl.FppBotImpl(fp), fp.isRestoredSpawn());
+            FppBotSpawnEvent spawnEvt =
+                new FppBotSpawnEvent(
+                    new FppBotImpl(fp), fp.isRestoredSpawn());
             Bukkit.getPluginManager().callEvent(spawnEvt);
           }
         },
@@ -1565,8 +1592,8 @@ public class FakePlayerManager {
               null);
       fp.setDbRecord(record);
       String plainDisplay =
-          net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
-              .serialize(me.bill.fakePlayerPlugin.util.TextUtil.colorize(displayName));
+          PlainTextComponentSerializer.plainText()
+              .serialize(TextUtil.colorize(displayName));
       db.recordSpawn(record, plainDisplay);
     }
 
@@ -1682,7 +1709,7 @@ public class FakePlayerManager {
                   target,
                   despawnName,
                   broadcastLeave,
-                  org.bukkit.event.player.PlayerQuitEvent.QuitReason.DISCONNECTED);
+                  PlayerQuitEvent.QuitReason.DISCONNECTED);
             }
             try {
               if (explicitUuidSpawn) FakePlayerBody.removeAllWithoutSaving(target);
@@ -1754,7 +1781,7 @@ public class FakePlayerManager {
   }
 
   private static void applyDespawnSnapshot(Player bot, DespawnSnapshot snap) {
-    org.bukkit.inventory.PlayerInventory inv = bot.getInventory();
+    PlayerInventory inv = bot.getInventory();
     if (snap.mainContents().length > 0) inv.setContents(snap.mainContents());
     if (snap.armorContents().length > 0) inv.setArmorContents(snap.armorContents());
     if (snap.extraContents().length > 0) inv.setExtraContents(snap.extraContents());
@@ -1795,13 +1822,13 @@ public class FakePlayerManager {
    */
   public void initDespawnSnapshots() {
     despawnSnapshotFile =
-        new java.io.File(plugin.getDataFolder(), "data" + java.io.File.separator + "despawn-snapshots.yml");
+        new File(plugin.getDataFolder(), "data" + File.separator + "despawn-snapshots.yml");
 
     // 1. Try DB first (primary store)
     if (db != null) {
       try {
         List<DatabaseManager.DespawnSnapshotRow> rows =
-            db.loadDespawnSnapshotsForServer(me.bill.fakePlayerPlugin.config.Config.serverId());
+            db.loadDespawnSnapshotsForServer(Config.serverId());
         for (DatabaseManager.DespawnSnapshotRow row : rows) {
           DespawnSnapshot snap =
               deserializeSlots(
@@ -1826,12 +1853,12 @@ public class FakePlayerManager {
     // 2. YAML fallback
     if (!despawnSnapshotFile.exists()) return;
     try {
-      org.bukkit.configuration.file.YamlConfiguration yaml =
-          org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(despawnSnapshotFile);
-      org.bukkit.configuration.ConfigurationSection sec = yaml.getConfigurationSection("snapshots");
+      YamlConfiguration yaml =
+          YamlConfiguration.loadConfiguration(despawnSnapshotFile);
+      ConfigurationSection sec = yaml.getConfigurationSection("snapshots");
       if (sec == null) return;
       for (String key : sec.getKeys(false)) {
-        org.bukkit.configuration.ConfigurationSection entry = sec.getConfigurationSection(key);
+        ConfigurationSection entry = sec.getConfigurationSection(key);
         if (entry == null) continue;
         String invData = entry.getString("inventory-data", "");
         int xpTotal = entry.getInt("xp-total", 0);
@@ -1857,7 +1884,7 @@ public class FakePlayerManager {
    */
   private void persistDespawnSnapshot(String botNameLower, DespawnSnapshot snap) {
     String invData = serializeSlots(snap);
-    String serverId = me.bill.fakePlayerPlugin.config.Config.serverId();
+    String serverId = Config.serverId();
 
     if (db != null) {
       db.saveDespawnSnapshot(
@@ -1873,7 +1900,7 @@ public class FakePlayerManager {
     }
 
     // YAML fallback — write async
-    final java.io.File yamlFile = despawnSnapshotFile;
+    final File yamlFile = despawnSnapshotFile;
     if (yamlFile == null) return;
     final String invDataFinal = invData;
     final int xpT = snap.xpTotal(), xpL = snap.xpLevel();
@@ -1883,10 +1910,10 @@ public class FakePlayerManager {
         plugin,
         () -> {
           try {
-            org.bukkit.configuration.file.YamlConfiguration yaml =
+            YamlConfiguration yaml =
                 yamlFile.exists()
-                    ? org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(yamlFile)
-                    : new org.bukkit.configuration.file.YamlConfiguration();
+                    ? YamlConfiguration.loadConfiguration(yamlFile)
+                    : new YamlConfiguration();
             String path = "snapshots." + botNameLower;
             yaml.set(path + ".inventory-data", invDataFinal);
             yaml.set(path + ".xp-total", xpT);
@@ -1906,20 +1933,20 @@ public class FakePlayerManager {
    * Removes a snapshot from DB/YAML after it has been restored (called on respawn).
    */
   private void removeDespawnSnapshotPersistent(String botNameLower) {
-    String serverId = me.bill.fakePlayerPlugin.config.Config.serverId();
+    String serverId = Config.serverId();
     if (db != null) {
       db.deleteDespawnSnapshot(botNameLower, serverId);
       return;
     }
 
-    final java.io.File yamlFile = despawnSnapshotFile;
+    final File yamlFile = despawnSnapshotFile;
     if (yamlFile == null || !yamlFile.exists()) return;
     FppScheduler.runAsync(
         plugin,
         () -> {
           try {
-            org.bukkit.configuration.file.YamlConfiguration yaml =
-                org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(yamlFile);
+            YamlConfiguration yaml =
+                YamlConfiguration.loadConfiguration(yamlFile);
             yaml.set("snapshots." + botNameLower, null);
             yaml.save(yamlFile);
           } catch (Exception e) {
@@ -1939,7 +1966,7 @@ public class FakePlayerManager {
     for (int i = 0; i < all.length; i++) {
       if (all[i] != null && all[i].getType() != Material.AIR) {
         try {
-          String b64 = java.util.Base64.getEncoder().encodeToString(all[i].serializeAsBytes());
+          String b64 = Base64.getEncoder().encodeToString(all[i].serializeAsBytes());
           if (sb.length() > 0) sb.append('|');
           sb.append(i).append(':').append(b64);
         } catch (Exception ignored) {
@@ -1968,7 +1995,7 @@ public class FakePlayerManager {
         try {
           int slot = Integer.parseInt(token.substring(0, colon));
           if (slot < 0 || slot >= main.length) continue;
-          byte[] bytes = java.util.Base64.getDecoder().decode(token.substring(colon + 1));
+          byte[] bytes = Base64.getDecoder().decode(token.substring(colon + 1));
           main[slot] = ItemStack.deserializeBytes(bytes);
         } catch (Exception ignored) {
         }
@@ -1994,7 +2021,7 @@ public class FakePlayerManager {
   }
 
   public boolean deleteForLoginHandoff(
-      String name, @org.jetbrains.annotations.Nullable Runnable onComplete) {
+      String name, @Nullable Runnable onComplete) {
     return deleteInternal(name, true, true, onComplete);
   }
 
@@ -2002,16 +2029,16 @@ public class FakePlayerManager {
       String name,
       boolean fastVisualRemove,
       boolean suppressLeaveBroadcast,
-      @org.jetbrains.annotations.Nullable Runnable onComplete) {
+      @Nullable Runnable onComplete) {
     FakePlayer fp = getByName(name);
     if (fp == null) return false;
 
     // Fire API despawn event before any state is removed.
     var fppApi = plugin.getFppApi();
     if (fppApi != null) {
-      me.bill.fakePlayerPlugin.api.event.FppBotDespawnEvent despawnEvt =
-          new me.bill.fakePlayerPlugin.api.event.FppBotDespawnEvent(
-              new me.bill.fakePlayerPlugin.api.impl.FppBotImpl(fp));
+      FppBotDespawnEvent despawnEvt =
+          new FppBotDespawnEvent(
+              new FppBotImpl(fp));
       Bukkit.getPluginManager().callEvent(despawnEvt);
     }
 
@@ -2078,7 +2105,7 @@ public class FakePlayerManager {
                   target,
                   despawnName,
                   broadcastLeave,
-                  org.bukkit.event.player.PlayerQuitEvent.QuitReason.DISCONNECTED);
+                  PlayerQuitEvent.QuitReason.DISCONNECTED);
             }
 
             try {
@@ -2150,7 +2177,7 @@ public class FakePlayerManager {
           fp,
           despawnName,
           broadcastLeave,
-          org.bukkit.event.player.PlayerQuitEvent.QuitReason.DISCONNECTED);
+          PlayerQuitEvent.QuitReason.DISCONNECTED);
 
       try {
         if (explicitUuidSpawn || fastShutdown) FakePlayerBody.removeAllFast(fp);
@@ -2215,7 +2242,7 @@ public class FakePlayerManager {
           body.setInvulnerable(false);
           body.setCollidable(Config.bodyPushable());
           try {
-            var attr = body.getAttribute(me.bill.fakePlayerPlugin.util.AttributeCompat.MAX_HEALTH);
+            var attr = body.getAttribute(AttributeCompat.MAX_HEALTH);
             if (attr != null) {
               double hp = Config.maxHealth();
               attr.setBaseValue(hp);
@@ -2249,7 +2276,7 @@ public class FakePlayerManager {
                       }
                     }
 
-                    me.bill.fakePlayerPlugin.listener.PlayerJoinListener.stampFirstPlayed(newBody);
+                    PlayerJoinListener.stampFirstPlayed(newBody);
                     FppLogger.info("BodyConfig: body shown for '" + fp.getName() + "'");
                   } else {
                     fp.setBodyless(true);
@@ -2413,10 +2440,10 @@ public class FakePlayerManager {
 
   public void validateEntities() {
 
-    java.util.Set<String> activeNames =
+    Set<String> activeNames =
         activePlayers.values().stream()
             .map(FakePlayer::getName)
-            .collect(java.util.stream.Collectors.toSet());
+            .collect(Collectors.toSet());
 
     for (FakePlayer fp : activePlayers.values()) {
       Entity body = fp.getPhysicsEntity();
@@ -2442,7 +2469,7 @@ public class FakePlayerManager {
 
       fp.setPhysicsEntity(null);
 
-      org.bukkit.Location loc = fp.getSpawnLocation();
+      Location loc = fp.getSpawnLocation();
       if (loc == null || loc.getWorld() == null) continue;
 
       FakePlayerBody.resolveAndFinish(
@@ -2477,14 +2504,14 @@ public class FakePlayerManager {
       String marker =
           entity
               .getPersistentDataContainer()
-              .get(FAKE_PLAYER_KEY, org.bukkit.persistence.PersistentDataType.STRING);
+              .get(FAKE_PLAYER_KEY, PersistentDataType.STRING);
       if (marker != null && !marker.isBlank()) {
         String prefix = FakePlayerBody.VISUAL_PDC_VALUE + ":";
         botName = marker.startsWith(prefix) ? marker.substring(prefix.length()) : marker;
       }
     }
 
-    if ((botName == null || botName.isBlank()) && entity instanceof org.bukkit.entity.Player player) {
+    if ((botName == null || botName.isBlank()) && entity instanceof Player player) {
       FakePlayer byUuid = getByUuid(player.getUniqueId());
       if (byUuid != null && byUuid.getName().equalsIgnoreCase(player.getName())) {
         stampFakePlayerMarker(player, byUuid);
@@ -2504,7 +2531,7 @@ public class FakePlayerManager {
       entityIdIndex.remove(oldBody.getEntityId());
     }
 
-    if (entity instanceof org.bukkit.entity.Player player) {
+    if (entity instanceof Player player) {
       candidate.setPhysicsEntity(player);
       entityIdIndex.put(entity.getEntityId(), candidate);
       stampFakePlayerMarker(player, candidate);
@@ -2520,7 +2547,7 @@ public class FakePlayerManager {
     return null;
   }
 
-  public void stampFakePlayerMarker(org.bukkit.entity.Player player, FakePlayer fp) {
+  public void stampFakePlayerMarker(Player player, FakePlayer fp) {
     if (player == null || fp == null || FAKE_PLAYER_KEY == null) return;
     try {
       fp.setPhysicsEntity(player);
@@ -2529,7 +2556,7 @@ public class FakePlayerManager {
           .getPersistentDataContainer()
           .set(
               FAKE_PLAYER_KEY,
-              org.bukkit.persistence.PersistentDataType.STRING,
+              PersistentDataType.STRING,
               FakePlayerBody.VISUAL_PDC_VALUE + ":" + fp.getName());
     } catch (Throwable ignored) {
     }
@@ -2705,13 +2732,13 @@ public class FakePlayerManager {
     return activePlayers.size();
   }
 
-  public List<FakePlayer> getBotsOwnedBy(java.util.UUID ownerUuid) {
+  public List<FakePlayer> getBotsOwnedBy(UUID ownerUuid) {
     return activePlayers.values().stream()
         .filter(fp -> ownerUuid.equals(fp.getSpawnedByUuid()))
         .collect(Collectors.toList());
   }
 
-  public boolean teleportBot(FakePlayer fp, org.bukkit.Location destination) {
+  public boolean teleportBot(FakePlayer fp, Location destination) {
     Player body = fp.getPlayer();
     if (body == null || !body.isValid()) return false;
     var event = new FppBotTeleportEvent(
@@ -2728,8 +2755,8 @@ public class FakePlayerManager {
 
     if (display.contains("%")) {
       try {
-        if (org.bukkit.Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-          display = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(null, display);
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+          display = PlaceholderAPI.setPlaceholders(null, display);
         }
       } catch (Exception ignored) {
       }
@@ -2748,8 +2775,8 @@ public class FakePlayerManager {
 
     if (display.contains("%")) {
       try {
-        if (org.bukkit.Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-          display = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(null, display);
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+          display = PlaceholderAPI.setPlaceholders(null, display);
         }
       } catch (Exception ignored) {
       }
@@ -2771,7 +2798,7 @@ public class FakePlayerManager {
     Player body = fp.getPlayer();
     if (body != null && body.isValid()) {
       try {
-        body.displayName(me.bill.fakePlayerPlugin.util.TextUtil.colorize(rawContent));
+        body.displayName(TextUtil.colorize(rawContent));
       } catch (Exception ignored) {
       }
     }
@@ -2810,15 +2837,15 @@ public class FakePlayerManager {
     }
   }
 
-  private static final java.util.regex.Pattern PLACEHOLDER_PATTERN =
-      java.util.regex.Pattern.compile("\\{[a-zA-Z_][a-zA-Z0-9_]*\\}");
+  private static final Pattern PLACEHOLDER_PATTERN =
+      Pattern.compile("\\{[a-zA-Z_][a-zA-Z0-9_]*\\}");
 
   private String sanitizeDisplayName(String displayName, String context) {
     if (displayName == null || !displayName.contains("{")) {
 
       return (displayName == null || displayName.isBlank()) ? context : displayName;
     }
-    java.util.regex.Matcher m = PLACEHOLDER_PATTERN.matcher(displayName);
+    Matcher m = PLACEHOLDER_PATTERN.matcher(displayName);
     if (!m.find()) {
       return displayName.isBlank() ? context : displayName;
     }
@@ -2853,7 +2880,7 @@ public class FakePlayerManager {
         fp.setPing(-1);
       }
     }
-    me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner.setPing(
+    NmsPlayerSpawner.setPing(
         fp.getPlayer(), fp.getEffectivePing());
     for (Player p : Bukkit.getOnlinePlayers()) {
       PacketHelper.sendTabListLatencyUpdate(p, fp);
@@ -3007,7 +3034,7 @@ public class FakePlayerManager {
     Location end = to.getEyeLocation();
     if (start.getWorld() == null || !start.getWorld().equals(end.getWorld())) return false;
 
-    org.bukkit.util.Vector dir = end.toVector().subtract(start.toVector());
+    Vector dir = end.toVector().subtract(start.toVector());
     double distance = dir.length();
     if (distance < 1e-6) return true;
     dir.normalize();
@@ -3017,7 +3044,7 @@ public class FakePlayerManager {
           new BlockIterator(
               start.getWorld(), start.toVector(), dir, 0.0, (int) Math.ceil(distance) + 1);
       while (iter.hasNext()) {
-        org.bukkit.block.Block block = iter.next();
+        Block block = iter.next();
         Material type = block.getType();
         if (!type.isSolid()) continue;
         if (isGlassLike(type)) continue;

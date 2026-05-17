@@ -10,6 +10,7 @@ import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -174,7 +175,7 @@ public final class StorageCommand implements FppCommand {
             String.valueOf(list.size())));
     int i = 1;
     for (StorageStore.StoragePoint point : list) {
-      org.bukkit.Location loc = point.location();
+      Location loc = point.location();
       String worldName = loc.getWorld() != null ? loc.getWorld().getName() : "?";
       sender.sendMessage(
           Lang.get(
@@ -253,14 +254,14 @@ public final class StorageCommand implements FppCommand {
     return best;
   }
 
-  private record LocationFace(org.bukkit.Location loc) {
+  private record LocationFace(Location loc) {
   }
 
   private LocationFace faceLocation(Player bot, Block block) {
-    org.bukkit.Location loc = block.getLocation().add(0.5, 0, 0.5);
-    org.bukkit.Location stand = BotNavUtil.findStandLocation(block.getWorld(), (x, y, z) -> false, block.getX(), block.getY(), block.getZ());
+    Location loc = block.getLocation().add(0.5, 0, 0.5);
+    Location stand = BotNavUtil.findStandLocation(block.getWorld(), (x, y, z) -> false, block.getX(), block.getY(), block.getZ());
     if (stand == null) stand = bot.getLocation();
-    org.bukkit.Location face = stand.clone();
+    Location face = stand.clone();
     face.setYaw(BotNavUtil.faceToward(face, loc).getYaw());
     face.setPitch(BotNavUtil.faceToward(face, loc).getPitch());
     return new LocationFace(face);

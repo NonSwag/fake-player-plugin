@@ -2,9 +2,14 @@ package me.bill.fakePlayerPlugin.command;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppAddonCommand;
+import me.bill.fakePlayerPlugin.api.FppCommandExtension;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
+import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
+import me.bill.fakePlayerPlugin.gui.HelpGui;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
+import me.bill.fakePlayerPlugin.util.AttributionManager;
 import me.bill.fakePlayerPlugin.util.BotAccess;
 import me.bill.fakePlayerPlugin.util.TextUtil;
 import net.kyori.adventure.text.Component;
@@ -17,6 +22,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -39,7 +45,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
   private final List<FppCommand> commands = new ArrayList<>();
   private final Map<String, FppCommand> byName = new LinkedHashMap<>();
   private final Map<String, FppAddonCommand> addonByName = new LinkedHashMap<>();
-  private final Map<String, List<me.bill.fakePlayerPlugin.api.FppCommandExtension>> commandExtensions = new LinkedHashMap<>();
+  private final Map<String, List<FppCommandExtension>> commandExtensions = new LinkedHashMap<>();
   private final FakePlayerPlugin plugin;
 
   public CommandManager(FakePlayerPlugin plugin) {
@@ -67,12 +73,12 @@ public class CommandManager implements CommandExecutor, TabCompleter {
     return addonByName.values().stream().distinct().toList();
   }
 
-  public List<me.bill.fakePlayerPlugin.api.FppCommandExtension> getCommandExtensions() {
+  public List<FppCommandExtension> getCommandExtensions() {
     return commandExtensions.values().stream().flatMap(List::stream).distinct().toList();
   }
 
-  public List<me.bill.fakePlayerPlugin.api.FppCommandExtension> getCommandExtensions(String commandName) {
-    List<me.bill.fakePlayerPlugin.api.FppCommandExtension> extensions =
+  public List<FppCommandExtension> getCommandExtensions(String commandName) {
+    List<FppCommandExtension> extensions =
         commandExtensions.get(commandName.toLowerCase(Locale.ROOT));
     return extensions == null ? List.of() : extensions.stream().distinct().toList();
   }
@@ -81,7 +87,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
    * Registers an addon sub-command contributed via {@link me.bill.fakePlayerPlugin.api.FppApi}.
    * Duplicate names (case-insensitive) are silently ignored.
    */
-  public void registerAddonCommand(@org.jetbrains.annotations.NotNull FppAddonCommand command) {
+  public void registerAddonCommand(@NotNull FppAddonCommand command) {
     String key = command.getName().toLowerCase();
     if (byName.containsKey(key) || addonByName.containsKey(key)) return;
     addonByName.put(key, command);
@@ -91,7 +97,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
     Config.debug("Registered addon command: fpp " + command.getName());
   }
 
-  public void unregisterAddonCommand(@org.jetbrains.annotations.NotNull FppAddonCommand command) {
+  public void unregisterAddonCommand(@NotNull FppAddonCommand command) {
     String key = command.getName().toLowerCase(Locale.ROOT);
     FppAddonCommand existing = addonByName.get(key);
     if (existing == null) return;
@@ -99,25 +105,25 @@ public class CommandManager implements CommandExecutor, TabCompleter {
     Config.debug("Unregistered addon command: fpp " + command.getName());
   }
 
-  public void registerCommandExtension(@org.jetbrains.annotations.NotNull me.bill.fakePlayerPlugin.api.FppCommandExtension extension) {
+  public void registerCommandExtension(@NotNull FppCommandExtension extension) {
     registerExtensionKey(extension.getCommandName(), extension);
     for (String alias : extension.getAliases()) registerExtensionKey(alias, extension);
     Config.debug("Registered command extension: fpp " + extension.getCommandName());
   }
 
-  public void unregisterCommandExtension(@org.jetbrains.annotations.NotNull me.bill.fakePlayerPlugin.api.FppCommandExtension extension) {
-    for (List<me.bill.fakePlayerPlugin.api.FppCommandExtension> list : commandExtensions.values()) {
+  public void unregisterCommandExtension(@NotNull FppCommandExtension extension) {
+    for (List<FppCommandExtension> list : commandExtensions.values()) {
       list.removeIf(existing -> existing == extension);
     }
     commandExtensions.entrySet().removeIf(e -> e.getValue().isEmpty());
     Config.debug("Unregistered command extension: fpp " + extension.getCommandName());
   }
 
-  private void registerExtensionKey(String key, me.bill.fakePlayerPlugin.api.FppCommandExtension extension) {
+  private void registerExtensionKey(String key, FppCommandExtension extension) {
     commandExtensions.computeIfAbsent(key.toLowerCase(Locale.ROOT), k -> new ArrayList<>()).add(extension);
   }
 
-  public void setHelpGui(me.bill.fakePlayerPlugin.gui.HelpGui helpGui) {
+  public void setHelpGui(HelpGui helpGui) {
     FppCommand help = byName.get("help");
     if (help instanceof HelpCommand hc) {
       hc.setHelpGui(helpGui);
@@ -180,11 +186,11 @@ public class CommandManager implements CommandExecutor, TabCompleter {
     if (sub instanceof HelpCommand hc) hc.setLastLabel(label);
     String[] subArgs = Arrays.copyOfRange(args, 1, args.length);
     if (requiresBotOwnership(subName)
-        && sender instanceof org.bukkit.entity.Player player
+        && sender instanceof Player player
         && subArgs.length > 0
         && !subArgs[0].startsWith("--")
         && !subArgs[0].equalsIgnoreCase("--all")) {
-      me.bill.fakePlayerPlugin.fakeplayer.FakePlayer fp =
+      FakePlayer fp =
           plugin.getFakePlayerManager().getByName(subArgs[0]);
       if (fp != null && !BotAccess.canAdminister(player, fp)) {
         sender.sendMessage(Lang.get("no-permission"));
@@ -210,9 +216,9 @@ public class CommandManager implements CommandExecutor, TabCompleter {
     if (subArgs[0].equalsIgnoreCase("--all") && shouldExpandAll(subName)) {
       String[] rest = Arrays.copyOfRange(subArgs, 1, subArgs.length);
       int started = 0;
-      for (me.bill.fakePlayerPlugin.fakeplayer.FakePlayer fp : plugin.getFakePlayerManager().getActivePlayers()) {
+      for (FakePlayer fp : plugin.getFakePlayerManager().getActivePlayers()) {
         if (fp.getPlayer() == null || !fp.getPlayer().isOnline()) continue;
-        if (sender instanceof org.bukkit.entity.Player player && !BotAccess.canAdminister(player, fp)) continue;
+        if (sender instanceof Player player && !BotAccess.canAdminister(player, fp)) continue;
         sub.execute(sender, prepend(fp.getName(), rest));
         started++;
       }
@@ -232,9 +238,9 @@ public class CommandManager implements CommandExecutor, TabCompleter {
   }
 
   private boolean executeCommandExtensions(String commandName, CommandSender sender, String[] args) {
-    List<me.bill.fakePlayerPlugin.api.FppCommandExtension> extensions = commandExtensions.get(commandName.toLowerCase(Locale.ROOT));
+    List<FppCommandExtension> extensions = commandExtensions.get(commandName.toLowerCase(Locale.ROOT));
     if (extensions == null || extensions.isEmpty()) return false;
-    for (me.bill.fakePlayerPlugin.api.FppCommandExtension extension : extensions) {
+    for (FppCommandExtension extension : extensions) {
       try {
         if (!extension.canUse(sender)) continue;
         if (extension.execute(sender, args)) return true;
@@ -282,7 +288,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
       if (sub != null && sub.canUse(sender)) {
         String[] rawSubArgs = Arrays.copyOfRange(args, 1, args.length);
         List<String> result = new ArrayList<>(sub.tabComplete(sender, rawSubArgs));
-        List<me.bill.fakePlayerPlugin.api.FppCommandExtension> extensions = commandExtensions.get(subName);
+        List<FppCommandExtension> extensions = commandExtensions.get(subName);
         if (extensions != null) {
           for (var extension : extensions) {
             try {
@@ -328,7 +334,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
   private void sendPluginInfo(CommandSender sender) {
     String version = plugin.getPluginMeta().getVersion();
     List<String> authors = plugin.getPluginMeta().getAuthors();
-    String author = me.bill.fakePlayerPlugin.util.AttributionManager.formatAuthors(authors);
+    String author = AttributionManager.formatAuthors(authors);
 
     Component divider = TextUtil.colorize(Lang.raw("divider"));
     Component header = TextUtil.colorize(Lang.raw("info-screen-header"));
@@ -340,7 +346,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
     sender.sendMessage(row("ᴠᴇʀꜱɪᴏɴ", version));
     sender.sendMessage(row("ᴀᴜᴛʜᴏʀ", author));
 
-    me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager fpm = plugin.getFakePlayerManager();
+    FakePlayerManager fpm = plugin.getFakePlayerManager();
     if (fpm != null) {
       sender.sendMessage(row("ᴀᴄᴛɪᴠᴇ ʙᴏᴛꜱ", String.valueOf(fpm.getCount())));
     }

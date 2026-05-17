@@ -9,8 +9,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -856,7 +858,7 @@ public final class PacketHelper {
       Player botPlayer = fp.getPlayer();
       if (botPlayer == null) return;
       Object botNms = getHandle(botPlayer);
-      for (java.lang.reflect.Constructor<?> c : entityEventClass.getDeclaredConstructors()) {
+      for (Constructor<?> c : entityEventClass.getDeclaredConstructors()) {
         c.setAccessible(true);
         Class<?>[] pt = c.getParameterTypes();
         if (pt.length == 2 && pt[1] == byte.class) {
@@ -1160,7 +1162,7 @@ public final class PacketHelper {
 
   private static String describeException(Throwable throwable) {
     Throwable cause = throwable;
-    while (cause instanceof java.lang.reflect.InvocationTargetException ite && ite.getCause() != null) {
+    while (cause instanceof InvocationTargetException ite && ite.getCause() != null) {
       cause = ite.getCause();
     }
     String message = cause.getMessage();
@@ -1271,8 +1273,8 @@ public final class PacketHelper {
     return switch (cachedInfoUpdateSecondArgStrategy) {
       case 1 -> entry;
       case 2 -> {
-        Object arr = java.lang.reflect.Array.newInstance(cachedInfoUpdateArrayCompType, 1);
-        java.lang.reflect.Array.set(arr, 0, entry);
+        Object arr = Array.newInstance(cachedInfoUpdateArrayCompType, 1);
+        Array.set(arr, 0, entry);
         yield arr;
       }
       default -> List.of(entry);

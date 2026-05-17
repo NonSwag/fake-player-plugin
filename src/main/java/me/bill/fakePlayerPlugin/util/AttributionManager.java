@@ -1,5 +1,7 @@
 package me.bill.fakePlayerPlugin.util;
 
+import org.bukkit.plugin.java.JavaPlugin;
+
 import java.util.List;
 
 public final class AttributionManager {
@@ -94,7 +96,7 @@ public final class AttributionManager {
     return v;
   }
 
-  public static boolean validate(org.bukkit.plugin.java.JavaPlugin plugin) {
+  public static boolean validate(JavaPlugin plugin) {
     integrityValid = true;
 
     if (!validateOriginalAuthor(plugin)) integrityValid = false;
@@ -108,7 +110,7 @@ public final class AttributionManager {
     return integrityValid;
   }
 
-  public static boolean validateOriginalAuthor(org.bukkit.plugin.java.JavaPlugin plugin) {
+  public static boolean validateOriginalAuthor(JavaPlugin plugin) {
     try {
       String expected = getOriginalAuthor();
       List<String> authors = plugin.getPluginMeta().getAuthors();

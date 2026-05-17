@@ -14,6 +14,7 @@ import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -205,7 +206,7 @@ public class ListCommand implements FppCommand {
   }
 
   private static String formatLocation(FakePlayer fp) {
-    org.bukkit.entity.Entity body = fp.getPhysicsEntity();
+    Entity body = fp.getPhysicsEntity();
     if (body != null && body.isValid()) {
       var loc = body.getLocation();
       return (loc.getWorld() != null ? loc.getWorld().getName() : "?")

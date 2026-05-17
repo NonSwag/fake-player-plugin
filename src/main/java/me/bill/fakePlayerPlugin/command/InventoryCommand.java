@@ -1,6 +1,7 @@
 package me.bill.fakePlayerPlugin.command;
 
 import me.bill.fakePlayerPlugin.api.event.FppBotDespawnEvent;
+import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.gui.BotSettingGui;
@@ -28,6 +29,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -486,7 +488,7 @@ public class InventoryCommand implements FppCommand, Listener {
   @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
   public void onRightClickBot(PlayerInteractAtEntityEvent event) {
 
-    if (event.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
+    if (event.getHand() != EquipmentSlot.HAND) return;
     if (!(event.getRightClicked() instanceof Player botPlayer)) return;
     FakePlayer fp = manager.getByEntity(botPlayer);
     if (fp == null || fp.isBodyless()) return;
@@ -494,7 +496,7 @@ public class InventoryCommand implements FppCommand, Listener {
     Player player = event.getPlayer();
 
     if (player.isSneaking()
-        && me.bill.fakePlayerPlugin.config.Config.isBotShiftRightClickSettingsEnabled()
+        && Config.isBotShiftRightClickSettingsEnabled()
         && Perm.has(player, Perm.SETTINGS)) {
       event.setCancelled(true);
       if (!BotAccess.canAdminister(player, fp)) {
@@ -505,7 +507,7 @@ public class InventoryCommand implements FppCommand, Listener {
       return;
     }
 
-    if (!me.bill.fakePlayerPlugin.config.Config.isBotRightClickEnabled()) return;
+    if (!Config.isBotRightClickEnabled()) return;
 
     if (fp.hasRightClickCommand()) {
       if (!BotAccess.canAdminister(player, fp)) return;

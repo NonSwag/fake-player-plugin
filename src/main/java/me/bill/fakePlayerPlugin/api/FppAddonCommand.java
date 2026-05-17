@@ -4,6 +4,9 @@ import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collections;
+import java.util.List;
+
 public interface FppAddonCommand {
   @NotNull String getName();
 
@@ -17,8 +20,8 @@ public interface FppAddonCommand {
     return Material.COMMAND_BLOCK;
   }
 
-  default @NotNull java.util.List<String> getAliases() {
-    return java.util.Collections.emptyList();
+  default @NotNull List<String> getAliases() {
+    return Collections.emptyList();
   }
 
   default boolean canUse(@NotNull CommandSender sender) {
@@ -28,7 +31,7 @@ public interface FppAddonCommand {
 
   boolean execute(@NotNull CommandSender sender, @NotNull String[] args);
 
-  default @NotNull java.util.List<String> tabComplete(@NotNull CommandSender sender, @NotNull String[] args) {
-    return java.util.Collections.emptyList();
+  default @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String[] args) {
+    return Collections.emptyList();
   }
 }

@@ -5,9 +5,12 @@ import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.database.NetworkDatabase;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
+import me.bill.fakePlayerPlugin.fakeplayer.RemoteBotEntry;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import org.bukkit.Bukkit;
+
+import java.util.UUID;
 
 /**
  * Publishes this server's live bot count + real player count into the shared
@@ -120,8 +123,8 @@ public final class NetworkHeartbeatManager {
       for (var row : netBots) {
         if (row.serverId().equals(myId)) continue;
         try {
-          java.util.UUID uuid = java.util.UUID.fromString(row.botUuid());
-          cache.add(new me.bill.fakePlayerPlugin.fakeplayer.RemoteBotEntry(
+          UUID uuid = UUID.fromString(row.botUuid());
+          cache.add(new RemoteBotEntry(
               row.serverId(), uuid, row.botName(), row.botDisplay(),
               row.botName(), "", "", row.ping()));
         } catch (IllegalArgumentException ignored) {

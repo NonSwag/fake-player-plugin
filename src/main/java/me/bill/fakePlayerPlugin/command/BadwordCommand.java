@@ -3,6 +3,7 @@ package me.bill.fakePlayerPlugin.command;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.BotNameConfig;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.fakeplayer.BotType;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
@@ -12,6 +13,7 @@ import me.bill.fakePlayerPlugin.permission.Perm;
 import me.bill.fakePlayerPlugin.util.BadwordFilter;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import me.bill.fakePlayerPlugin.util.TextUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -395,7 +397,7 @@ public class BadwordCommand implements FppCommand {
           }
 
           if (task.snapshot().aiPersonality() != null) {
-            me.bill.fakePlayerPlugin.database.DatabaseManager dbm = plugin.getDatabaseManager();
+            DatabaseManager dbm = plugin.getDatabaseManager();
             if (dbm != null)
               dbm.updateBotAiPersonality(newFp.getUuid().toString(), task.snapshot().aiPersonality());
           }
@@ -513,7 +515,7 @@ public class BadwordCommand implements FppCommand {
       if (!BadwordFilter.isAllowed(candidate)) continue;
       if (reserved.contains(candidate.toLowerCase())) continue;
       if (manager.getByName(candidate) != null) continue;
-      if (org.bukkit.Bukkit.getPlayerExact(candidate) != null) continue;
+      if (Bukkit.getPlayerExact(candidate) != null) continue;
       return candidate;
     }
     return null;

@@ -10,6 +10,8 @@ import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.permission.Perm;
+import me.bill.fakePlayerPlugin.util.AttributionManager;
+import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -70,8 +72,8 @@ public final class SettingGui implements Listener {
 
   private static final int CAT_WINDOW_START = 47;
 
-  private static final java.util.UUID SKIN_OWNER_UUID =
-      java.util.UUID.fromString("a318f9f4-e2bf-479c-a47a-6a2c1b0b9e66");
+  private static final UUID SKIN_OWNER_UUID =
+      UUID.fromString("a318f9f4-e2bf-479c-a47a-6a2c1b0b9e66");
   private static final String SKIN_OWNER_NAME = "F_PP";
 
   private static final long SKULL_TTL_MS = 30L * 60 * 1_000;
@@ -97,8 +99,8 @@ public final class SettingGui implements Listener {
     this.plugin = plugin;
     this.categories = new Category[]{general(), body()};
 
-    if (!me.bill.fakePlayerPlugin.util.AttributionManager.quickAuthorCheck()) {
-      me.bill.fakePlayerPlugin.util.FppLogger.warn(
+    if (!AttributionManager.quickAuthorCheck()) {
+      FppLogger.warn(
           "Plugin attribution integrity check failed in SettingGui.");
     }
   }
@@ -1019,7 +1021,7 @@ public final class SettingGui implements Listener {
 
     boolean hasItems = false;
     for (ItemStack item : bot.getInventory().getContents()) {
-      if (item != null && item.getType() != org.bukkit.Material.AIR) {
+      if (item != null && item.getType() != Material.AIR) {
         hasItems = true;
         break;
       }
@@ -1042,7 +1044,7 @@ public final class SettingGui implements Listener {
           ItemStack[] contents = b.getInventory().getContents().clone();
           b.getInventory().clear();
           for (ItemStack item : contents) {
-            if (item != null && item.getType() != org.bukkit.Material.AIR) {
+            if (item != null && item.getType() != Material.AIR) {
               b.getWorld().dropItemNaturally(b.getLocation(), item);
             }
           }

@@ -10,6 +10,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -241,9 +242,9 @@ public final class ExtensionLoader {
     }
   }
 
-  public @NotNull List<me.bill.fakePlayerPlugin.api.FppAddon> getLoadedExtensions() {
+  public @NotNull List<FppAddon> getLoadedExtensions() {
     return activeWrappers.stream()
-        .map(w -> (me.bill.fakePlayerPlugin.api.FppAddon) w)
+        .map(w -> (FppAddon) w)
         .toList();
   }
 
@@ -517,7 +518,7 @@ public final class ExtensionLoader {
     try (JarFile jf = new JarFile(jarFile)) {
       JarEntry entry = jf.getJarEntry(path);
       if (entry == null || entry.isDirectory()) return null;
-      return new java.io.ByteArrayInputStream(jf.getInputStream(entry).readAllBytes());
+      return new ByteArrayInputStream(jf.getInputStream(entry).readAllBytes());
     } catch (IOException e) {
       FppLogger.warn(
           "[Extensions] Failed to read resource '"

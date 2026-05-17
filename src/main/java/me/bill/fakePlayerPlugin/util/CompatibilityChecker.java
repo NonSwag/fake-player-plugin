@@ -1,6 +1,7 @@
 package me.bill.fakePlayerPlugin.util;
 
 import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
 
 import java.util.List;
 import java.util.regex.Matcher;
@@ -67,7 +68,7 @@ public final class CompatibilityChecker {
 
   public static String extractMcVersion() {
     try {
-      String bv = org.bukkit.Bukkit.getBukkitVersion();
+      String bv = Bukkit.getBukkitVersion();
       return bv.contains("-") ? bv.split("-", 2)[0] : bv;
     } catch (Throwable ignored) {
     }

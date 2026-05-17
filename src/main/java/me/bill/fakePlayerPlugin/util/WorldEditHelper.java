@@ -1,7 +1,9 @@
 package me.bill.fakePlayerPlugin.util;
 
+import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldedit.extension.platform.Actor;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.session.SessionManager;
@@ -35,8 +37,8 @@ public final class WorldEditHelper {
   public static Location[] getSelection(Player player) {
     try {
       SessionManager sessions = WorldEdit.getInstance().getSessionManager();
-      com.sk89q.worldedit.extension.platform.Actor actor = BukkitAdapter.adapt(player);
-      com.sk89q.worldedit.LocalSession session = sessions.get(actor);
+      Actor actor = BukkitAdapter.adapt(player);
+      LocalSession session = sessions.get(actor);
 
       com.sk89q.worldedit.world.World weWorld = BukkitAdapter.adapt(player.getWorld());
       Region region = session.getSelection(weWorld);

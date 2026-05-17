@@ -24,13 +24,19 @@ import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.craftbukkit.util.CraftMagicNumbers;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -596,7 +602,7 @@ public final class FindCommand implements FppCommand {
       return;
     }
 
-    Material currentMaterial = org.bukkit.craftbukkit.util.CraftMagicNumbers.getMaterial(blockState.getBlock());
+    Material currentMaterial = CraftMagicNumbers.getMaterial(blockState.getBlock());
     if (state.countsTowardGoal) {
       if (currentMaterial != job.material) {
         state.done = true;
@@ -717,7 +723,7 @@ public final class FindCommand implements FppCommand {
 
     Location eye = bot.getEyeLocation();
     Location targetCenter = desired.getLocation().add(0.5, 0.5, 0.5);
-    org.bukkit.util.Vector dir = targetCenter.toVector().subtract(eye.toVector());
+    Vector dir = targetCenter.toVector().subtract(eye.toVector());
     double dist = dir.length();
     if (dist <= 0.001) return desiredPos;
 
@@ -747,18 +753,18 @@ public final class FindCommand implements FppCommand {
   }
 
   private void collectNearbyDrops(Player bot) {
-    for (org.bukkit.entity.Entity e : bot.getNearbyEntities(2.25, 1.75, 2.25)) {
+    for (Entity e : bot.getNearbyEntities(2.25, 1.75, 2.25)) {
       if (!(e instanceof Item item) || item.isDead() || item.getPickupDelay() > 0) continue;
-      org.bukkit.inventory.ItemStack stack = item.getItemStack();
+      ItemStack stack = item.getItemStack();
       if (stack == null || stack.getType().isAir()) {
         item.remove();
         continue;
       }
-      Map<Integer, org.bukkit.inventory.ItemStack> leftovers = bot.getInventory().addItem(stack.clone());
+      Map<Integer, ItemStack> leftovers = bot.getInventory().addItem(stack.clone());
       if (leftovers.isEmpty()) {
         item.remove();
       } else {
-        org.bukkit.inventory.ItemStack remaining = leftovers.values().iterator().next();
+        ItemStack remaining = leftovers.values().iterator().next();
         item.setItemStack(remaining);
       }
     }
@@ -886,7 +892,7 @@ public final class FindCommand implements FppCommand {
   private boolean isBlockVisible(Player bot, Block block) {
     Location eye = bot.getEyeLocation();
     Location center = block.getLocation().add(0.5, 0.5, 0.5);
-    org.bukkit.util.Vector dir = center.toVector().subtract(eye.toVector());
+    Vector dir = center.toVector().subtract(eye.toVector());
     double dist = dir.length();
     if (dist <= 0.001) return true;
     RayTraceResult hit =
@@ -902,7 +908,7 @@ public final class FindCommand implements FppCommand {
     if (block == null) return false;
     Material type = block.getType();
     if (type.isAir() || !type.isSolid()) return false;
-    if (block.getState() instanceof org.bukkit.inventory.InventoryHolder) return false;
+    if (block.getState() instanceof InventoryHolder) return false;
     return switch (type) {
       case BEDROCK,
            BARRIER,
@@ -938,14 +944,14 @@ public final class FindCommand implements FppCommand {
         || blockType == Material.VINE
         || blockType == Material.GLOW_LICHEN
         || blockType.name().endsWith("_WOOL")) return ToolClass.SHEARS;
-    if (org.bukkit.Tag.MINEABLE_PICKAXE.isTagged(blockType)) return ToolClass.PICKAXE;
-    if (org.bukkit.Tag.MINEABLE_AXE.isTagged(blockType)) return ToolClass.AXE;
-    if (org.bukkit.Tag.MINEABLE_SHOVEL.isTagged(blockType)) return ToolClass.SHOVEL;
-    if (org.bukkit.Tag.MINEABLE_HOE.isTagged(blockType)) return ToolClass.HOE;
+    if (Tag.MINEABLE_PICKAXE.isTagged(blockType)) return ToolClass.PICKAXE;
+    if (Tag.MINEABLE_AXE.isTagged(blockType)) return ToolClass.AXE;
+    if (Tag.MINEABLE_SHOVEL.isTagged(blockType)) return ToolClass.SHOVEL;
+    if (Tag.MINEABLE_HOE.isTagged(blockType)) return ToolClass.HOE;
     return ToolClass.NONE;
   }
 
-  private int toolScore(org.bukkit.inventory.ItemStack item, ToolClass preferred) {
+  private int toolScore(ItemStack item, ToolClass preferred) {
     if (item == null || item.getType() == Material.AIR) return Integer.MIN_VALUE;
     Material type = item.getType();
     ToolClass actual = classifyTool(type);
@@ -1021,7 +1027,7 @@ public final class FindCommand implements FppCommand {
    * Stops all active find jobs.
    */
   public void stopAll() {
-    for (UUID uuid : new java.util.HashSet<>(jobs.keySet())) {
+    for (UUID uuid : new HashSet<>(jobs.keySet())) {
       cleanupBot(uuid);
     }
   }

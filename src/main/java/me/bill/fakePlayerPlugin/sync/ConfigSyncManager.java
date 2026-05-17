@@ -12,8 +12,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -375,8 +377,8 @@ public final class ConfigSyncManager {
 
   private String computeHash(String content) {
     try {
-      java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
-      byte[] hash = md.digest(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+      MessageDigest md = MessageDigest.getInstance("SHA-256");
+      byte[] hash = md.digest(content.getBytes(StandardCharsets.UTF_8));
       StringBuilder hexString = new StringBuilder();
       for (byte b : hash) {
         String hex = Integer.toHexString(0xff & b);

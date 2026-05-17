@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -254,5 +255,5 @@ public interface FppBot {
 
   void removeMetadata(@NotNull String key);
 
-  @NotNull java.util.Map<String, Object> getMetadataMap();
+  @NotNull Map<String, Object> getMetadataMap();
 }

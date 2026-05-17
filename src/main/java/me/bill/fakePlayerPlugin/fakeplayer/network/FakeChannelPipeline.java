@@ -18,6 +18,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 @SuppressWarnings("deprecation")
 public final class FakeChannelPipeline implements ChannelPipeline {
@@ -361,7 +362,7 @@ public final class FakeChannelPipeline implements ChannelPipeline {
 
   private void notifyListener(Object msg) {
     if (channel instanceof FakeChannel fc) {
-      java.util.function.Consumer<Object> listener = fc.getPacketListener();
+      Consumer<Object> listener = fc.getPacketListener();
       if (listener != null) listener.accept(msg);
     }
   }

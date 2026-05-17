@@ -1,6 +1,7 @@
 package me.bill.fakePlayerPlugin.api.impl;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.api.FppAddon;
 import me.bill.fakePlayerPlugin.api.FppAddonCommand;
 import me.bill.fakePlayerPlugin.api.FppApi;
 import me.bill.fakePlayerPlugin.api.FppBot;
@@ -8,17 +9,22 @@ import me.bill.fakePlayerPlugin.api.FppBotTickHandler;
 import me.bill.fakePlayerPlugin.api.FppCommandExtension;
 import me.bill.fakePlayerPlugin.api.FppCommandInfo;
 import me.bill.fakePlayerPlugin.api.FppCommandSource;
+import me.bill.fakePlayerPlugin.api.FppNavigationGoal;
 import me.bill.fakePlayerPlugin.api.FppSettingsTab;
+import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
 import me.bill.fakePlayerPlugin.command.FppCommand;
+import me.bill.fakePlayerPlugin.fakeplayer.BotBroadcast;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService;
 import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService.NavigationRequest;
 import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService.Owner;
 import me.bill.fakePlayerPlugin.util.BotAccess;
+import me.bill.fakePlayerPlugin.util.FppLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
@@ -27,10 +33,15 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -65,11 +76,11 @@ public final class FppApiImpl implements FppApi {
   /**
    * Registered addon lifecycle instances, ordered by priority (lower = earlier).
    */
-  private final java.util.concurrent.ConcurrentSkipListSet<me.bill.fakePlayerPlugin.api.FppAddon> addons =
-      new java.util.concurrent.ConcurrentSkipListSet<>(
-          java.util.Comparator
-              .comparingInt(me.bill.fakePlayerPlugin.api.FppAddon::getPriority)
-              .thenComparing(me.bill.fakePlayerPlugin.api.FppAddon::getName));
+  private final ConcurrentSkipListSet<FppAddon> addons =
+      new ConcurrentSkipListSet<>(
+          Comparator
+              .comparingInt(FppAddon::getPriority)
+              .thenComparing(FppAddon::getName));
 
   public FppApiImpl(@NotNull FakePlayerPlugin plugin, @NotNull FakePlayerManager manager) {
     this.plugin = plugin;
@@ -361,7 +372,7 @@ public final class FppApiImpl implements FppApi {
       try {
         h.onTick(view, entity);
       } catch (Throwable t) {
-        me.bill.fakePlayerPlugin.util.FppLogger.warn(
+        FppLogger.warn(
             "[FppApi] Tick handler threw an exception for bot '"
                 + fp.getName()
                 + "': "
@@ -373,8 +384,8 @@ public final class FppApiImpl implements FppApi {
   /**
    * Fire a task lifecycle event for a bot. Convenience for commands.
    */
-  public static void fireTaskEvent(@NotNull FakePlayer fp, @NotNull String taskType, @NotNull me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action action) {
-    Bukkit.getPluginManager().callEvent(new me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent(new FppBotImpl(fp), taskType, action));
+  public static void fireTaskEvent(@NotNull FakePlayer fp, @NotNull String taskType, @NotNull FppBotTaskEvent.Action action) {
+    Bukkit.getPluginManager().callEvent(new FppBotTaskEvent(new FppBotImpl(fp), taskType, action));
   }
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -457,11 +468,11 @@ public final class FppApiImpl implements FppApi {
   }
 
   @Override
-  public void setNavigationGoal(@NotNull FppBot bot, @NotNull me.bill.fakePlayerPlugin.api.FppNavigationGoal goal) {
+  public void setNavigationGoal(@NotNull FppBot bot, @NotNull FppNavigationGoal goal) {
     FakePlayer fp = manager.getByUuid(bot.getUuid());
     PathfindingService svc = plugin.getPathfindingService();
     if (fp == null || svc == null) return;
-    final me.bill.fakePlayerPlugin.api.FppNavigationGoal g = goal;
+    final FppNavigationGoal g = goal;
     svc.navigate(
         fp,
         new NavigationRequest(
@@ -501,7 +512,7 @@ public final class FppApiImpl implements FppApi {
       entity.chat(message);
       return;
     }
-    me.bill.fakePlayerPlugin.fakeplayer.BotBroadcast.broadcastRemote(
+    BotBroadcast.broadcastRemote(
         fp.getName(), fp.getDisplayName(), message, "", "");
   }
 
@@ -611,18 +622,18 @@ public final class FppApiImpl implements FppApi {
   }
 
   @Override
-  public @NotNull me.bill.fakePlayerPlugin.FakePlayerPlugin getPlugin() {
+  public @NotNull FakePlayerPlugin getPlugin() {
     return plugin;
   }
 
   @Override
-  public void registerAddon(@NotNull me.bill.fakePlayerPlugin.api.FppAddon addon) {
+  public void registerAddon(@NotNull FppAddon addon) {
     // Validate hard dependencies
-    java.util.Set<String> loaded = new java.util.HashSet<>();
-    for (me.bill.fakePlayerPlugin.api.FppAddon a : addons) loaded.add(a.getName());
+    Set<String> loaded = new HashSet<>();
+    for (FppAddon a : addons) loaded.add(a.getName());
     for (String dep : addon.getDependencies()) {
       if (!loaded.contains(dep)) {
-        me.bill.fakePlayerPlugin.util.FppLogger.warn(
+        FppLogger.warn(
             "[FppApi] Addon '" + addon.getName() + "' requires '" + dep + "' which is not loaded.");
         return;
       }
@@ -631,19 +642,19 @@ public final class FppApiImpl implements FppApi {
       try {
         addon.onEnable(this);
       } catch (Throwable t) {
-        me.bill.fakePlayerPlugin.util.FppLogger.warn(
+        FppLogger.warn(
             "[FppApi] Addon '" + addon.getName() + "' onEnable threw: " + t.getMessage());
       }
     }
   }
 
   @Override
-  public void unregisterAddon(@NotNull me.bill.fakePlayerPlugin.api.FppAddon addon) {
+  public void unregisterAddon(@NotNull FppAddon addon) {
     if (addons.remove(addon)) {
       try {
         addon.onDisable();
       } catch (Throwable t) {
-        me.bill.fakePlayerPlugin.util.FppLogger.warn(
+        FppLogger.warn(
             "[FppApi] Addon '" + addon.getName() + "' onDisable threw: " + t.getMessage());
       }
     }
@@ -651,7 +662,7 @@ public final class FppApiImpl implements FppApi {
 
   // ── Service registry ──────────────────────────────────────────────────────
 
-  private final java.util.concurrent.ConcurrentHashMap<Class<?>, Object> services = new java.util.concurrent.ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Class<?>, Object> services = new ConcurrentHashMap<>();
 
   @Override
   @SuppressWarnings("unchecked")
@@ -690,7 +701,7 @@ public final class FppApiImpl implements FppApi {
   }
 
   @Override
-  public @Nullable org.bukkit.configuration.file.YamlConfiguration getExtensionConfig(@NotNull String extensionName) {
+  public @Nullable YamlConfiguration getExtensionConfig(@NotNull String extensionName) {
     var loader = plugin.getExtensionLoader();
     return loader != null ? loader.getExtensionConfig(extensionName) : null;
   }
@@ -699,11 +710,11 @@ public final class FppApiImpl implements FppApi {
    * Called by FakePlayerPlugin#onDisable to shut down all registered addons.
    */
   public void disableAllAddons() {
-    for (me.bill.fakePlayerPlugin.api.FppAddon addon : addons) {
+    for (FppAddon addon : addons) {
       try {
         addon.onDisable();
       } catch (Throwable t) {
-        me.bill.fakePlayerPlugin.util.FppLogger.warn(
+        FppLogger.warn(
             "[FppApi] Addon '" + addon.getName() + "' onDisable threw: " + t.getMessage());
       }
     }

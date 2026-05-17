@@ -1,6 +1,8 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.api.event.FppBotChunkLoadEvent;
+import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import org.bukkit.Bukkit;
@@ -241,10 +243,10 @@ public final class ChunkLoader {
           world.addPluginChunkTicket(chunkX, chunkZ, plugin);
           if (world.isChunkLoaded(chunkX, chunkZ)) {
             var chunkEvt =
-                new me.bill.fakePlayerPlugin.api.event.FppBotChunkLoadEvent(
-                    new me.bill.fakePlayerPlugin.api.impl.FppBotImpl(fp),
+                new FppBotChunkLoadEvent(
+                    new FppBotImpl(fp),
                     world.getChunkAt(chunkX, chunkZ));
-            org.bukkit.Bukkit.getPluginManager().callEvent(chunkEvt);
+            Bukkit.getPluginManager().callEvent(chunkEvt);
           }
         };
     runnable.run();

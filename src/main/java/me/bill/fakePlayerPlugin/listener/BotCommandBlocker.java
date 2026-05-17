@@ -1,6 +1,7 @@
 package me.bill.fakePlayerPlugin.listener;
 
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -71,7 +72,7 @@ public class BotCommandBlocker implements Listener {
             .getPersistentDataContainer()
             .get(FakePlayerManager.FAKE_PLAYER_KEY, PersistentDataType.STRING);
     if (manager == null) return false;
-    me.bill.fakePlayerPlugin.fakeplayer.FakePlayer fp = manager.getByUuid(player.getUniqueId());
+    FakePlayer fp = manager.getByUuid(player.getUniqueId());
     if (fp == null) return false;
     if (marker != null && marker.startsWith("fpp-visual:")) return true;
     return fp.getName().equalsIgnoreCase(player.getName());

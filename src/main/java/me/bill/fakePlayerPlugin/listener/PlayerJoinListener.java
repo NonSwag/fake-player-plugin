@@ -5,6 +5,9 @@ import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotBroadcast;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
+import me.bill.fakePlayerPlugin.fakeplayer.PacketHelper;
+import me.bill.fakePlayerPlugin.lang.Lang;
+import me.bill.fakePlayerPlugin.permission.Perm;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -142,10 +145,10 @@ public class PlayerJoinListener implements Listener {
       var upd = plugin.getUpdateNotification();
       if (upd != null) {
         var p = event.getPlayer();
-        if (me.bill.fakePlayerPlugin.permission.Perm.hasOrOp(
-            p, me.bill.fakePlayerPlugin.permission.Perm.OP)
-            || me.bill.fakePlayerPlugin.permission.Perm.has(
-            p, me.bill.fakePlayerPlugin.permission.Perm.NOTIFY)) {
+        if (Perm.hasOrOp(
+            p, Perm.OP)
+            || Perm.has(
+            p, Perm.NOTIFY)) {
           try {
             p.sendMessage(upd);
           } catch (NoSuchMethodError | NoClassDefFoundError e) {
@@ -158,12 +161,12 @@ public class PlayerJoinListener implements Listener {
 
     try {
       if (plugin.isVersionUnsupported()
-          && me.bill.fakePlayerPlugin.permission.Perm.hasOrOp(
-          event.getPlayer(), me.bill.fakePlayerPlugin.permission.Perm.OP)) {
+          && Perm.hasOrOp(
+          event.getPlayer(), Perm.OP)) {
         event
             .getPlayer()
             .sendMessage(
-                me.bill.fakePlayerPlugin.lang.Lang.get(
+                Lang.get(
                     "version-unsupported-admin", "version", plugin.getDetectedMcVersion()));
       }
     } catch (Throwable ignored) {
@@ -187,7 +190,7 @@ public class PlayerJoinListener implements Listener {
         FppScheduler.runSyncLater(
             plugin,
             () -> {
-              for (me.bill.fakePlayerPlugin.fakeplayer.FakePlayer botFp : manager.getActivePlayers()) {
+              for (FakePlayer botFp : manager.getActivePlayers()) {
                 vc.broadcastBotSpawn(botFp);
               }
             },
@@ -214,13 +217,13 @@ public class PlayerJoinListener implements Listener {
           } catch (Throwable ignored) {
           }
 
-          if (me.bill.fakePlayerPlugin.config.Config.isNetworkMode()
-              && me.bill.fakePlayerPlugin.config.Config.tabListEnabled()) {
+          if (Config.isNetworkMode()
+              && Config.tabListEnabled()) {
             try {
               var cache = plugin.getRemoteBotCache();
               if (cache != null) {
                 for (var entry : cache.getAll()) {
-                  me.bill.fakePlayerPlugin.fakeplayer.PacketHelper.sendTabListAddRaw(
+                  PacketHelper.sendTabListAddRaw(
                       event.getPlayer(),
                       entry.uuid(),
                       entry.packetProfileName(),
@@ -239,7 +242,7 @@ public class PlayerJoinListener implements Listener {
 
   @EventHandler(priority = EventPriority.MONITOR)
   public void onQuit(PlayerQuitEvent event) {
-    java.util.UUID uuid = event.getPlayer().getUniqueId();
+    UUID uuid = event.getPlayer().getUniqueId();
 
     if (manager.hasSyntheticQuit(uuid)) {
       event.quitMessage(null);
