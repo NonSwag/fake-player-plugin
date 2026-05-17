@@ -1145,15 +1145,13 @@ public class DatabaseManager {
       batchUpdateLocationsSync(new HashMap<>(pendingLocations));
       pendingLocations.clear();
     }
-    long now = Instant.now().toEpochMilli();
-    activeRecords.values().forEach(r -> r.setRemovedAt(Instant.ofEpochMilli(now)));
     activeRecords.clear();
     if (!isAlive()) return;
     try (PreparedStatement ps =
         connection.prepareStatement(
             "UPDATE fpp_bot_sessions SET removed_at=?,remove_reason='SHUTDOWN' "
                 + "WHERE removed_at IS NULL AND server_id=?")) {
-      ps.setLong(1, now);
+      ps.setLong(1, Instant.now().toEpochMilli());
       ps.setString(2, Config.serverId());
       int rows = ps.executeUpdate();
       Config.debug("DB shutdown: closed " + rows + " open session(s).");
