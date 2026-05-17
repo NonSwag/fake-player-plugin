@@ -20,9 +20,20 @@ public class FppBotTaskEvent extends FppBotEvent {
     this.action = action;
   }
 
-  public @NotNull String getTaskType() { return taskType; }
-  public @NotNull Action getAction() { return action; }
+  public @NotNull String getTaskType() {
+    return taskType;
+  }
 
-  @Override public @NotNull HandlerList getHandlers() { return HANDLERS; }
-  public static @NotNull HandlerList getHandlerList() { return HANDLERS; }
+  public @NotNull Action getAction() {
+    return action;
+  }
+
+  @Override
+  public @NotNull HandlerList getHandlers() {
+    return HANDLERS;
+  }
+
+  public static @NotNull HandlerList getHandlerList() {
+    return HANDLERS;
+  }
 }

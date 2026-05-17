@@ -1,10 +1,5 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.fakeplayer.BotNavUtil;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
@@ -23,6 +18,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public final class StorageCommand implements FppCommand {
 
@@ -113,7 +113,8 @@ public final class StorageCommand implements FppCommand {
           depositInventory(sender, fp, args.length >= 3 ? args[2] : null);
           return true;
         }
-        default -> {}
+        default -> {
+        }
       }
     }
 
@@ -252,7 +253,8 @@ public final class StorageCommand implements FppCommand {
     return best;
   }
 
-  private record LocationFace(org.bukkit.Location loc) {}
+  private record LocationFace(org.bukkit.Location loc) {
+  }
 
   private LocationFace faceLocation(Player bot, Block block) {
     org.bukkit.Location loc = block.getLocation().add(0.5, 0, 0.5);

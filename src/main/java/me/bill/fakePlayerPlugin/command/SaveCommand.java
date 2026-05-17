@@ -14,11 +14,30 @@ public final class SaveCommand implements FppCommand {
     this.plugin = plugin;
   }
 
-  @Override public String getName() { return "save"; }
-  @Override public String getUsage() { return ""; }
-  @Override public String getDescription() { return "Save all active bot data immediately."; }
-  @Override public String getPermission() { return Perm.SAVE; }
-  @Override public boolean canUse(CommandSender sender) { return Perm.has(sender, Perm.SAVE); }
+  @Override
+  public String getName() {
+    return "save";
+  }
+
+  @Override
+  public String getUsage() {
+    return "";
+  }
+
+  @Override
+  public String getDescription() {
+    return "Save all active bot data immediately.";
+  }
+
+  @Override
+  public String getPermission() {
+    return Perm.SAVE;
+  }
+
+  @Override
+  public boolean canUse(CommandSender sender) {
+    return Perm.has(sender, Perm.SAVE);
+  }
 
   @Override
   public boolean execute(CommandSender sender, String[] args) {

@@ -17,9 +17,20 @@ public class FppBotWorldChangeEvent extends FppBotEvent {
     this.to = to;
   }
 
-  public @Nullable World getFrom() { return from; }
-  public @Nullable World getTo() { return to; }
+  public @Nullable World getFrom() {
+    return from;
+  }
 
-  @Override public @NotNull HandlerList getHandlers() { return HANDLERS; }
-  public static @NotNull HandlerList getHandlerList() { return HANDLERS; }
+  public @Nullable World getTo() {
+    return to;
+  }
+
+  @Override
+  public @NotNull HandlerList getHandlers() {
+    return HANDLERS;
+  }
+
+  public static @NotNull HandlerList getHandlerList() {
+    return HANDLERS;
+  }
 }

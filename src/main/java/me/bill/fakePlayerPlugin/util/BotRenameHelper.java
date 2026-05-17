@@ -1,10 +1,5 @@
 package me.bill.fakePlayerPlugin.util;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.function.Consumer;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.BotNameConfig;
 import me.bill.fakePlayerPlugin.config.Config;
@@ -22,6 +17,12 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 public final class BotRenameHelper {
 
@@ -342,7 +343,8 @@ public final class BotRenameHelper {
     return new ResolvedName(requestedName, requestedName);
   }
 
-  private record ResolvedName(String spawnArg, String finalName) {}
+  private record ResolvedName(String spawnArg, String finalName) {
+  }
 
   private record ValidationResult(
       boolean allowed,

@@ -17,10 +17,26 @@ public class FppBotSleepStartEvent extends FppBotEvent implements Cancellable {
     this.bedLocation = bedLocation != null ? bedLocation.clone() : null;
   }
 
-  public @Nullable Location getBedLocation() { return bedLocation != null ? bedLocation.clone() : null; }
+  public @Nullable Location getBedLocation() {
+    return bedLocation != null ? bedLocation.clone() : null;
+  }
 
-  @Override public boolean isCancelled() { return cancelled; }
-  @Override public void setCancelled(boolean cancelled) { this.cancelled = cancelled; }
-  @Override public @NotNull HandlerList getHandlers() { return HANDLERS; }
-  public static @NotNull HandlerList getHandlerList() { return HANDLERS; }
+  @Override
+  public boolean isCancelled() {
+    return cancelled;
+  }
+
+  @Override
+  public void setCancelled(boolean cancelled) {
+    this.cancelled = cancelled;
+  }
+
+  @Override
+  public @NotNull HandlerList getHandlers() {
+    return HANDLERS;
+  }
+
+  public static @NotNull HandlerList getHandlerList() {
+    return HANDLERS;
+  }
 }

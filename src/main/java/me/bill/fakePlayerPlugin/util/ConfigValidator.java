@@ -6,7 +6,8 @@ import org.bukkit.Material;
 
 public final class ConfigValidator {
 
-  private ConfigValidator() {}
+  private ConfigValidator() {
+  }
 
   public static int validate() {
     int issues = 0;

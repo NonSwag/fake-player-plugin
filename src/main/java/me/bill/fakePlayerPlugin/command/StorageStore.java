@@ -1,5 +1,13 @@
 package me.bill.fakePlayerPlugin.command;
 
+import me.bill.fakePlayerPlugin.util.BotDataYaml;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.java.JavaPlugin;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -12,13 +20,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
-import me.bill.fakePlayerPlugin.util.BotDataYaml;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public final class StorageStore {
 
@@ -229,5 +230,6 @@ public final class StorageStore {
     }
   }
 
-  public record StoragePoint(String name, Location location, boolean enabled) {}
+  public record StoragePoint(String name, Location location, boolean enabled) {
+  }
 }

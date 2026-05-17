@@ -1,9 +1,7 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
@@ -20,7 +18,14 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 public final class MoveCommand implements FppCommand {
 
@@ -501,7 +506,7 @@ public final class MoveCommand implements FppCommand {
     final Location fixedDest = dest.clone();
     pathfinding.navigate(
         fp,
-            new PathfindingService.NavigationRequest(
+        new PathfindingService.NavigationRequest(
             PathfindingService.Owner.MOVE,
             () -> fixedDest,
             Config.pathfindingArrivalDistance(),

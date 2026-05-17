@@ -1,19 +1,23 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Consumer;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
+
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.Base64;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 
 public final class SkinRepository {
 
@@ -24,7 +28,8 @@ public final class SkinRepository {
     return INSTANCE;
   }
 
-  private SkinRepository() {}
+  private SkinRepository() {
+  }
 
   private final List<SkinProfile> folderSkins = new CopyOnWriteArrayList<>();
 

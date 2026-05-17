@@ -1,23 +1,14 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.api.event.FppBotTeleportEvent;
+import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.BotRecord;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
-import me.bill.fakePlayerPlugin.api.event.FppBotTeleportEvent;
-import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
-import me.bill.fakePlayerPlugin.util.FppScheduler;
 import me.bill.fakePlayerPlugin.util.FppLogger;
+import me.bill.fakePlayerPlugin.util.FppScheduler;
 import me.bill.fakePlayerPlugin.util.RandomNameGenerator;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -33,6 +24,23 @@ import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.BlockIterator;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class FakePlayerManager {
 
@@ -107,12 +115,15 @@ public class FakePlayerManager {
       int xpLevel,
       float xpProgress,
       String skinTexture,
-      String skinSignature) {}
+      String skinSignature) {
+  }
 
   private final ConcurrentHashMap<String, DespawnSnapshot> despawnSnapshots =
       new ConcurrentHashMap<>();
 
-  /** YAML fallback file for despawn snapshots (used when DB is disabled). */
+  /**
+   * YAML fallback file for despawn snapshots (used when DB is disabled).
+   */
   private volatile java.io.File despawnSnapshotFile = null;
 
   private ChunkLoader chunkLoader;
@@ -182,58 +193,58 @@ public class FakePlayerManager {
     FppScheduler.runSyncRepeating(
         plugin,
         () -> {
-              if (activePlayers.isEmpty()) return;
-              for (FakePlayer fp : activePlayers.values()) {
+          if (activePlayers.isEmpty()) return;
+          for (FakePlayer fp : activePlayers.values()) {
 
-                org.bukkit.Location loc = fp.getLiveLocation();
-                if (loc == null || loc.getWorld() == null) continue;
-                String world = loc.getWorld().getName();
+            org.bukkit.Location loc = fp.getLiveLocation();
+            if (loc == null || loc.getWorld() == null) continue;
+            String world = loc.getWorld().getName();
 
-                fp.setSpawnLocation(loc.clone());
-                if (db != null) {
-                  db.updateLastLocation(
-                      fp.getUuid(),
-                      world,
-                      loc.getX(),
-                      loc.getY(),
-                      loc.getZ(),
-                      loc.getYaw(),
-                      loc.getPitch());
-                }
-              }
-              if (db != null && dbLocationFlushRunning.compareAndSet(false, true)) {
-                FppScheduler.runAsync(
-                    plugin,
-                    () -> {
-                      try {
-                        db.flushPendingLocations();
-                      } finally {
-                        dbLocationFlushRunning.set(false);
-                      }
-                    });
-              }
-            },
+            fp.setSpawnLocation(loc.clone());
+            if (db != null) {
+              db.updateLastLocation(
+                  fp.getUuid(),
+                  world,
+                  loc.getX(),
+                  loc.getY(),
+                  loc.getZ(),
+                  loc.getYaw(),
+                  loc.getPitch());
+            }
+          }
+          if (db != null && dbLocationFlushRunning.compareAndSet(false, true)) {
+            FppScheduler.runAsync(
+                plugin,
+                () -> {
+                  try {
+                    db.flushPendingLocations();
+                  } finally {
+                    dbLocationFlushRunning.set(false);
+                  }
+                });
+          }
+        },
         flushTicks,
         flushTicks);
 
     FppScheduler.runSyncRepeating(
         plugin,
         () -> {
-              if (!Config.tabListEnabled()) return;
-              if (activePlayers.isEmpty()) return;
-              List<Player> online = cachedOnlinePlayers;
-              if (online == null || online.isEmpty()) return;
-              for (FakePlayer fp : activePlayers.values()) {
-                if (!fp.isTabListDirty()) continue;
-                fp.clearTabListDirty();
-                for (Player p : online) {
-                  PacketHelper.sendTabListDisplayNameUpdate(p, fp);
-                  if (fp.hasCustomPing() || fp.isPingSimulated()) {
-                    PacketHelper.sendTabListLatencyUpdate(p, fp);
-                  }
-                }
+          if (!Config.tabListEnabled()) return;
+          if (activePlayers.isEmpty()) return;
+          List<Player> online = cachedOnlinePlayers;
+          if (online == null || online.isEmpty()) return;
+          for (FakePlayer fp : activePlayers.values()) {
+            if (!fp.isTabListDirty()) continue;
+            fp.clearTabListDirty();
+            for (Player p : online) {
+              PacketHelper.sendTabListDisplayNameUpdate(p, fp);
+              if (fp.hasCustomPing() || fp.isPingSimulated()) {
+                PacketHelper.sendTabListLatencyUpdate(p, fp);
               }
-            },
+            }
+          }
+        },
         20L,
         20L);
 
@@ -288,249 +299,249 @@ public class FakePlayerManager {
     FppScheduler.runSyncRepeating(
         plugin,
         () -> {
-              if (activePlayers.isEmpty()) return;
+          if (activePlayers.isEmpty()) return;
 
-              Collection<? extends Player> live = Bukkit.getOnlinePlayers();
-              List<Player> online = cachedOnlinePlayers;
-              if (online == null || online.size() != live.size()) {
-                online = new ArrayList<>(live);
-                cachedOnlinePlayers = online;
+          Collection<? extends Player> live = Bukkit.getOnlinePlayers();
+          List<Player> online = cachedOnlinePlayers;
+          if (online == null || online.size() != live.size()) {
+            online = new ArrayList<>(live);
+            cachedOnlinePlayers = online;
+          }
+
+          headAiTickCounter++;
+          final boolean headAiOn = Config.headAiEnabled();
+          final int headAiRate = Config.headAiTickRate();
+
+          final boolean doHeadAi = headAiOn && (headAiTickCounter % headAiRate == 0);
+          final double rangeSq =
+              doHeadAi ? Config.headAiLookRange() * Config.headAiLookRange() : 0;
+          final float speed = doHeadAi ? Config.headAiTurnSpeed() : 0f;
+
+          final double psd = Config.positionSyncDistance();
+          final double posSyncDistSq = psd > 0 ? psd * psd : -1;
+          visualSyncTickCounter++;
+
+          final int onlineCount = online.size();
+          final double[] playerX = new double[onlineCount];
+          final double[] playerY = new double[onlineCount];
+          final double[] playerZ = new double[onlineCount];
+          final org.bukkit.World[] playerWorld = new org.bukkit.World[onlineCount];
+          for (int pi = 0; pi < onlineCount; pi++) {
+            Location pl = online.get(pi).getLocation();
+            playerX[pi] = pl.getX();
+            playerY[pi] = pl.getY();
+            playerZ[pi] = pl.getZ();
+            playerWorld[pi] = pl.getWorld();
+          }
+
+          for (FakePlayer fp : activePlayers.values()) {
+            Player bot = fp.getPlayer();
+
+            if (bot == null || !bot.isValid() || !bot.isOnline() || bot.isDead()) continue;
+            boolean sendVisualSyncThisTick = shouldSendLaggedVisualUpdate(fp);
+            boolean runBehaviorThisTick = shouldRunLaggedBehaviorUpdate(fp);
+            Location before = bot.getLocation();
+
+            if (!fp.isFrozen()) {
+
+              boolean isNavigating = plugin.getPathfindingService() != null
+                  && plugin.getPathfindingService().isNavigating(fp.getUuid());
+
+              if (runBehaviorThisTick && fp.isSwimAiEnabled()) {
+                boolean navJump =
+                    isNavigating && navJumpHolding.getOrDefault(fp.getUuid(), 0) > 0;
+                PathfindingService.tickSwimAi(bot, navJump, isNavigating);
+              }
+              if (runBehaviorThisTick) {
+                navJumpHolding.computeIfPresent(fp.getUuid(), (k, v) -> v > 1 ? v - 1 : null);
               }
 
-              headAiTickCounter++;
-              final boolean headAiOn = Config.headAiEnabled();
-              final int headAiRate = Config.headAiTickRate();
-
-              final boolean doHeadAi = headAiOn && (headAiTickCounter % headAiRate == 0);
-              final double rangeSq =
-                  doHeadAi ? Config.headAiLookRange() * Config.headAiLookRange() : 0;
-              final float speed = doHeadAi ? Config.headAiTurnSpeed() : 0f;
-
-              final double psd = Config.positionSyncDistance();
-              final double posSyncDistSq = psd > 0 ? psd * psd : -1;
-              visualSyncTickCounter++;
-
-              final int onlineCount = online.size();
-              final double[] playerX = new double[onlineCount];
-              final double[] playerY = new double[onlineCount];
-              final double[] playerZ = new double[onlineCount];
-              final org.bukkit.World[] playerWorld = new org.bukkit.World[onlineCount];
-              for (int pi = 0; pi < onlineCount; pi++) {
-                Location pl = online.get(pi).getLocation();
-                playerX[pi] = pl.getX();
-                playerY[pi] = pl.getY();
-                playerZ[pi] = pl.getZ();
-                playerWorld[pi] = pl.getWorld();
+              if (runBehaviorThisTick && fp.isAutoEatEnabled()) {
+                tickAutoEat(bot);
               }
 
-              for (FakePlayer fp : activePlayers.values()) {
-                Player bot = fp.getPlayer();
-
-                if (bot == null || !bot.isValid() || !bot.isOnline() || bot.isDead()) continue;
-                boolean sendVisualSyncThisTick = shouldSendLaggedVisualUpdate(fp);
-                boolean runBehaviorThisTick = shouldRunLaggedBehaviorUpdate(fp);
-                Location before = bot.getLocation();
-
-                if (!fp.isFrozen()) {
-
-                  boolean isNavigating = plugin.getPathfindingService() != null
-                      && plugin.getPathfindingService().isNavigating(fp.getUuid());
-
-                  if (runBehaviorThisTick && fp.isSwimAiEnabled()) {
-                    boolean navJump =
-                        isNavigating && navJumpHolding.getOrDefault(fp.getUuid(), 0) > 0;
-                    PathfindingService.tickSwimAi(bot, navJump, isNavigating);
-                  }
-                  if (runBehaviorThisTick) {
-                    navJumpHolding.computeIfPresent(fp.getUuid(), (k, v) -> v > 1 ? v - 1 : null);
-                  }
-
-                  if (runBehaviorThisTick && fp.isAutoEatEnabled()) {
-                    tickAutoEat(bot);
-                  }
-
-                  // Sleeping bots: check every tick whether NMS has woken the bot
-                  // (bed broken, monsters nearby, time-skip complete). Syncing here
-                  // rather than waiting for the 40-tick nightWatchTick sweep means the
-                  // bot stands up on the exact same tick the bed is removed.
-                  if (fp.isSleeping()) {
-                    net.minecraft.server.level.ServerPlayer nmsBot =
-                        ((org.bukkit.craftbukkit.entity.CraftPlayer) bot).getHandle();
-                    if (!nmsBot.isSleeping()) {
-                      // NMS already woke the bot — clear flag and fall through to normal tick.
-                      fp.setSleeping(false);
-                      actionLockedBots.remove(fp.getUuid());
-                      // fall through — bot immediately resumes normal physics/AI below
-                    } else {
-                      // Still genuinely sleeping: zero velocity, tick physics so that
-                      // NMS sleepCounter increments (needed for time-skip to dawn),
-                      // then skip all AI/movement for this tick.
-                      bot.setVelocity(ZERO_VELOCITY);
-                      NmsPlayerSpawner.tickPhysics(bot);
-                      var fppApiTickSleep = plugin.getFppApiImpl();
-                      if (fppApiTickSleep != null) fppApiTickSleep.fireTickHandlers(fp, bot);
-                      continue;
-                    }
-                  }
-
+              // Sleeping bots: check every tick whether NMS has woken the bot
+              // (bed broken, monsters nearby, time-skip complete). Syncing here
+              // rather than waiting for the 40-tick nightWatchTick sweep means the
+              // bot stands up on the exact same tick the bed is removed.
+              if (fp.isSleeping()) {
+                net.minecraft.server.level.ServerPlayer nmsBot =
+                    ((org.bukkit.craftbukkit.entity.CraftPlayer) bot).getHandle();
+                if (!nmsBot.isSleeping()) {
+                  // NMS already woke the bot — clear flag and fall through to normal tick.
+                  fp.setSleeping(false);
+                  actionLockedBots.remove(fp.getUuid());
+                  // fall through — bot immediately resumes normal physics/AI below
+                } else {
+                  // Still genuinely sleeping: zero velocity, tick physics so that
+                  // NMS sleepCounter increments (needed for time-skip to dawn),
+                  // then skip all AI/movement for this tick.
+                  bot.setVelocity(ZERO_VELOCITY);
                   NmsPlayerSpawner.tickPhysics(bot);
+                  var fppApiTickSleep = plugin.getFppApiImpl();
+                  if (fppApiTickSleep != null) fppApiTickSleep.fireTickHandlers(fp, bot);
+                  continue;
+                }
+              }
 
-                  if (runBehaviorThisTick
-                      && doHeadAi
-                      && fp.isHeadAiEnabled()
-                      && !actionLockedBots.containsKey(fp.getUuid())
-                      && !navLockedBots.contains(fp.getUuid())) {
+              NmsPlayerSpawner.tickPhysics(bot);
 
-                    // Head-AI target selection: only track a player who is actively
-                    // looking at this bot (eye-contact model). Conditions:
-                    //   1. Player is within look range (rangeSq)
-                    //   2. Bot has line of sight to the player
-                    //   3. The player's look direction points toward the bot
-                    //      within HEAD_AI_GAZE_COS (cos of ~15 degrees).
-                    // This prevents bots from mechanically staring at whoever
-                    // walks past; they only react when a player is gazing at them.
-                    Player target = null;
-                    double bestSq = rangeSq;
-                    for (int pi2 = 0; pi2 < onlineCount; pi2++) {
-                      Player p = online.get(pi2);
-                      if (activePlayers.containsKey(p.getUniqueId())) continue;
-                      if (p.getGameMode() == GameMode.SPECTATOR) continue;
-                      if (playerWorld[pi2] != before.getWorld()) continue;
-                      double ddx = playerX[pi2] - before.getX();
-                      double ddy = playerY[pi2] - before.getY();
-                      double ddz = playerZ[pi2] - before.getZ();
-                      double dSq = ddx * ddx + ddy * ddy + ddz * ddz;
-                      if (dSq > bestSq) continue;
-                      // Check that the player is looking toward this bot (gaze test).
-                      // We compare the player's look direction against the unit vector
-                      // from the player's eye to the bot's eye.
-                      org.bukkit.util.Vector lookDir = p.getEyeLocation().getDirection();
-                      double botEyeX = before.getX() - playerX[pi2];
-                      double botEyeY = (before.getY() + 1.62) - (playerY[pi2] + 1.62);
-                      double botEyeZ = before.getZ() - playerZ[pi2];
-                      double dist = Math.sqrt(botEyeX * botEyeX + botEyeY * botEyeY + botEyeZ * botEyeZ);
-                      if (dist < 0.001) continue;
-                      double dot = (lookDir.getX() * botEyeX + lookDir.getY() * botEyeY + lookDir.getZ() * botEyeZ) / dist;
-                      // cos(15°) ≈ 0.9659 — tighter cone means more deliberate eye-contact
-                      if (dot < HEAD_AI_GAZE_COS) continue;
-                      if (!hasLineOfSightIgnoringGlass(bot, p)) continue;
-                      bestSq = dSq;
-                      target = p;
-                    }
+              if (runBehaviorThisTick
+                  && doHeadAi
+                  && fp.isHeadAiEnabled()
+                  && !actionLockedBots.containsKey(fp.getUuid())
+                  && !navLockedBots.contains(fp.getUuid())) {
 
-                    final Location beforeCapture = before;
-                    float[] rot =
-                        botHeadRotation.computeIfAbsent(
-                            fp.getUuid(),
-                            k -> new float[] {beforeCapture.getYaw(), beforeCapture.getPitch()});
-
-                    float prevYaw = rot[0];
-                    float prevPitch = rot[1];
-
-                    if (target != null) {
-
-                      Location eye = bot.getEyeLocation();
-                      Location tgt = target.getEyeLocation();
-                      double dx = tgt.getX() - eye.getX();
-                      double dy = tgt.getY() - eye.getY();
-                      double dz = tgt.getZ() - eye.getZ();
-                      double horiz = Math.sqrt(dx * dx + dz * dz);
-                      float targetYaw = (float) (-Math.toDegrees(Math.atan2(dx, dz)));
-                      float targetPitch = (float) (-Math.toDegrees(Math.atan2(dy, horiz)));
-                      rot[0] = lerpAngle(rot[0], targetYaw, speed);
-                      rot[1] = lerpAngle(rot[1], targetPitch, speed);
-                    }
-
-                    if (Math.abs(rot[0] - prevYaw) > 0.01f
-                        || Math.abs(rot[1] - prevPitch) > 0.01f) {
-                      bot.setRotation(rot[0], rot[1]);
-                      NmsPlayerSpawner.setHeadYaw(bot, rot[0]);
-                      if (sendVisualSyncThisTick) {
-                        for (int pi2 = 0; pi2 < onlineCount; pi2++) {
-                          Player p = online.get(pi2);
-                          if (p.getUniqueId().equals(fp.getUuid())) continue;
-                          if (playerWorld[pi2] != before.getWorld()) continue;
-                          if (posSyncDistSq > 0) {
-                            double ddx = playerX[pi2] - before.getX();
-                            double ddz = playerZ[pi2] - before.getZ();
-                            if (ddx * ddx + ddz * ddz > posSyncDistSq) continue;
-                          }
-                          PacketHelper.sendRotation(p, fp, rot[0], rot[1], rot[0]);
-                        }
-                      }
-                    }
-                  }
-
-                  Location miningLock = actionLockedBots.get(fp.getUuid());
-                  if (runBehaviorThisTick && miningLock != null) {
-                    Location cur = bot.getLocation();
-                    boolean outOfPlace =
-                        !cur.getWorld().equals(miningLock.getWorld())
-                            || cur.distanceSquared(miningLock) > 0.0001;
-                    if (outOfPlace) {
-                      FppScheduler.teleportAsync(bot, miningLock);
-                    }
-
-                    float ly = miningLock.getYaw();
-                    float lp = miningLock.getPitch();
-                    bot.setRotation(ly, lp);
-                    NmsPlayerSpawner.setHeadYaw(bot, ly);
-                    if (sendVisualSyncThisTick) {
-                      for (int pi2 = 0; pi2 < onlineCount; pi2++) {
-                        Player p = online.get(pi2);
-                        if (p.getUniqueId().equals(fp.getUuid())) continue;
-                        if (playerWorld[pi2] != miningLock.getWorld()) continue;
-                        if (posSyncDistSq > 0) {
-                          double ddx = playerX[pi2] - miningLock.getX();
-                          double ddz = playerZ[pi2] - miningLock.getZ();
-                          if (ddx * ddx + ddz * ddz > posSyncDistSq) continue;
-                        }
-                        PacketHelper.sendRotation(p, fp, ly, lp, ly);
-                      }
-                    }
-
-                    bot.setVelocity(ZERO_VELOCITY);
-                  }
-
-                  if (runBehaviorThisTick) {
-                    // Tick handlers represent bot input/AI. Under simulated latency they are delayed,
-                    // while entity physics still runs every tick so the server body remains valid.
-                    var fppApiTick = plugin.getFppApiImpl();
-                    if (fppApiTick != null) fppApiTick.fireTickHandlers(fp, bot);
-                  }
+                // Head-AI target selection: only track a player who is actively
+                // looking at this bot (eye-contact model). Conditions:
+                //   1. Player is within look range (rangeSq)
+                //   2. Bot has line of sight to the player
+                //   3. The player's look direction points toward the bot
+                //      within HEAD_AI_GAZE_COS (cos of ~15 degrees).
+                // This prevents bots from mechanically staring at whoever
+                // walks past; they only react when a player is gazing at them.
+                Player target = null;
+                double bestSq = rangeSq;
+                for (int pi2 = 0; pi2 < onlineCount; pi2++) {
+                  Player p = online.get(pi2);
+                  if (activePlayers.containsKey(p.getUniqueId())) continue;
+                  if (p.getGameMode() == GameMode.SPECTATOR) continue;
+                  if (playerWorld[pi2] != before.getWorld()) continue;
+                  double ddx = playerX[pi2] - before.getX();
+                  double ddy = playerY[pi2] - before.getY();
+                  double ddz = playerZ[pi2] - before.getZ();
+                  double dSq = ddx * ddx + ddy * ddy + ddz * ddz;
+                  if (dSq > bestSq) continue;
+                  // Check that the player is looking toward this bot (gaze test).
+                  // We compare the player's look direction against the unit vector
+                  // from the player's eye to the bot's eye.
+                  org.bukkit.util.Vector lookDir = p.getEyeLocation().getDirection();
+                  double botEyeX = before.getX() - playerX[pi2];
+                  double botEyeY = (before.getY() + 1.62) - (playerY[pi2] + 1.62);
+                  double botEyeZ = before.getZ() - playerZ[pi2];
+                  double dist = Math.sqrt(botEyeX * botEyeX + botEyeY * botEyeY + botEyeZ * botEyeZ);
+                  if (dist < 0.001) continue;
+                  double dot = (lookDir.getX() * botEyeX + lookDir.getY() * botEyeY + lookDir.getZ() * botEyeZ) / dist;
+                  // cos(15°) ≈ 0.9659 — tighter cone means more deliberate eye-contact
+                  if (dot < HEAD_AI_GAZE_COS) continue;
+                  if (!hasLineOfSightIgnoringGlass(bot, p)) continue;
+                  bestSq = dSq;
+                  target = p;
                 }
 
-                Location after = bot.getLocation();
-                tickFallDamage(fp, bot, before, after);
-                double dxM = before.getX() - after.getX();
-                double dyM = before.getY() - after.getY();
-                double dzM = before.getZ() - after.getZ();
+                final Location beforeCapture = before;
+                float[] rot =
+                    botHeadRotation.computeIfAbsent(
+                        fp.getUuid(),
+                        k -> new float[]{beforeCapture.getYaw(), beforeCapture.getPitch()});
 
-                org.bukkit.util.Vector vel2 = bot.getVelocity();
-                boolean moved =
-                    before.getWorld() == after.getWorld()
-                        && (dxM * dxM + dyM * dyM + dzM * dzM) > 1e-8;
-                double vx = vel2.getX(), vy = vel2.getY(), vz2 = vel2.getZ();
-                if (sendVisualSyncThisTick
-                    && (moved || (vx * vx + vy * vy + vz2 * vz2) > 1e-6)) {
-                  if (onlineCount > 0) {
+                float prevYaw = rot[0];
+                float prevPitch = rot[1];
+
+                if (target != null) {
+
+                  Location eye = bot.getEyeLocation();
+                  Location tgt = target.getEyeLocation();
+                  double dx = tgt.getX() - eye.getX();
+                  double dy = tgt.getY() - eye.getY();
+                  double dz = tgt.getZ() - eye.getZ();
+                  double horiz = Math.sqrt(dx * dx + dz * dz);
+                  float targetYaw = (float) (-Math.toDegrees(Math.atan2(dx, dz)));
+                  float targetPitch = (float) (-Math.toDegrees(Math.atan2(dy, horiz)));
+                  rot[0] = lerpAngle(rot[0], targetYaw, speed);
+                  rot[1] = lerpAngle(rot[1], targetPitch, speed);
+                }
+
+                if (Math.abs(rot[0] - prevYaw) > 0.01f
+                    || Math.abs(rot[1] - prevPitch) > 0.01f) {
+                  bot.setRotation(rot[0], rot[1]);
+                  NmsPlayerSpawner.setHeadYaw(bot, rot[0]);
+                  if (sendVisualSyncThisTick) {
                     for (int pi2 = 0; pi2 < onlineCount; pi2++) {
                       Player p = online.get(pi2);
-                      if (p.equals(bot)) continue;
-
+                      if (p.getUniqueId().equals(fp.getUuid())) continue;
+                      if (playerWorld[pi2] != before.getWorld()) continue;
                       if (posSyncDistSq > 0) {
-                        if (playerWorld[pi2] != after.getWorld()) continue;
-                        double ddx = playerX[pi2] - after.getX();
-                        double ddy = playerY[pi2] - after.getY();
-                        double ddz = playerZ[pi2] - after.getZ();
-                        if (ddx * ddx + ddy * ddy + ddz * ddz > posSyncDistSq) continue;
+                        double ddx = playerX[pi2] - before.getX();
+                        double ddz = playerZ[pi2] - before.getZ();
+                        if (ddx * ddx + ddz * ddz > posSyncDistSq) continue;
                       }
-                      PacketHelper.sendPositionSync(p, bot, after);
+                      PacketHelper.sendRotation(p, fp, rot[0], rot[1], rot[0]);
                     }
                   }
                 }
               }
-            },
+
+              Location miningLock = actionLockedBots.get(fp.getUuid());
+              if (runBehaviorThisTick && miningLock != null) {
+                Location cur = bot.getLocation();
+                boolean outOfPlace =
+                    !cur.getWorld().equals(miningLock.getWorld())
+                        || cur.distanceSquared(miningLock) > 0.0001;
+                if (outOfPlace) {
+                  FppScheduler.teleportAsync(bot, miningLock);
+                }
+
+                float ly = miningLock.getYaw();
+                float lp = miningLock.getPitch();
+                bot.setRotation(ly, lp);
+                NmsPlayerSpawner.setHeadYaw(bot, ly);
+                if (sendVisualSyncThisTick) {
+                  for (int pi2 = 0; pi2 < onlineCount; pi2++) {
+                    Player p = online.get(pi2);
+                    if (p.getUniqueId().equals(fp.getUuid())) continue;
+                    if (playerWorld[pi2] != miningLock.getWorld()) continue;
+                    if (posSyncDistSq > 0) {
+                      double ddx = playerX[pi2] - miningLock.getX();
+                      double ddz = playerZ[pi2] - miningLock.getZ();
+                      if (ddx * ddx + ddz * ddz > posSyncDistSq) continue;
+                    }
+                    PacketHelper.sendRotation(p, fp, ly, lp, ly);
+                  }
+                }
+
+                bot.setVelocity(ZERO_VELOCITY);
+              }
+
+              if (runBehaviorThisTick) {
+                // Tick handlers represent bot input/AI. Under simulated latency they are delayed,
+                // while entity physics still runs every tick so the server body remains valid.
+                var fppApiTick = plugin.getFppApiImpl();
+                if (fppApiTick != null) fppApiTick.fireTickHandlers(fp, bot);
+              }
+            }
+
+            Location after = bot.getLocation();
+            tickFallDamage(fp, bot, before, after);
+            double dxM = before.getX() - after.getX();
+            double dyM = before.getY() - after.getY();
+            double dzM = before.getZ() - after.getZ();
+
+            org.bukkit.util.Vector vel2 = bot.getVelocity();
+            boolean moved =
+                before.getWorld() == after.getWorld()
+                    && (dxM * dxM + dyM * dyM + dzM * dzM) > 1e-8;
+            double vx = vel2.getX(), vy = vel2.getY(), vz2 = vel2.getZ();
+            if (sendVisualSyncThisTick
+                && (moved || (vx * vx + vy * vy + vz2 * vz2) > 1e-6)) {
+              if (onlineCount > 0) {
+                for (int pi2 = 0; pi2 < onlineCount; pi2++) {
+                  Player p = online.get(pi2);
+                  if (p.equals(bot)) continue;
+
+                  if (posSyncDistSq > 0) {
+                    if (playerWorld[pi2] != after.getWorld()) continue;
+                    double ddx = playerX[pi2] - after.getX();
+                    double ddy = playerY[pi2] - after.getY();
+                    double ddz = playerZ[pi2] - after.getZ();
+                    if (ddx * ddx + ddy * ddy + ddz * ddz > posSyncDistSq) continue;
+                  }
+                  PacketHelper.sendPositionSync(p, bot, after);
+                }
+              }
+            }
+          }
+        },
         1L,
         1L);
   }
@@ -768,7 +779,7 @@ public class FakePlayerManager {
           + sl.getBlockY()
           + ","
           + sl.getBlockZ();
-      return "unknown";
+    return "unknown";
   }
 
   public Location getLastKnownLocation(String botName) {
@@ -1334,27 +1345,27 @@ public class FakePlayerManager {
               }
             }
 
-             FppScheduler.runSyncLater(
-                 plugin,
-                 () -> {
-                   if (!activePlayers.containsKey(fp.getUuid())) return;
-                   boolean nms = fp.getPlayer() != null;
-                   Config.debug("Re-sending tab-list display-name (3t) for '" + fp.getName() + "' nms=" + nms);
-                   for (Player p : Bukkit.getOnlinePlayers())
-                     PacketHelper.sendTabListDisplayNameUpdate(p, fp);
-                  },
-                  3L);
+            FppScheduler.runSyncLater(
+                plugin,
+                () -> {
+                  if (!activePlayers.containsKey(fp.getUuid())) return;
+                  boolean nms = fp.getPlayer() != null;
+                  Config.debug("Re-sending tab-list display-name (3t) for '" + fp.getName() + "' nms=" + nms);
+                  for (Player p : Bukkit.getOnlinePlayers())
+                    PacketHelper.sendTabListDisplayNameUpdate(p, fp);
+                },
+                3L);
 
-             FppScheduler.runSyncLater(
-                 plugin,
-                 () -> {
-                   if (!activePlayers.containsKey(fp.getUuid())) return;
-                   Config.debug("Finalising tab-list for '" + fp.getName() + "'");
+            FppScheduler.runSyncLater(
+                plugin,
+                () -> {
+                  if (!activePlayers.containsKey(fp.getUuid())) return;
+                  Config.debug("Finalising tab-list for '" + fp.getName() + "'");
 
-                   var vc = plugin.getVelocityChannel();
-                   if (vc != null) vc.broadcastBotSpawn(fp);
-                 },
-                 20L);
+                  var vc = plugin.getVelocityChannel();
+                  if (vc != null) vc.broadcastBotSpawn(fp);
+                },
+                20L);
           } else {
             Config.debug("Tab-list disabled - unlisting '" + fp.getName() + "'");
 
@@ -1841,7 +1852,9 @@ public class FakePlayerManager {
     }
   }
 
-  /** Persists a snapshot to the DB (primary) or YAML fallback (async, best-effort). */
+  /**
+   * Persists a snapshot to the DB (primary) or YAML fallback (async, best-effort).
+   */
   private void persistDespawnSnapshot(String botNameLower, DespawnSnapshot snap) {
     String invData = serializeSlots(snap);
     String serverId = me.bill.fakePlayerPlugin.config.Config.serverId();
@@ -1889,7 +1902,9 @@ public class FakePlayerManager {
         });
   }
 
-  /** Removes a snapshot from DB/YAML after it has been restored (called on respawn). */
+  /**
+   * Removes a snapshot from DB/YAML after it has been restored (called on respawn).
+   */
   private void removeDespawnSnapshotPersistent(String botNameLower) {
     String serverId = me.bill.fakePlayerPlugin.config.Config.serverId();
     if (db != null) {
@@ -1927,7 +1942,8 @@ public class FakePlayerManager {
           String b64 = java.util.Base64.getEncoder().encodeToString(all[i].serializeAsBytes());
           if (sb.length() > 0) sb.append('|');
           sb.append(i).append(':').append(b64);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
       }
     }
     return sb.toString();
@@ -1954,7 +1970,8 @@ public class FakePlayerManager {
           if (slot < 0 || slot >= main.length) continue;
           byte[] bytes = java.util.Base64.getDecoder().decode(token.substring(colon + 1));
           main[slot] = ItemStack.deserializeBytes(bytes);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
       }
     }
     // Build armor (slots 36-39) and extra (slot 40) sub-arrays for applyDespawnSnapshot
@@ -1963,7 +1980,10 @@ public class FakePlayerManager {
     boolean hasContent =
         xpTotal > 0 || xpLevel > 0 || xpProgress > 0f || (skinTexture != null && !skinTexture.isBlank());
     for (ItemStack item : main) {
-      if (item != null && item.getType() != Material.AIR) { hasContent = true; break; }
+      if (item != null && item.getType() != Material.AIR) {
+        hasContent = true;
+        break;
+      }
     }
     if (!hasContent) return null;
     return new DespawnSnapshot(main, armor, extra, xpTotal, xpLevel, xpProgress, skinTexture, skinSignature);
@@ -2217,7 +2237,7 @@ public class FakePlayerManager {
                 fp,
                 loc,
                 () -> {
-                   Player newBody = FakePlayerBody.spawn(fp, loc, fp.getEffectivePing());
+                  Player newBody = FakePlayerBody.spawn(fp, loc, fp.getEffectivePing());
                   if (newBody != null) {
                     fp.setPhysicsEntity(newBody);
                     entityIdIndex.put(newBody.getEntityId(), fp);
@@ -2430,19 +2450,19 @@ public class FakePlayerManager {
           fp,
           loc,
           () -> {
-             Player newBody = FakePlayerBody.spawn(fp, loc, fp.getEffectivePing());
+            Player newBody = FakePlayerBody.spawn(fp, loc, fp.getEffectivePing());
             if (newBody == null) return;
 
             fp.setPhysicsEntity(newBody);
             entityIdIndex.put(newBody.getEntityId(), fp);
 
-             final FakePlayer target = fp;
-             FppScheduler.runSyncLater(
-                 plugin,
-                 () -> {
-                   for (Player p : Bukkit.getOnlinePlayers()) PacketHelper.sendTabListRefreshEntry(p, target);
-                 },
-                 2L);
+            final FakePlayer target = fp;
+            FppScheduler.runSyncLater(
+                plugin,
+                () -> {
+                  for (Player p : Bukkit.getOnlinePlayers()) PacketHelper.sendTabListRefreshEntry(p, target);
+                },
+                2L);
           });
     }
   }
@@ -2628,8 +2648,8 @@ public class FakePlayerManager {
   public void lockForAction(UUID botUuid, Location loc) {
     actionLockedBots.put(botUuid, loc.clone());
 
-    botHeadRotation.put(botUuid, new float[] {loc.getYaw(), loc.getPitch()});
-    botSpawnRotation.put(botUuid, new float[] {loc.getYaw(), loc.getPitch()});
+    botHeadRotation.put(botUuid, new float[]{loc.getYaw(), loc.getPitch()});
+    botSpawnRotation.put(botUuid, new float[]{loc.getYaw(), loc.getPitch()});
   }
 
   public void unlockAction(UUID botUuid) {
@@ -2951,7 +2971,8 @@ public class FakePlayerManager {
     return generated;
   }
 
-  public record UserBotName(String internalName, String displayName) {}
+  public record UserBotName(String internalName, String displayName) {
+  }
 
   public UserBotName generateUserBotName(String spawnerName, int existingCount) {
     String suffix = String.valueOf(existingCount + 1);

@@ -11,9 +11,11 @@ import org.bukkit.block.data.type.TrapDoor;
 
 public final class BotPathfinder {
 
-  private BotPathfinder() {}
+  private BotPathfinder() {
+  }
 
-  public record Pos(int x, int y, int z) {}
+  public record Pos(int x, int y, int z) {
+  }
 
   public enum MoveType {
     WALK,

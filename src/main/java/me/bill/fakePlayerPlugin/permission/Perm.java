@@ -6,7 +6,8 @@ import org.bukkit.entity.Player;
 @SuppressWarnings("unused")
 public final class Perm {
 
-  private Perm() {}
+  private Perm() {
+  }
 
   public static final String COMMAND = "fpp.command";
   public static final String PLUGIN_INFO = "fpp.plugininfo";

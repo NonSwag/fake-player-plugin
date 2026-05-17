@@ -1,11 +1,12 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
-import java.util.UUID;
-import java.util.function.Supplier;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
+import java.util.function.Supplier;
 
 public final class PathfindingService {
 

@@ -1,7 +1,5 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.ArrayList;
-import java.util.List;
 import me.bill.fakePlayerPlugin.api.FppSpawnLocationProvider;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotType;
@@ -13,6 +11,9 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @SuppressWarnings("unused")
 public class SpawnCommand implements FppCommand {
@@ -161,19 +162,19 @@ public class SpawnCommand implements FppCommand {
         location =
             hasCoords
                 ? new Location(
-                    w,
-                    coordX,
-                    coordY,
-                    coordZ,
-                    player.getLocation().getYaw(),
-                    player.getLocation().getPitch())
+                w,
+                coordX,
+                coordY,
+                coordZ,
+                player.getLocation().getYaw(),
+                player.getLocation().getPitch())
                 : new Location(
-                    w,
-                    player.getLocation().getX(),
-                    player.getLocation().getY(),
-                    player.getLocation().getZ(),
-                    player.getLocation().getYaw(),
-                    player.getLocation().getPitch());
+                w,
+                player.getLocation().getX(),
+                player.getLocation().getY(),
+                player.getLocation().getZ(),
+                player.getLocation().getYaw(),
+                player.getLocation().getPitch());
       } else {
         location = player.getLocation();
       }
@@ -338,12 +339,10 @@ public class SpawnCommand implements FppCommand {
         sender.sendMessage(Lang.get("spawn-max-reached", "max", String.valueOf(max)));
       }
       case -2 -> sender.sendMessage(Lang.get("spawn-invalid-name"));
-      case -4 ->
-          sender.sendMessage(
-              Lang.get("spawn-name-taken-player", "name", customName != null ? customName : "?"));
-      case -5 ->
-          sender.sendMessage(
-              Lang.get("spawn-name-taken-nick", "name", customName != null ? customName : "?"));
+      case -4 -> sender.sendMessage(
+          Lang.get("spawn-name-taken-player", "name", customName != null ? customName : "?"));
+      case -5 -> sender.sendMessage(
+          Lang.get("spawn-name-taken-nick", "name", customName != null ? customName : "?"));
       case 0 -> {
         if (customName != null) {
           sender.sendMessage(Lang.get("spawn-name-taken", "name", customName));

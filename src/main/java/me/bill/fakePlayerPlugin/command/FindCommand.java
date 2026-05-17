@@ -1,17 +1,8 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import org.bukkit.ChunkSnapshot;
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppBotBlockBreakEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
-import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotNavUtil;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
@@ -28,6 +19,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.level.block.state.BlockState;
 import org.bukkit.Bukkit;
+import org.bukkit.ChunkSnapshot;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -40,19 +32,34 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.util.RayTraceResult;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * /fpp find <bot> <block> [--radius <n>] [--count <n>] [--prefer-visible]
- * 
+ *
  */
 public final class FindCommand implements FppCommand {
 
-  /** Default search radius if --radius is not specified. */
+  /**
+   * Default search radius if --radius is not specified.
+   */
   private static final int DEFAULT_RADIUS = 32;
 
-  /** Hard cap on search radius to prevent freezing the server. */
+  /**
+   * Hard cap on search radius to prevent freezing the server.
+   */
   private static final int MAX_RADIUS = 128;
 
-  /** Ticks to wait after a block is broken before trying to mine the next one. */
+  /**
+   * Ticks to wait after a block is broken before trying to mine the next one.
+   */
   private static final int POST_MINE_PAUSE_TICKS = 10;
 
   private final FakePlayerPlugin plugin;
@@ -272,7 +279,8 @@ public final class FindCommand implements FppCommand {
           }
         }
         case "--prefer-visible", "--prefervisible" -> preferVisible = true;
-        default -> {}
+        default -> {
+        }
       }
     }
 
@@ -512,7 +520,9 @@ public final class FindCommand implements FppCommand {
     miningTasks.put(fp.getUuid(), taskId);
   }
 
-  /** Per-tick mining logic for a single target block. Mirrors MineCommand.tickMining logic. */
+  /**
+   * Per-tick mining logic for a single target block. Mirrors MineCommand.tickMining logic.
+   */
   private void tickMine(FakePlayer fp, FindJob job, SimpleMiningState state) {
     if (!jobs.containsKey(fp.getUuid())) {
       stopCurrentMine(fp.getUuid());
@@ -663,12 +673,12 @@ public final class FindCommand implements FppCommand {
       state.progress += speed;
       if (state.progress >= 1.0f) {
         if (fireBlockBreakHook(fp, targetPos)) {
-        NmsPlayerSpawner.handleBlockBreakAction(nms,
-            targetPos,
-            ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK,
-            side,
-            nms.level().getMaxY(),
-            -1);
+          NmsPlayerSpawner.handleBlockBreakAction(nms,
+              targetPos,
+              ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK,
+              side,
+              nms.level().getMaxY(),
+              -1);
         }
         nms.swing(InteractionHand.MAIN_HAND);
         state.done = true;
@@ -895,18 +905,17 @@ public final class FindCommand implements FppCommand {
     if (block.getState() instanceof org.bukkit.inventory.InventoryHolder) return false;
     return switch (type) {
       case BEDROCK,
-          BARRIER,
-          END_PORTAL,
-          END_PORTAL_FRAME,
-          NETHER_PORTAL,
-          COMMAND_BLOCK,
-          CHAIN_COMMAND_BLOCK,
-          REPEATING_COMMAND_BLOCK,
-          STRUCTURE_BLOCK,
-          JIGSAW,
-          LIGHT,
-          REINFORCED_DEEPSLATE ->
-          false;
+           BARRIER,
+           END_PORTAL,
+           END_PORTAL_FRAME,
+           NETHER_PORTAL,
+           COMMAND_BLOCK,
+           CHAIN_COMMAND_BLOCK,
+           REPEATING_COMMAND_BLOCK,
+           STRUCTURE_BLOCK,
+           JIGSAW,
+           LIGHT,
+           REINFORCED_DEEPSLATE -> false;
       default -> true;
     };
   }
@@ -977,7 +986,9 @@ public final class FindCommand implements FppCommand {
   //  Lifecycle helpers
   // ─────────────────────────────────────────────────────────────────────────────
 
-  /** Cancels the mining ticker and releases the action lock for this bot. */
+  /**
+   * Cancels the mining ticker and releases the action lock for this bot.
+   */
   private void stopCurrentMine(UUID botUuid) {
     Integer taskId = miningTasks.remove(botUuid);
     if (taskId != null) FppScheduler.cancelTask(taskId);
@@ -996,7 +1007,9 @@ public final class FindCommand implements FppCommand {
     }
   }
 
-  /** Fully stops the find job for a bot. Safe to call multiple times. */
+  /**
+   * Fully stops the find job for a bot. Safe to call multiple times.
+   */
   public void cleanupBot(UUID botUuid) {
     jobs.remove(botUuid);
     releaseReservations(botUuid);
@@ -1004,7 +1017,9 @@ public final class FindCommand implements FppCommand {
     stopCurrentMine(botUuid);
   }
 
-  /** Stops all active find jobs. */
+  /**
+   * Stops all active find jobs.
+   */
   public void stopAll() {
     for (UUID uuid : new java.util.HashSet<>(jobs.keySet())) {
       cleanupBot(uuid);
@@ -1065,7 +1080,8 @@ public final class FindCommand implements FppCommand {
     return arg.equalsIgnoreCase("stop") || arg.equalsIgnoreCase("--stop");
   }
 
-  private record BlockTarget(UUID worldId, int x, int y, int z, long key) {}
+  private record BlockTarget(UUID worldId, int x, int y, int z, long key) {
+  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   //  Inner types
@@ -1079,7 +1095,9 @@ public final class FindCommand implements FppCommand {
     final UUID starterUuid;
     final boolean playerStarted;
 
-    /** Packed keys of blocks already targeted (so we don't revisit them). */
+    /**
+     * Packed keys of blocks already targeted (so we don't revisit them).
+     */
     final Set<Long> mined = new HashSet<>();
 
     int minedCount = 0;

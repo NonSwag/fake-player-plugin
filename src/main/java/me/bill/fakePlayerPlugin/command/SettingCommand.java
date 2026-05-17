@@ -1,6 +1,5 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.List;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.gui.BotSettingGui;
@@ -9,6 +8,8 @@ import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
+import java.util.List;
 
 public class SettingCommand implements FppCommand {
 

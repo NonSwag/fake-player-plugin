@@ -1,8 +1,5 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.lang.Lang;
@@ -10,6 +7,10 @@ import me.bill.fakePlayerPlugin.permission.Perm;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class FreezeCommand implements FppCommand {
 

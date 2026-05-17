@@ -1,11 +1,12 @@
 package me.bill.fakePlayerPlugin.api;
 
-import java.io.File;
-import java.util.List;
 import me.bill.fakePlayerPlugin.extension.ExtensionLoader;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.File;
+import java.util.List;
 
 public interface FppExtension {
   @NotNull String getName();

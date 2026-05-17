@@ -1,5 +1,12 @@
 package me.bill.fakePlayerPlugin.util;
 
+import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.permission.Perm;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -8,13 +15,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import me.bill.fakePlayerPlugin.config.Config;
-import me.bill.fakePlayerPlugin.permission.Perm;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 
 public final class UpdateChecker {
 
@@ -32,7 +32,8 @@ public final class UpdateChecker {
   private static volatile long cacheTimestamp = 0L;
   private static final long CACHE_TTL_MS = 5L * 60L * 1000L;
 
-  private UpdateChecker() {}
+  private UpdateChecker() {
+  }
 
   public static void check(Plugin plugin) {
     if (!Config.updateCheckerEnabled()) {
@@ -239,9 +240,9 @@ public final class UpdateChecker {
             + (modrinthResult != null ? modrinthResult.error : "null result"));
 
     String[] vercelCandidates = {
-      VERCEL_API_BASE + "/api/check-update",
-      VERCEL_API_BASE + "/api/status",
-      VERCEL_API_BASE + "/api/latest",
+        VERCEL_API_BASE + "/api/check-update",
+        VERCEL_API_BASE + "/api/status",
+        VERCEL_API_BASE + "/api/latest",
     };
     for (String url : vercelCandidates) {
       UpdateInfo result = tryFetch(info.current, url, false);
@@ -351,22 +352,22 @@ public final class UpdateChecker {
 
   private static String extractVersion(String body) {
     for (String key :
-        new String[] {
-          "remoteVersion",
-          "remote_version",
-          "version_number",
-          "tag_name",
-          "version",
-          "latest",
-          "name"
+        new String[]{
+            "remoteVersion",
+            "remote_version",
+            "version_number",
+            "tag_name",
+            "version",
+            "latest",
+            "name"
         }) {
       String val = extractJsonString(body, key);
       if (val != null && VERSION_REGEX.matcher(val).find()) return val;
     }
-    for (String wrapper : new String[] {"remote", "data"}) {
+    for (String wrapper : new String[]{"remote", "data"}) {
       String nested = extractNestedObject(body, wrapper);
       if (nested != null) {
-        for (String key : new String[] {"version", "version_number", "tag_name", "latest"}) {
+        for (String key : new String[]{"version", "version_number", "tag_name", "latest"}) {
           String val = extractJsonString(nested, key);
           if (val != null && VERSION_REGEX.matcher(val).find()) return val;
         }
@@ -377,14 +378,14 @@ public final class UpdateChecker {
   }
 
   private static String extractDownloadUrl(String body) {
-    for (String key : new String[] {"downloadUrl", "download_url", "website"}) {
+    for (String key : new String[]{"downloadUrl", "download_url", "website"}) {
       String val = extractJsonString(body, key);
       if (val != null && !val.isBlank()) return val;
     }
-    for (String wrapper : new String[] {"remote", "data"}) {
+    for (String wrapper : new String[]{"remote", "data"}) {
       String nested = extractNestedObject(body, wrapper);
       if (nested != null) {
-        for (String key : new String[] {"downloadUrl", "download_url", "website"}) {
+        for (String key : new String[]{"downloadUrl", "download_url", "website"}) {
           String val = extractJsonString(nested, key);
           if (val != null && !val.isBlank()) return val;
         }

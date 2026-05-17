@@ -1,5 +1,8 @@
 package me.bill.fakePlayerPlugin.util;
 
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import org.bukkit.configuration.file.YamlConfiguration;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,12 +11,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import me.bill.fakePlayerPlugin.FakePlayerPlugin;
-import org.bukkit.configuration.file.YamlConfiguration;
 
 public final class YamlFileSyncer {
 
-  private YamlFileSyncer() {}
+  private YamlFileSyncer() {
+  }
 
   public record SyncResult(String fileName, List<String> keysAdded) {
 

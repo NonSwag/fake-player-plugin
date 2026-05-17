@@ -14,7 +14,8 @@ public final class FakePlayerBody {
 
   public static final String NAMETAG_PDC_VALUE = "fpp-nametag";
 
-  private FakePlayerBody() {}
+  private FakePlayerBody() {
+  }
 
   public static Player spawn(FakePlayer fp, Location loc) {
     return spawn(fp, loc, -1);
@@ -51,7 +52,9 @@ public final class FakePlayerBody {
     }
   }
 
-  /** Callback-based body spawn compatibility wrapper. */
+  /**
+   * Callback-based body spawn compatibility wrapper.
+   */
   public static void spawnAsync(FakePlayer fp, Location loc, java.util.function.Consumer<Player> callback) {
     spawnAsync(fp, loc, -1, callback);
   }
@@ -282,7 +285,8 @@ public final class FakePlayerBody {
     }
   }
 
-  public static void removeNametag(FakePlayer fp) {}
+  public static void removeNametag(FakePlayer fp) {
+  }
 
   public static org.bukkit.entity.Entity spawnNametag(
       FakePlayer fp, org.bukkit.entity.Entity body) {
@@ -290,7 +294,9 @@ public final class FakePlayerBody {
     return null;
   }
 
-  public static void removeOrphanedNametags(String reason) {}
+  public static void removeOrphanedNametags(String reason) {
+  }
 
-  public static void removeOrphanedBodies(String reason) {}
+  public static void removeOrphanedBodies(String reason) {
+  }
 }

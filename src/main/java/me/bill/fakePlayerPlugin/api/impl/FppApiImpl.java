@@ -1,28 +1,16 @@
 package me.bill.fakePlayerPlugin.api.impl;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppAddonCommand;
 import me.bill.fakePlayerPlugin.api.FppApi;
 import me.bill.fakePlayerPlugin.api.FppBot;
-import me.bill.fakePlayerPlugin.api.FppBotBlockBreakEvent;
-import me.bill.fakePlayerPlugin.api.FppBotBlockPlaceEvent;
-import me.bill.fakePlayerPlugin.api.FppBotSaveEvent;
-import me.bill.fakePlayerPlugin.api.FppCommandInfo;
-import me.bill.fakePlayerPlugin.api.FppCommandExtension;
-import me.bill.fakePlayerPlugin.api.FppCommandSource;
 import me.bill.fakePlayerPlugin.api.FppBotTickHandler;
+import me.bill.fakePlayerPlugin.api.FppCommandExtension;
+import me.bill.fakePlayerPlugin.api.FppCommandInfo;
+import me.bill.fakePlayerPlugin.api.FppCommandSource;
 import me.bill.fakePlayerPlugin.api.FppSettingsTab;
 import me.bill.fakePlayerPlugin.command.FppCommand;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
-import java.util.function.Supplier;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService;
 import me.bill.fakePlayerPlugin.fakeplayer.PathfindingService.NavigationRequest;
@@ -36,6 +24,15 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 /**
  * Internal implementation of {@link FppApi}.
  * Obtained via {@link FakePlayerPlugin#getFppApi()}.
@@ -45,19 +42,29 @@ public final class FppApiImpl implements FppApi {
   private final FakePlayerPlugin plugin;
   private final FakePlayerManager manager;
 
-  /** Registered addon tick handlers — thread-safe iterate, rare write. */
+  /**
+   * Registered addon tick handlers — thread-safe iterate, rare write.
+   */
   private final CopyOnWriteArrayList<FppBotTickHandler> tickHandlers = new CopyOnWriteArrayList<>();
 
-  /** Registered addon commands — iterated by CommandManager. */
+  /**
+   * Registered addon commands — iterated by CommandManager.
+   */
   private final CopyOnWriteArrayList<FppAddonCommand> addonCommands = new CopyOnWriteArrayList<>();
 
-  /** Registered addon command extensions for built-in /fpp subcommands. */
+  /**
+   * Registered addon command extensions for built-in /fpp subcommands.
+   */
   private final CopyOnWriteArrayList<FppCommandExtension> commandExtensions = new CopyOnWriteArrayList<>();
 
-  /** Registered addon settings tabs for /fpp settings. */
+  /**
+   * Registered addon settings tabs for /fpp settings.
+   */
   private final CopyOnWriteArrayList<FppSettingsTab> settingsTabs = new CopyOnWriteArrayList<>();
 
-  /** Registered addon lifecycle instances, ordered by priority (lower = earlier). */
+  /**
+   * Registered addon lifecycle instances, ordered by priority (lower = earlier).
+   */
   private final java.util.concurrent.ConcurrentSkipListSet<me.bill.fakePlayerPlugin.api.FppAddon> addons =
       new java.util.concurrent.ConcurrentSkipListSet<>(
           java.util.Comparator
@@ -65,7 +72,7 @@ public final class FppApiImpl implements FppApi {
               .thenComparing(me.bill.fakePlayerPlugin.api.FppAddon::getName));
 
   public FppApiImpl(@NotNull FakePlayerPlugin plugin, @NotNull FakePlayerManager manager) {
-    this.plugin  = plugin;
+    this.plugin = plugin;
     this.manager = manager;
   }
 
@@ -324,7 +331,9 @@ public final class FppApiImpl implements FppApi {
     if (gui != null) gui.unregisterExtensionTab(tab);
   }
 
-  /** Returns all registered addon commands (used by CommandManager). */
+  /**
+   * Returns all registered addon commands (used by CommandManager).
+   */
   public @NotNull List<FppAddonCommand> getAddonCommands() {
     return addonCommands;
   }
@@ -361,7 +370,9 @@ public final class FppApiImpl implements FppApi {
     }
   }
 
-  /** Fire a task lifecycle event for a bot. Convenience for commands. */
+  /**
+   * Fire a task lifecycle event for a bot. Convenience for commands.
+   */
   public static void fireTaskEvent(@NotNull FakePlayer fp, @NotNull String taskType, @NotNull me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action action) {
     Bukkit.getPluginManager().callEvent(new me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent(new FppBotImpl(fp), taskType, action));
   }
@@ -387,9 +398,13 @@ public final class FppApiImpl implements FppApi {
             /* arrivalDistance      */ 1.5,
             /* recalcDistance       */ 3.5,
             /* maxNullRecalcs       */ 5,
-            /* onArrive             */ () -> { if (onArrive != null) onArrive.run(); },
-            /* onCancel             */ () -> {},
-            /* onPathFailure        */ () -> {}));
+            /* onArrive             */ () -> {
+          if (onArrive != null) onArrive.run();
+        },
+            /* onCancel             */ () -> {
+        },
+            /* onPathFailure        */ () -> {
+        }));
   }
 
   @Override
@@ -424,9 +439,15 @@ public final class FppApiImpl implements FppApi {
             arrivalDistance,
             /* recalcDistance */ 3.5,
             /* maxNullRecalcs */ 5,
-            /* onArrive */ () -> { if (onArrive != null) onArrive.run(); },
-            /* onCancel */ () -> { if (onCancel != null) onCancel.run(); },
-            /* onPathFailure */ () -> { if (onFail != null) onFail.run(); }));
+            /* onArrive */ () -> {
+          if (onArrive != null) onArrive.run();
+        },
+            /* onCancel */ () -> {
+          if (onCancel != null) onCancel.run();
+        },
+            /* onPathFailure */ () -> {
+          if (onFail != null) onFail.run();
+        }));
   }
 
   @Override
@@ -450,12 +471,14 @@ public final class FppApiImpl implements FppApi {
             g.getRecalcDistance(),
             /* maxNullRecalcs */ 5,
             /* onArrive */ () -> {
-              if (g.isComplete(new FppBotImpl(fp))) {
-                cancelNavigation(bot);
-              }
-            },
-            /* onCancel */ () -> {},
-            /* onPathFailure */ () -> {}));
+          if (g.isComplete(new FppBotImpl(fp))) {
+            cancelNavigation(bot);
+          }
+        },
+            /* onCancel */ () -> {
+        },
+            /* onPathFailure */ () -> {
+        }));
   }
 
   @Override
@@ -672,7 +695,9 @@ public final class FppApiImpl implements FppApi {
     return loader != null ? loader.getExtensionConfig(extensionName) : null;
   }
 
-  /** Called by FakePlayerPlugin#onDisable to shut down all registered addons. */
+  /**
+   * Called by FakePlayerPlugin#onDisable to shut down all registered addons.
+   */
   public void disableAllAddons() {
     for (me.bill.fakePlayerPlugin.api.FppAddon addon : addons) {
       try {

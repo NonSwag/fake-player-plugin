@@ -1,18 +1,19 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
-import java.util.function.BiConsumer;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.InventoryHolder;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.function.BiConsumer;
+
 public final class StorageInteractionHelper {
 
-  private StorageInteractionHelper() {}
+  private StorageInteractionHelper() {
+  }
 
   public static void interact(
       FakePlayer fp,

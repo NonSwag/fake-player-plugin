@@ -14,8 +14,16 @@ public class FppBotChunkLoadEvent extends FppBotEvent {
     this.chunk = chunk;
   }
 
-  public @NotNull Chunk getChunk() { return chunk; }
+  public @NotNull Chunk getChunk() {
+    return chunk;
+  }
 
-  @Override public @NotNull HandlerList getHandlers() { return HANDLERS; }
-  public static @NotNull HandlerList getHandlerList() { return HANDLERS; }
+  @Override
+  public @NotNull HandlerList getHandlers() {
+    return HANDLERS;
+  }
+
+  public static @NotNull HandlerList getHandlerList() {
+    return HANDLERS;
+  }
 }

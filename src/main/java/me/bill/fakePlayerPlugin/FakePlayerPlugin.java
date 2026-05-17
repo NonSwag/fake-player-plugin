@@ -1,10 +1,23 @@
 package me.bill.fakePlayerPlugin;
 
-import me.bill.fakePlayerPlugin.command.*;
+import me.bill.fakePlayerPlugin.command.CommandManager;
+import me.bill.fakePlayerPlugin.command.DeleteCommand;
+import me.bill.fakePlayerPlugin.command.ExtensionCommand;
+import me.bill.fakePlayerPlugin.command.FreezeCommand;
+import me.bill.fakePlayerPlugin.command.InfoCommand;
+import me.bill.fakePlayerPlugin.command.InventoryCommand;
+import me.bill.fakePlayerPlugin.command.ListCommand;
+import me.bill.fakePlayerPlugin.command.MigrateCommand;
+import me.bill.fakePlayerPlugin.command.ReloadCommand;
+import me.bill.fakePlayerPlugin.command.SettingCommand;
+import me.bill.fakePlayerPlugin.command.SpawnCommand;
+import me.bill.fakePlayerPlugin.command.StatsCommand;
+import me.bill.fakePlayerPlugin.command.TpCommand;
+import me.bill.fakePlayerPlugin.command.TphCommand;
+import me.bill.fakePlayerPlugin.command.XpCommand;
 import me.bill.fakePlayerPlugin.config.BotNameConfig;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
-import me.bill.fakePlayerPlugin.database.NetworkDatabase;
 import me.bill.fakePlayerPlugin.fakeplayer.BotChatController;
 import me.bill.fakePlayerPlugin.fakeplayer.BotPersistence;
 import me.bill.fakePlayerPlugin.fakeplayer.ChunkLoader;
@@ -426,7 +439,7 @@ public final class FakePlayerPlugin extends JavaPlugin {
 
     fppMetrics = new FppMetrics();
     if (Config.metricsEnabled()) {
-        fppMetrics.init(this, fakePlayerManager);
+      fppMetrics.init(this, fakePlayerManager);
     } else {
       Config.debugStartup("Metrics disabled in config.yml - skipping FastStats init.");
     }
@@ -532,13 +545,17 @@ public final class FakePlayerPlugin extends JavaPlugin {
     return commandManager;
   }
 
-  /** Returns the public addon API entry point. Available after {@code onEnable} completes. */
+  /**
+   * Returns the public addon API entry point. Available after {@code onEnable} completes.
+   */
   @SuppressWarnings("unused")
   public me.bill.fakePlayerPlugin.api.FppApi getFppApi() {
     return fppApi;
   }
 
-  /** Internal accessor for subsystems that need the concrete impl (e.g. fireTickHandlers). */
+  /**
+   * Internal accessor for subsystems that need the concrete impl (e.g. fireTickHandlers).
+   */
   public me.bill.fakePlayerPlugin.api.impl.FppApiImpl getFppApiImpl() {
     return fppApi;
   }

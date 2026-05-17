@@ -1,6 +1,5 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
-import java.util.*;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
@@ -8,6 +7,15 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 public final class ChunkLoader {
 
@@ -175,7 +183,7 @@ public final class ChunkLoader {
     int diameter = radius * 2 + 1;
     List<long[]> result = new ArrayList<>(diameter * diameter);
 
-    result.add(new long[] {cx, cz});
+    result.add(new long[]{cx, cz});
     for (int r = 1; r <= radius; r++) {
 
       for (int dx = -r; dx <= r; dx++) addIfInBorder(result, cx + dx, cz - r, world);
@@ -197,7 +205,7 @@ public final class ChunkLoader {
     double chunkCenterZ = z * 16.0 + 8;
     if (Math.abs(chunkCenterX - bx) <= borderRadius
         && Math.abs(chunkCenterZ - bz) <= borderRadius) {
-      list.add(new long[] {x, z});
+      list.add(new long[]{x, z});
     }
   }
 
@@ -209,9 +217,9 @@ public final class ChunkLoader {
     double maxChunkX = Math.floor((bx + borderHalf) / 16.0);
     double minChunkZ = Math.floor((bz - borderHalf) / 16.0);
     double maxChunkZ = Math.floor((bz + borderHalf) / 16.0);
-    return new int[] {
-      (int) Math.max(minChunkX, Math.min(maxChunkX, cx)),
-      (int) Math.max(minChunkZ, Math.min(maxChunkZ, cz))
+    return new int[]{
+        (int) Math.max(minChunkX, Math.min(maxChunkX, cx)),
+        (int) Math.max(minChunkZ, Math.min(maxChunkZ, cz))
     };
   }
 

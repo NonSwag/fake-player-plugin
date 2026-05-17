@@ -13,7 +13,8 @@ public final class SkinProfileInjector {
 
   private static final String TEXTURES_KEY = "textures";
 
-  private SkinProfileInjector() {}
+  private SkinProfileInjector() {
+  }
 
   public static void apply(Object gameProfile, SkinProfile skin) throws Exception {
     if (skin == null) return;
@@ -233,8 +234,8 @@ public final class SkinProfileInjector {
   private static List<Field> getAllFields(Class<?> type) {
     List<Field> fields = new ArrayList<>();
     for (Class<?> current = type;
-        current != null && current != Object.class;
-        current = current.getSuperclass()) {
+         current != null && current != Object.class;
+         current = current.getSuperclass()) {
       fields.addAll(Arrays.asList(current.getDeclaredFields()));
     }
     return fields;
@@ -243,8 +244,8 @@ public final class SkinProfileInjector {
   private static List<Method> getAllMethods(Class<?> type) {
     List<Method> methods = new ArrayList<>();
     for (Class<?> current = type;
-        current != null && current != Object.class;
-        current = current.getSuperclass()) {
+         current != null && current != Object.class;
+         current = current.getSuperclass()) {
       methods.addAll(Arrays.asList(current.getDeclaredMethods()));
     }
     methods.addAll(Arrays.asList(type.getMethods()));

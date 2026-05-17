@@ -1,6 +1,5 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.util.List;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.lang.Lang;
@@ -11,6 +10,8 @@ import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
+import java.util.List;
 
 @SuppressWarnings("unused")
 public class TpCommand implements FppCommand {

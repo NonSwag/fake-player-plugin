@@ -1,7 +1,5 @@
 package me.bill.fakePlayerPlugin.command;
 
-import java.io.File;
-import java.util.List;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
@@ -15,6 +13,9 @@ import me.bill.fakePlayerPlugin.util.FppScheduler;
 import me.bill.fakePlayerPlugin.util.TextUtil;
 import me.bill.fakePlayerPlugin.util.YamlFileSyncer;
 import org.bukkit.command.CommandSender;
+
+import java.io.File;
+import java.util.List;
 
 public class MigrateCommand implements FppCommand {
 
@@ -68,10 +69,8 @@ public class MigrateCommand implements FppCommand {
       case "backups" -> doBackupsList(sender);
       case "status" -> doStatus(sender);
       case "config" -> doConfig(sender);
-      case "lang" ->
-          doFileSync(sender, "language/en.yml", "language/en.yml", "Language file (en.yml)");
-      case "names" ->
-          doFileSync(sender, "bot-names.yml", "bot-names.yml", "Bot names (bot-names.yml)");
+      case "lang" -> doFileSync(sender, "language/en.yml", "language/en.yml", "Language file (en.yml)");
+      case "names" -> doFileSync(sender, "bot-names.yml", "bot-names.yml", "Bot names (bot-names.yml)");
       case "db" -> doDb(sender, args);
       case "apply" -> doApply(sender);
       default -> sendHelp(sender);
@@ -119,14 +118,14 @@ public class MigrateCommand implements FppCommand {
             + " / "
             + ConfigMigrator.CURRENT_VERSION
             + (configCurrent
-                ? "  " + GREEN + "✔ current"
-                : "  " + RED + "✘ outdated - run /fpp migrate config"));
+            ? "  " + GREEN + "✔ current"
+            : "  " + RED + "✘ outdated - run /fpp migrate config"));
 
     msg(sender, COLOR + "  ꜰɪʟᴇ ꜱʏɴᴄ ꜱᴛᴀᴛᴜꜱ" + C_CLOSE);
 
     String[][] syncFiles = {
-      {"language/en.yml", "language/en.yml", "  en.yml       ", "lang"},
-      {"bot-names.yml", "bot-names.yml", "  bot-names    ", "names"},
+        {"language/en.yml", "language/en.yml", "  en.yml       ", "lang"},
+        {"bot-names.yml", "bot-names.yml", "  bot-names    ", "names"},
     };
     for (String[] f : syncFiles) {
       int missing = YamlFileSyncer.countMissingKeys(plugin, f[0], f[1]);
@@ -393,8 +392,8 @@ public class MigrateCommand implements FppCommand {
                 + " / "
                 + current
                 + (ok
-                    ? "  " + GREEN + "✔ current"
-                    : "  " + RED + "✘ outdated - restart the server to apply DB" + " migrations"));
+                ? "  " + GREEN + "✔ current"
+                : "  " + RED + "✘ outdated - restart the server to apply DB" + " migrations"));
         msg(sender, GRAY + "  Backend        : " + db.getStats().backend());
         msg(sender, GRAY + "  Sessions table : " + db.countSessions() + " row(s)");
         msg(sender, GRAY + "  Active bots    : " + db.countActiveBotRows() + " row(s)");

@@ -1,15 +1,16 @@
 package me.bill.fakePlayerPlugin.util;
 
 import com.google.gson.JsonObject;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
+
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 
 public final class HeartbeatSender {
 

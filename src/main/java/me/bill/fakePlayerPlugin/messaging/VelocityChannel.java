@@ -1,13 +1,5 @@
 package me.bill.fakePlayerPlugin.messaging;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotBroadcast;
@@ -17,13 +9,22 @@ import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.fakeplayer.PacketHelper;
 import me.bill.fakePlayerPlugin.fakeplayer.RemoteBotCache;
 import me.bill.fakePlayerPlugin.fakeplayer.RemoteBotEntry;
-import org.bukkit.persistence.PersistentDataType;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.jetbrains.annotations.NotNull;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 public final class VelocityChannel implements PluginMessageListener {
 
@@ -755,8 +756,7 @@ public final class VelocityChannel implements PluginMessageListener {
         me.bill.fakePlayerPlugin.lang.Lang.reload();
         Config.debugConfigSync("[ConfigSync] language/en.yml reloaded after reactive pull.");
       }
-      default ->
-          Config.debugConfigSync("[ConfigSync] Unknown file for reactive reload: " + fileName);
+      default -> Config.debugConfigSync("[ConfigSync] Unknown file for reactive reload: " + fileName);
     }
   }
 

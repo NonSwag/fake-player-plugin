@@ -1,18 +1,19 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.BotRecord;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @SuppressWarnings("unused")
 public final class FakePlayer {
@@ -68,7 +69,9 @@ public final class FakePlayer {
 
   private boolean bodyless = false;
 
-  /** True when this bot was spawned via {@code spawnRestored} (server restart persistence). */
+  /**
+   * True when this bot was spawned via {@code spawnRestored} (server restart persistence).
+   */
   private boolean restoredSpawn = false;
 
   private String luckpermsGroup = null;
@@ -158,15 +161,23 @@ public final class FakePlayer {
 
   private volatile boolean tabListDirty = true;
 
-  /** Addon-attached metadata — transient, cleared on despawn. */
+  /**
+   * Addon-attached metadata — transient, cleared on despawn.
+   */
   private final java.util.Map<String, Object> metadata = new java.util.concurrent.ConcurrentHashMap<>();
 
   // ── Sleep system ──────────────────────────────────────────────────────────
-  /** Station location used as the center for bed searching. null = not configured. */
+  /**
+   * Station location used as the center for bed searching. null = not configured.
+   */
   private Location sleepOrigin = null;
-  /** Bed-search radius in blocks. 0 = sleep disabled for this bot. */
+  /**
+   * Bed-search radius in blocks. 0 = sleep disabled for this bot.
+   */
   private double sleepRadius = 0.0;
-  /** True while the bot is currently in the sleeping state. */
+  /**
+   * True while the bot is currently in the sleeping state.
+   */
   private boolean sleeping = false;
 
   public FakePlayer(UUID uuid, String name, PlayerProfile profile) {

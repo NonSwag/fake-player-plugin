@@ -2,8 +2,6 @@ package me.bill.fakePlayerPlugin.gui;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import io.papermc.paper.event.player.AsyncChatEvent;
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppSettingsItem;
 import me.bill.fakePlayerPlugin.api.FppSettingsTab;
@@ -39,6 +37,15 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public final class SettingGui implements Listener {
 
@@ -88,7 +95,7 @@ public final class SettingGui implements Listener {
 
   public SettingGui(FakePlayerPlugin plugin) {
     this.plugin = plugin;
-    this.categories = new Category[] {general(), body()};
+    this.categories = new Category[]{general(), body()};
 
     if (!me.bill.fakePlayerPlugin.util.AttributionManager.quickAuthorCheck()) {
       me.bill.fakePlayerPlugin.util.FppLogger.warn(
@@ -97,7 +104,7 @@ public final class SettingGui implements Listener {
   }
 
   public void open(Player player) {
-    sessions.put(player.getUniqueId(), new int[] {0, 0, 0});
+    sessions.put(player.getUniqueId(), new int[]{0, 0, 0});
     build(player);
   }
 
@@ -851,23 +858,21 @@ public final class SettingGui implements Listener {
     for (Category cat : categories) {
       for (SettingEntry entry : cat.settings) {
         switch (entry.type) {
-          case TOGGLE ->
-              cfg.set(
-                  entry.configKey,
-                  defaults != null ? defaults.getBoolean(entry.configKey, false) : false);
-          case CYCLE_INT ->
-              cfg.set(
-                  entry.configKey,
-                  defaults != null
-                      ? defaults.getInt(entry.configKey, entry.intValues[0])
-                      : entry.intValues[0]);
-          case CYCLE_DOUBLE ->
-              cfg.set(
-                  entry.configKey,
-                  defaults != null
-                      ? defaults.getDouble(entry.configKey, entry.dblValues[0])
-                      : entry.dblValues[0]);
-          default -> {}
+          case TOGGLE -> cfg.set(
+              entry.configKey,
+              defaults != null ? defaults.getBoolean(entry.configKey, false) : false);
+          case CYCLE_INT -> cfg.set(
+              entry.configKey,
+              defaults != null
+                  ? defaults.getInt(entry.configKey, entry.intValues[0])
+                  : entry.intValues[0]);
+          case CYCLE_DOUBLE -> cfg.set(
+              entry.configKey,
+              defaults != null
+                  ? defaults.getDouble(entry.configKey, entry.dblValues[0])
+                  : entry.dblValues[0]);
+          default -> {
+          }
         }
       }
     }
@@ -1094,31 +1099,31 @@ public final class SettingGui implements Listener {
                 "ꜱᴘᴀᴡɴ ᴄᴏᴏʟᴅᴏᴡɴ (ꜱ)",
                 "ꜱᴇᴄᴏɴᴅꜱ ʙᴇᴛᴡᴇᴇɴ /ꜰᴘᴘ ꜱᴘᴀᴡɴ ᴜꜱᴇꜱ\nᴘᴇʀ ᴘʟᴀʏᴇʀ. 0 = ᴅɪꜱᴀʙʟᴇᴅ.",
                 Material.CLOCK,
-                new int[] {0, 10, 30, 60, 120, 300}),
+                new int[]{0, 10, 30, 60, 120, 300}),
             SettingEntry.cycleInt(
                 "limits.max-bots",
                 "ɢʟᴏʙᴀʟ ʙᴏᴛ ᴄᴀᴘ",
                 "ᴍᴀxɪᴍᴜᴍ ʙᴏᴛꜱ ꜱᴇʀᴠᴇʀ-ᴡɪᴅᴇ.\n0 = ɴᴏ ʟɪᴍɪᴛ.",
                 Material.CHEST,
-                new int[] {10, 25, 50, 100, 250, 500, 1000}),
+                new int[]{10, 25, 50, 100, 250, 500, 1000}),
             SettingEntry.cycleInt(
                 "limits.user-bot-limit",
                 "ᴘᴇʀ-ᴜꜱᴇʀ ʙᴏᴛ ʟɪᴍɪᴛ",
                 "ᴅᴇꜰᴀᴜʟᴛ ᴘᴇʀꜱᴏɴᴀʟ ʟɪᴍɪᴛ ꜰᴏʀ\nꜰᴘᴘ.ᴜꜱᴇʀ.ꜱᴘᴀᴡɴ ᴘʟᴀʏᴇʀꜱ.",
                 Material.SHIELD,
-                new int[] {1, 2, 3, 5, 10}),
+                new int[]{1, 2, 3, 5, 10}),
             SettingEntry.cycleInt(
                 "chunk-loading.radius",
                 "ᴄʜᴜɴᴋ ʟᴏᴀᴅ ʀᴀᴅɪᴜꜱ",
                 "ʟᴏɴɡᴇꜱᴛ ʀᴀɴᴅᴏᴍ ᴅᴇʟᴀʏ ʙᴇꜰᴏʀᴇ\nᴀ ʙᴏᴛ ʟᴇᴀᴠᴇꜱ. 20 = 1 ꜱᴇᴄᴏɴᴅ.",
                 Material.COMPASS,
-                new int[] {0, 2, 4, 6, 8, 12, 16}),
+                new int[]{0, 2, 4, 6, 8, 12, 16}),
             SettingEntry.cycleInt(
                 "chunk-loading.radius-duplicate",
                 "ᴄʜᴜɴᴋ ʟᴏᴀᴅ ʀᴀᴅɪᴜꜱ",
                 "ᴄʜᴜɴᴋ ʀᴀᴅɪᴜꜱ ᴋᴇᴘᴛ ʟᴏᴀᴅᴇᴅ ᴀʀᴏᴜɴᴅ\nᴇᴀᴄʜ ʙᴏᴛ. 0 = ꜱᴇʀᴠᴇʀ ᴅᴇꜰᴀᴜʟᴛ.",
                 Material.COMPASS,
-                new int[] {0, 2, 4, 6, 8, 12, 16}),
+                new int[]{0, 2, 4, 6, 8, 12, 16}),
             SettingEntry.action(
                 "reset-all-bots",
                 "ʀᴇꜱᴇᴛ ᴀʟʟ ʙᴏᴛꜱ",
@@ -1204,13 +1209,13 @@ public final class SettingGui implements Listener {
                 "ᴍᴀx ʜᴇᴀʟᴛʜ (½-ʜᴇᴀʀᴛꜱ)",
                 "ʙᴏᴛ ʙᴀꜱᴇ ʜᴇᴀʟᴛʜ. 20 = 10 ʜᴇᴀʀᴛꜱ.\n" + "ᴀᴘᴘʟɪᴇᴅ ᴀᴛ ꜱᴘᴀᴡɴ ᴀɴᴅ ᴏɴ /ꜰᴘᴘ ʀᴇʟᴏᴀᴅ.",
                 Material.GOLDEN_APPLE,
-                new double[] {5, 10, 15, 20, 40}),
+                new double[]{5, 10, 15, 20, 40}),
             SettingEntry.cycleInt(
                 "death.respawn-delay",
                 "ʀᴇꜱᴘᴀᴡɴ ᴅᴇʟᴀʏ (ᴛɪᴄᴋꜱ)",
                 "ᴛɪᴄᴋꜱ ʙᴇꜰᴏʀᴇ ᴀ ᴅᴇᴀᴅ ʙᴏᴛ ʀᴇᴛᴜʀɴꜱ.\n1 = ɪɴꜱᴛᴀɴᴛ  ·  20 = 1 ꜱᴇᴄᴏɴᴅ.",
                 Material.CLOCK,
-                new int[] {1, 5, 10, 15, 20, 40, 60, 100})));
+                new int[]{1, 5, 10, 15, 20, 40, 60, 100})));
   }
 
   private static final class GuiHolder implements InventoryHolder {
@@ -1232,7 +1237,8 @@ public final class SettingGui implements Listener {
       Material activeMat,
       Material inactiveMat,
       Material separatorGlass,
-      List<SettingEntry> settings) {}
+      List<SettingEntry> settings) {
+  }
 
   private enum SettingType {
     TOGGLE,
@@ -1242,7 +1248,8 @@ public final class SettingGui implements Listener {
     COMING_SOON
   }
 
-  private record ChatInputSession(SettingEntry entry, int[] guiState, int cleanupTaskId) {}
+  private record ChatInputSession(SettingEntry entry, int[] guiState, int cleanupTaskId) {
+  }
 
   private static final class SettingEntry {
     final String configKey;

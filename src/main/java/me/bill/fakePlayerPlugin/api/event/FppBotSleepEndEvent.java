@@ -15,8 +15,16 @@ public class FppBotSleepEndEvent extends FppBotEvent {
     this.bedLocation = bedLocation != null ? bedLocation.clone() : null;
   }
 
-  public @Nullable Location getBedLocation() { return bedLocation != null ? bedLocation.clone() : null; }
+  public @Nullable Location getBedLocation() {
+    return bedLocation != null ? bedLocation.clone() : null;
+  }
 
-  @Override public @NotNull HandlerList getHandlers() { return HANDLERS; }
-  public static @NotNull HandlerList getHandlerList() { return HANDLERS; }
+  @Override
+  public @NotNull HandlerList getHandlers() {
+    return HANDLERS;
+  }
+
+  public static @NotNull HandlerList getHandlerList() {
+    return HANDLERS;
+  }
 }

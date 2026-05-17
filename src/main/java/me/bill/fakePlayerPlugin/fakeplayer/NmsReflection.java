@@ -1,8 +1,9 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
+import org.bukkit.Bukkit;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import org.bukkit.Bukkit;
 
 public final class NmsReflection {
 
@@ -26,7 +27,8 @@ public final class NmsReflection {
   private static Constructor<?> clientInformationConstructor;
   private static Constructor<?> commonListenerCookieConstructor;
 
-  private NmsReflection() {}
+  private NmsReflection() {
+  }
 
   public static synchronized void init() {
     if (initialized || failed) return;

@@ -1,12 +1,14 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
-import java.lang.reflect.Method;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import org.bukkit.Bukkit;
 
+import java.lang.reflect.Method;
+
 public final class NmsHelper {
 
-  private NmsHelper() {}
+  private NmsHelper() {
+  }
 
   public static ClassLoader findNmsClassLoader() {
 
@@ -52,10 +54,10 @@ public final class NmsHelper {
 
   private static boolean canLoadNms(ClassLoader cl) {
     for (String probe :
-        new String[] {
-          "net.minecraft.server.players.PlayerList",
-          "net.minecraft.server.MinecraftServer",
-          "net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket"
+        new String[]{
+            "net.minecraft.server.players.PlayerList",
+            "net.minecraft.server.MinecraftServer",
+            "net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket"
         }) {
       try {
         cl.loadClass(probe);

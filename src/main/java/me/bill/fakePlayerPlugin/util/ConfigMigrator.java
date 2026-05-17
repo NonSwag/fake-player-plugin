@@ -1,12 +1,16 @@
 package me.bill.fakePlayerPlugin.util;
 
-import java.io.*;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.Set;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public final class ConfigMigrator {
 
@@ -14,7 +18,8 @@ public final class ConfigMigrator {
 
   private static boolean rawDebug = false;
 
-  private ConfigMigrator() {}
+  private ConfigMigrator() {
+  }
 
   public static boolean migrateIfNeeded(FakePlayerPlugin plugin) {
     File configFile = new File(plugin.getDataFolder(), "config.yml");
@@ -617,14 +622,14 @@ public final class ConfigMigrator {
     boolean changed = false;
 
     String[] loggingKeys = {
-      "logging.debug.startup",
-      "logging.debug.nms",
-      "logging.debug.packets",
-      "logging.debug.luckperms",
-      "logging.debug.network",
-      "logging.debug.config-sync",
-      "logging.debug.skin",
-      "logging.debug.database"
+        "logging.debug.startup",
+        "logging.debug.nms",
+        "logging.debug.packets",
+        "logging.debug.luckperms",
+        "logging.debug.network",
+        "logging.debug.config-sync",
+        "logging.debug.skin",
+        "logging.debug.database"
     };
 
     for (String key : loggingKeys) {
@@ -658,12 +663,12 @@ public final class ConfigMigrator {
     boolean changed = false;
 
     for (String deadKey :
-        new String[] {
-          "luckperms.weight-offset",
-          "luckperms.weight-ordering-enabled",
-          "luckperms.use-prefix",
-          "luckperms.packet-prefix-char",
-          "luckperms.bot-group"
+        new String[]{
+            "luckperms.weight-offset",
+            "luckperms.weight-ordering-enabled",
+            "luckperms.use-prefix",
+            "luckperms.packet-prefix-char",
+            "luckperms.bot-group"
         }) {
       if (cfg.contains(deadKey)) {
         cfg.set(deadKey, null);
@@ -989,25 +994,25 @@ public final class ConfigMigrator {
   private static boolean v70to71(YamlConfiguration cfg) {
     boolean changed = false;
     for (String key :
-        new String[] {
-          "luckperms",
-          "fake-chat",
-          "chat",
-          "bot-chat",
-          "bot-messages",
-          "skin",
-          "ping",
-          "peak-hours",
-          "peaks",
-          "swap",
-          "groups",
-          "bot-groups",
-          "waypoints",
-          "waypoint",
-          "command",
-          "right-click-command",
-          "bots-menu",
-          "pathfinder"
+        new String[]{
+            "luckperms",
+            "fake-chat",
+            "chat",
+            "bot-chat",
+            "bot-messages",
+            "skin",
+            "ping",
+            "peak-hours",
+            "peaks",
+            "swap",
+            "groups",
+            "bot-groups",
+            "waypoints",
+            "waypoint",
+            "command",
+            "right-click-command",
+            "bots-menu",
+            "pathfinder"
         }) {
       if (cfg.isSet(key)) {
         cfg.set(key, null);
@@ -1037,7 +1042,7 @@ public final class ConfigMigrator {
 
   private static boolean v72to73(YamlConfiguration cfg) {
     boolean changed = false;
-    for (String path : new String[] {"join-delay", "join-delay-min", "join-delay-max", "leave-delay", "leave-delay-min", "leave-delay-max"}) {
+    for (String path : new String[]{"join-delay", "join-delay-min", "join-delay-max", "leave-delay", "leave-delay-min", "leave-delay-max"}) {
       if (cfg.isSet(path)) {
         cfg.set(path, null);
         changed = true;

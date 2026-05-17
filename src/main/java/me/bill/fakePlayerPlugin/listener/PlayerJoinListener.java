@@ -1,11 +1,9 @@
 package me.bill.fakePlayerPlugin.listener;
 
-import java.lang.reflect.Field;
-import java.util.UUID;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
-import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.BotBroadcast;
+import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import org.bukkit.Bukkit;
@@ -15,6 +13,9 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+
+import java.lang.reflect.Field;
+import java.util.UUID;
 
 public class PlayerJoinListener implements Listener {
 
@@ -142,9 +143,9 @@ public class PlayerJoinListener implements Listener {
       if (upd != null) {
         var p = event.getPlayer();
         if (me.bill.fakePlayerPlugin.permission.Perm.hasOrOp(
-                p, me.bill.fakePlayerPlugin.permission.Perm.OP)
+            p, me.bill.fakePlayerPlugin.permission.Perm.OP)
             || me.bill.fakePlayerPlugin.permission.Perm.has(
-                p, me.bill.fakePlayerPlugin.permission.Perm.NOTIFY)) {
+            p, me.bill.fakePlayerPlugin.permission.Perm.NOTIFY)) {
           try {
             p.sendMessage(upd);
           } catch (NoSuchMethodError | NoClassDefFoundError e) {
@@ -158,7 +159,7 @@ public class PlayerJoinListener implements Listener {
     try {
       if (plugin.isVersionUnsupported()
           && me.bill.fakePlayerPlugin.permission.Perm.hasOrOp(
-              event.getPlayer(), me.bill.fakePlayerPlugin.permission.Perm.OP)) {
+          event.getPlayer(), me.bill.fakePlayerPlugin.permission.Perm.OP)) {
         event
             .getPlayer()
             .sendMessage(

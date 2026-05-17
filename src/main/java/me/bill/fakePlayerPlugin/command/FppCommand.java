@@ -1,8 +1,9 @@
 package me.bill.fakePlayerPlugin.command;
 
+import org.bukkit.command.CommandSender;
+
 import java.util.Collections;
 import java.util.List;
-import org.bukkit.command.CommandSender;
 
 public interface FppCommand {
 
