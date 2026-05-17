@@ -5,7 +5,6 @@ import java.sql.*;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.util.BackupManager;
@@ -530,16 +529,6 @@ public class DatabaseManager {
   private File dataFolder;
   private FakePlayerPlugin plugin;
 
-  private final ExecutorService writer =
-      Executors.newSingleThreadExecutor(
-          r -> {
-            Thread t = new Thread(r, "FPP-DB-Writer");
-            t.setDaemon(true);
-            return t;
-          });
-  private final BlockingQueue<Runnable> writeQueue = new LinkedBlockingQueue<>();
-  private final AtomicBoolean running = new AtomicBoolean(true);
-
   private final Map<String, BotRecord> activeRecords = new ConcurrentHashMap<>();
   private final Map<String, PendingLocation> pendingLocations = new ConcurrentHashMap<>();
 
@@ -558,8 +547,6 @@ public class DatabaseManager {
     }
     repairSchema();
     backfillIdentities();
-    startWriteLoop();
-    startHealthCheck();
     return true;
   }
 
@@ -813,56 +800,6 @@ public class DatabaseManager {
     }
   }
 
-  private void startWriteLoop() {
-    writer.submit(
-        () -> {
-          List<Runnable> drainBuffer = new ArrayList<>(32);
-          while (running.get() || !writeQueue.isEmpty()) {
-            try {
-              Runnable task = writeQueue.poll(100, TimeUnit.MILLISECONDS);
-              if (task != null) {
-                task.run();
-
-                drainBuffer.clear();
-                writeQueue.drainTo(drainBuffer, 31);
-                for (Runnable t : drainBuffer) {
-                  t.run();
-                }
-              }
-            } catch (InterruptedException e) {
-              Thread.currentThread().interrupt();
-              break;
-            } catch (Exception e) {
-              FppLogger.error("DB write error: " + e.getMessage());
-            }
-          }
-        });
-  }
-
-  private void startHealthCheck() {
-    Executors.newSingleThreadScheduledExecutor(
-            r -> {
-              Thread t = new Thread(r, "FPP-DB-Health");
-              t.setDaemon(true);
-              return t;
-            })
-        .scheduleAtFixedRate(
-            () -> {
-              if (!isAlive()) {
-                FppLogger.warn("DB connection lost - reconnecting...");
-                if (connect()) {
-                  createTables();
-                  FppLogger.success("DB reconnected.");
-                } else {
-                  FppLogger.error("DB reconnect failed.");
-                }
-              }
-            },
-            60,
-            60,
-            TimeUnit.SECONDS);
-  }
-
   private String serverCond() {
     return Config.isNetworkMode() ? "1=1" : "server_id=?";
   }
@@ -997,12 +934,6 @@ public class DatabaseManager {
 
   public void close() {
     flushPendingLocations();
-    writer.shutdown();
-    try {
-      if (!writer.awaitTermination(8, TimeUnit.SECONDS)) writer.shutdownNow();
-    } catch (InterruptedException ignored) {
-      writer.shutdownNow();
-    }
     try {
       if (connection != null && !connection.isClosed()) connection.close();
       FppLogger.info("Database connection closed.");
@@ -1145,15 +1076,13 @@ public class DatabaseManager {
       batchUpdateLocationsSync(new HashMap<>(pendingLocations));
       pendingLocations.clear();
     }
-    long now = Instant.now().toEpochMilli();
-    activeRecords.values().forEach(r -> r.setRemovedAt(Instant.ofEpochMilli(now)));
     activeRecords.clear();
     if (!isAlive()) return;
     try (PreparedStatement ps =
         connection.prepareStatement(
             "UPDATE fpp_bot_sessions SET removed_at=?,remove_reason='SHUTDOWN' "
                 + "WHERE removed_at IS NULL AND server_id=?")) {
-      ps.setLong(1, now);
+      ps.setLong(1, Instant.now().toEpochMilli());
       ps.setString(2, Config.serverId());
       int rows = ps.executeUpdate();
       Config.debug("DB shutdown: closed " + rows + " open session(s).");
@@ -1801,8 +1730,12 @@ public class DatabaseManager {
     }
   }
 
-  private void enqueue(Runnable task) {
-    if (running.get()) writeQueue.offer(task);
+  private synchronized void enqueue(Runnable task) {
+    try {
+      task.run();
+    } catch (Exception e) {
+      FppLogger.error("DB write error: " + e.getMessage());
+    }
   }
 
   private BotRecord mapSession(ResultSet rs) throws SQLException {
@@ -2580,8 +2513,8 @@ public class DatabaseManager {
                   : "INSERT OR REPLACE INTO fpp_bot_tasks"
                         + " (bot_uuid,server_id,task_type,world_name,pos_x,pos_y,pos_z,pos_yaw,pos_pitch,once_flag,extra_str,extra_bool)"
                         + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
-          for (BotTaskRow row : snap) {
-            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+          try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            for (BotTaskRow row : snap) {
               ps.setString(1, row.botUuid());
               ps.setString(2, row.serverId());
               ps.setString(3, row.taskType());
@@ -2596,10 +2529,11 @@ public class DatabaseManager {
               if (row.extraStr() != null) ps.setString(11, row.extraStr());
               else ps.setNull(11, java.sql.Types.VARCHAR);
               ps.setBoolean(12, row.extraBool());
-              ps.executeUpdate();
-            } catch (SQLException e) {
-              FppLogger.error("DB saveBotTask(" + row.taskType() + "): " + e.getMessage());
+              ps.addBatch();
             }
+            ps.executeBatch();
+          } catch (SQLException e) {
+            FppLogger.error("DB saveBotTasks (insert): " + e.getMessage());
           }
           Config.debug("DB saved " + snap.size() + " bot task row(s) for server='" + sid + "'.");
         });
