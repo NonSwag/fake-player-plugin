@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
@@ -117,6 +118,7 @@ public class FakePlayerManager {
   private ChunkLoader chunkLoader;
   private DatabaseManager db;
   private BotPersistence persistence;
+  private final AtomicBoolean dbLocationFlushRunning = new AtomicBoolean(false);
 
   private BotSwapController botSwapAI;
 
@@ -199,7 +201,17 @@ public class FakePlayerManager {
                       loc.getPitch());
                 }
               }
-              if (db != null) db.flushPendingLocations();
+              if (db != null && dbLocationFlushRunning.compareAndSet(false, true)) {
+                FppScheduler.runAsync(
+                    plugin,
+                    () -> {
+                      try {
+                        db.flushPendingLocations();
+                      } finally {
+                        dbLocationFlushRunning.set(false);
+                      }
+                    });
+              }
             },
         flushTicks,
         flushTicks);
