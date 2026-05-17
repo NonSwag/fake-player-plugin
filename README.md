@@ -95,25 +95,25 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 
 | Command | Usage | Description | Permission |
 |---------|-------|-------------|------------|
-| **spawn** | `[amount] [world [x y z]] [--name <name>] [--random-name] [--notp]` | Spawn fake player bots | `fpp.spawn` (admin) / `fpp.spawn.user` (user) |
+| **spawn** | `[amount] [world [x y z]] [--name <name>] [--random-name] [--notp] [<bottype>]` | Spawn fake player bots | `fpp.spawn` (admin) / `fpp.spawn.user` (user) |
 | **despawn** | `<name> \| all \| --count <n> \| --random [--count <n>]` | Remove bot(s) | `fpp.despawn` |
 | **list** | `[page]` | List active bots | `fpp.list` |
 | **tph** | `[botname\|all]` | Teleport bot(s) to you | `fpp.tph` |
 | **tp** | `[botname]` | Teleport to a bot | `fpp.tp` |
 | **xp** | `<bot>` | Collect XP from a bot | `fpp.xp` |
-| **move** | `<bot\|all> --to <player> \| --coords <x y z> \| --roam [x,y,z] [radius] \| --stop` | Navigate bot | `fpp.move` |
+| **move** | `<bot\|all> --to <player> \| --coords <x> <y> <z> \| --roam [x,y,z] [radius \| infinite \| forever \| unbounded] \| --stop` | Navigate bot | `fpp.move` |
 | **mine** | `<bot> [--once\|--stop\|--pos1\|--pos2\|--start\|--wesel] \| --stop` | Mine blocks | `fpp.mine` |
 | **place** | `<bot> [--once\|--stop\|--wesel] \| --stop` | Place blocks | `fpp.place` |
 | **use** | `<bot> [--once\|--stop] \| --stop` | Right-click automation | `fpp.use.cmd` |
-| **attack** | `<bot> [--mob [type]] [--range <n>] [--stop] \| --hunt [--range <n>] [--stop]` | PvE attack / hunt | `fpp.attack` |
+| **attack** | `<bot\|all> [--mob [type]] [--range <n>] [--type <mob>] [--priority nearest\|lowest-health] [--move] [--stop] \| --hunt [<mob>] [--range <n>] [--priority <mode>] [--stop]` | PvE attack / hunt | `fpp.attack` |
 | **follow** | `<bot\|all> <player\|--start> \| <bot\|all> --stop` | Follow a player | `fpp.follow` |
-| **find** | `<bot> <block> [--radius <n>] [--count <n>] [--prefer-visible] \| <bot> --stop \| --stop` | Find and mine blocks | `fpp.find` |
+| **find** | `<bot> <block> [-r <n> \| --radius <n>] [-c <n> \| --count <n>] [--prefer-visible] \| <bot> --stop \| --stop` | Find and mine blocks | `fpp.find` |
 | **sleep** | `<bot\|all> <x y z> <radius> \| <bot\|all> --stop` | Auto-sleep at night | `fpp.sleep` |
 | **stop** | `[<bot>\|all]` | Cancel active tasks | `fpp.stop` |
 | **freeze** | `<bot\|all> [on\|off]` | Freeze/unfreeze | `fpp.freeze` |
 | **inventory** | `<bot>` (alias: `inv`) | Open bot inventory | `fpp.inventory` |
 | **storage** | `<bot> [storage_name\|--list\|--remove <name>\|--clear]` | Manage supply containers | `fpp.storage` |
-| **extension** | `[--list]` | Manage extensions | `fpp.stats` |
+| **extension** | (bare) `\| --list` | Open marketplace link or list extensions | (implied admin) |
 | **save** | — | Force-save all bots | `fpp.save` |
 | **setowner** | `<bot> <player>` | Transfer ownership | `fpp.setowner` |
 | **rename** | `<oldname> <newname>` | Rename a bot | `fpp.rename` |
@@ -130,7 +130,9 @@ All commands are prefixed with `/fpp` (aliases: `fakeplayer`, `fp`).
 ```bash
 /fpp spawn 5                          # Spawn 5 bots
 /fpp spawn --name Steve               # Spawn a bot named "Steve"
+/fpp spawn --notp                     # Spawn at last known location (if persisted)
 /fpp spawn world_nether 100 64 -200   # Spawn in another world
+/fpp spawn 3 afk                      # Spawn 3 bots with "afk" bot-type preset
 /fpp despawn all                      # Remove all bots
 /fpp despawn --random --count 3       # Remove 3 random bots
 /fpp move bot1 --to Notch             # Navigate to player
@@ -169,6 +171,8 @@ FPP uses a two-tier permission system.
 - **Despawn:** `fpp.despawn`, `fpp.despawn.bulk`, `fpp.despawn.own`
 - **Movement:** `fpp.move`, `fpp.move.to`, `fpp.move.stop`
 - **Automation:** `fpp.mine`, `fpp.place`, `fpp.use.cmd`, `fpp.attack`, `fpp.attack.hunt`, `fpp.find`, `fpp.follow`, `fpp.sleep`, `fpp.stop`
+  - `fpp.mine.wesel` — WorldEdit selection for mining area
+  - `fpp.place.wesel` — WorldEdit selection for placement area
 - **Management:** `fpp.freeze`, `fpp.rename`, `fpp.rename.own`, `fpp.inventory`, `fpp.storage`, `fpp.setowner`, `fpp.save`, `fpp.settings`
 - **System:** `fpp.reload`, `fpp.migrate`, `fpp.badword`
 - **Bypass:** `fpp.bypass.max`, `fpp.bypass.cooldown`
@@ -313,9 +317,15 @@ Key sections:
 - `database` — SQLite / MySQL settings
 - `config-sync` — cross-server config push/pull
 - `performance` — position-sync distance tuning
+- `heartbeat` — network liveness publishing
+- `attack-mob` — default targeting range and priority
 - `logging.debug` — per-subsystem debug flags
+- `metrics` — FastStats usage statistics
+- `pathfinding` — A* tuning (gap walking, block break/place, node limits, stuck thresholds)
+- `skin` — mode, pool, overrides, mineskin integration
+- `ping` — random fake ping (requires `fpp-spoof.jar`)
 
-The plugin includes an **automatic config migrator** (current version: **71**). Do not edit `config-version` manually.
+The plugin includes an **automatic config migrator** (current version: **73**). Do not edit `config-version` manually.
 
 ---
 

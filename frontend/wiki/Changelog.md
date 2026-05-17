@@ -1,6 +1,25 @@
 # Changelog
 
-## v1.6.6.10.1 (Current)
+## v1.6.6.11 (Current)
+
+### Bug Fixes
+- **Online player count** — bots now correctly subtracted from real-player count in `/fpp stats` and network totals (commit `6afca8a`)
+- **Database flush** — runs outside the main thread to prevent server lag spikes (`f671781`)
+- **Batching logic** — added proper batching for DB writes and network heartbeats (`528cf0e`)
+- Removed dead writer/health-check logic that caused unnecessary DB overhead (`fcbe072`)
+- Removed pointless bot record update before clearing the list on shutdown (`8c1eb56`)
+
+### Code Quality
+- Removed unnecessarily fully qualified class names across codebase (`001416d`)
+- General cleanup of dead code, unused fields, and redundant calls (`14d1803`)
+
+### Documentation
+- Updated command reference with `extension --list`, `spawn --notp`, and `attack --move` flags
+- Synced config docs with `pathfinding.*`, `skin.*`, `help.*`, `ping.*`, `metrics.debug`, and `heartbeat.enabled`
+
+---
+
+## v1.6.6.10.1
 
 ### Attribution & Author Updates
 - Hardcoded original author updated from `el_pepes` to `F_PP` across codebase
