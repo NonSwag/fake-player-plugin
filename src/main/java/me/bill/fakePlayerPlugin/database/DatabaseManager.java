@@ -2513,8 +2513,8 @@ public class DatabaseManager {
                   : "INSERT OR REPLACE INTO fpp_bot_tasks"
                         + " (bot_uuid,server_id,task_type,world_name,pos_x,pos_y,pos_z,pos_yaw,pos_pitch,once_flag,extra_str,extra_bool)"
                         + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
-          for (BotTaskRow row : snap) {
-            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+          try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            for (BotTaskRow row : snap) {
               ps.setString(1, row.botUuid());
               ps.setString(2, row.serverId());
               ps.setString(3, row.taskType());
@@ -2529,10 +2529,11 @@ public class DatabaseManager {
               if (row.extraStr() != null) ps.setString(11, row.extraStr());
               else ps.setNull(11, java.sql.Types.VARCHAR);
               ps.setBoolean(12, row.extraBool());
-              ps.executeUpdate();
-            } catch (SQLException e) {
-              FppLogger.error("DB saveBotTask(" + row.taskType() + "): " + e.getMessage());
+              ps.addBatch();
             }
+            ps.executeBatch();
+          } catch (SQLException e) {
+            FppLogger.error("DB saveBotTasks (insert): " + e.getMessage());
           }
           Config.debug("DB saved " + snap.size() + " bot task row(s) for server='" + sid + "'.");
         });
