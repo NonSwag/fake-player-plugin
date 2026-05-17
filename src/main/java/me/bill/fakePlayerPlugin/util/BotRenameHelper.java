@@ -1,6 +1,9 @@
 package me.bill.fakePlayerPlugin.util;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.api.event.FppBotRenameEvent;
+import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
+import me.bill.fakePlayerPlugin.command.StorageStore;
 import me.bill.fakePlayerPlugin.config.BotNameConfig;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotType;
@@ -298,7 +301,7 @@ public final class BotRenameHelper {
       @NotNull Consumer<Component> feedback) {
     cleanupRenameState(oldUuid, newUuid);
 
-    me.bill.fakePlayerPlugin.command.StorageStore ss = plugin.getStorageStore();
+    StorageStore ss = plugin.getStorageStore();
     if (ss != null) {
       ss.renameBot(oldName, newName);
     }
@@ -319,9 +322,9 @@ public final class BotRenameHelper {
     if (fppApi != null) {
       FakePlayer renamedFp = manager.getByName(newName);
       if (renamedFp != null) {
-        me.bill.fakePlayerPlugin.api.event.FppBotRenameEvent renameEvt =
-            new me.bill.fakePlayerPlugin.api.event.FppBotRenameEvent(
-                new me.bill.fakePlayerPlugin.api.impl.FppBotImpl(renamedFp), oldName, newName);
+        FppBotRenameEvent renameEvt =
+            new FppBotRenameEvent(
+                new FppBotImpl(renamedFp), oldName, newName);
         Bukkit.getPluginManager().callEvent(renameEvt);
       }
     }

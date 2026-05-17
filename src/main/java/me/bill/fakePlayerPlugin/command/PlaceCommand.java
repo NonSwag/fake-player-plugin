@@ -2,6 +2,7 @@ package me.bill.fakePlayerPlugin.command;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppBotBlockPlaceEvent;
+import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
@@ -34,6 +35,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -157,8 +159,8 @@ public final class PlaceCommand implements FppCommand {
       String action = args[1].toLowerCase(Locale.ROOT);
 
       if (!AREA_MODE_ENABLED) {
-        java.util.Set<String> areaActions =
-            java.util.Set.of(
+        Set<String> areaActions =
+            Set.of(
                 "--pos1", "pos1", "--pos2", "pos2", "--block", "block", "--clear", "clear",
                 "start");
         if (areaActions.contains(action)) {
@@ -409,10 +411,10 @@ public final class PlaceCommand implements FppCommand {
 
   private void startNavigation(FakePlayer fp, Location dest, Runnable onArrive) {
     // Force placeBlocks=true so the bot can bridge gaps en-route to its target.
-    me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder.PathOptions baseOpts =
-        me.bill.fakePlayerPlugin.fakeplayer.PathfindingService.resolvePathOptions(fp);
-    me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder.PathOptions opts =
-        new me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder.PathOptions(
+    BotPathfinder.PathOptions baseOpts =
+        PathfindingService.resolvePathOptions(fp);
+    BotPathfinder.PathOptions opts =
+        new BotPathfinder.PathOptions(
             fp.isNavParkour(),
             fp.isNavBreakBlocks(),
             true,
@@ -435,7 +437,7 @@ public final class PlaceCommand implements FppCommand {
 
   private void lockAndStartPlacing(
       FakePlayer fp, boolean once, Location dest, float capturedYaw, float capturedPitch) {
-    FppApiImpl.fireTaskEvent(fp, "place", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.START);
+    FppApiImpl.fireTaskEvent(fp, "place", FppBotTaskEvent.Action.START);
     UUID uuid = fp.getUuid();
     Player bot = fp.getPlayer();
     if (bot == null) return;
@@ -570,7 +572,7 @@ public final class PlaceCommand implements FppCommand {
   }
 
   private PlacementInfo findBestPlacement(
-      Player bot, @org.jetbrains.annotations.Nullable Location preferred) {
+      Player bot, @Nullable Location preferred) {
     Location eye = bot.getEyeLocation();
     World world = bot.getWorld();
     int ex = (int) Math.floor(eye.getX());
@@ -652,7 +654,7 @@ public final class PlaceCommand implements FppCommand {
   public void stopPlacing(UUID botUuid) {
     FakePlayer fp = manager.getByUuid(botUuid);
     if (fp != null) {
-      FppApiImpl.fireTaskEvent(fp, "place", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.STOP);
+      FppApiImpl.fireTaskEvent(fp, "place", FppBotTaskEvent.Action.STOP);
     }
     Integer taskId = placingTasks.remove(botUuid);
     if (taskId != null) FppScheduler.cancelTask(taskId);
@@ -661,7 +663,7 @@ public final class PlaceCommand implements FppCommand {
     placeStates.remove(botUuid);
   }
 
-  @org.jetbrains.annotations.Nullable
+  @Nullable
   public Location getActivePlaceLocation(UUID botUuid) {
     PlaceState state = placeStates.get(botUuid);
     return state != null ? state.destination : null;
@@ -1083,13 +1085,13 @@ public final class PlaceCommand implements FppCommand {
   private void startNavigation(
       FakePlayer fp,
       Location dest,
-      @org.jetbrains.annotations.Nullable Location lockOnArrival,
+      @Nullable Location lockOnArrival,
       Runnable onArrive) {
     // Force placeBlocks=true so the bot can bridge gaps en-route to its target.
-    me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder.PathOptions baseOpts =
-        me.bill.fakePlayerPlugin.fakeplayer.PathfindingService.resolvePathOptions(fp);
-    me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder.PathOptions opts =
-        new me.bill.fakePlayerPlugin.fakeplayer.BotPathfinder.PathOptions(
+    BotPathfinder.PathOptions baseOpts =
+        PathfindingService.resolvePathOptions(fp);
+    BotPathfinder.PathOptions opts =
+        new BotPathfinder.PathOptions(
             fp.isNavParkour(),
             fp.isNavBreakBlocks(),
             true,
@@ -1632,7 +1634,7 @@ public final class PlaceCommand implements FppCommand {
 
   private Material getScaffoldMaterial(Player bot, List<BlockEntry> spec) {
     Set<Material> specMats =
-        spec.stream().map(BlockEntry::material).collect(java.util.stream.Collectors.toSet());
+        spec.stream().map(BlockEntry::material).collect(Collectors.toSet());
     PlayerInventory inv = bot.getInventory();
     for (Material preferred : SCAFFOLD_PREF) {
       if (!specMats.contains(preferred) && countInInventory(inv, preferred) > 0) return preferred;

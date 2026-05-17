@@ -1,10 +1,14 @@
 package me.bill.fakePlayerPlugin.api.impl;
 
 import me.bill.fakePlayerPlugin.api.FppBot;
+import me.bill.fakePlayerPlugin.api.event.FppBotGameModeChangeEvent;
 import me.bill.fakePlayerPlugin.fakeplayer.BotType;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
+import me.bill.fakePlayerPlugin.util.AttributeCompat;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -13,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -332,7 +337,7 @@ public final class FppBotImpl implements FppBot {
   public double getMaxHealth() {
     Player ent = fp.getPhysicsEntity();
     if (ent == null) return 20.0;
-    var attr = ent.getAttribute(me.bill.fakePlayerPlugin.util.AttributeCompat.maxHealth());
+    var attr = ent.getAttribute(AttributeCompat.maxHealth());
     return attr != null ? attr.getValue() : 20.0;
   }
 
@@ -340,7 +345,7 @@ public final class FppBotImpl implements FppBot {
   public void setMaxHealth(double health) {
     Player ent = fp.getPhysicsEntity();
     if (ent != null) {
-      var attr = ent.getAttribute(me.bill.fakePlayerPlugin.util.AttributeCompat.maxHealth());
+      var attr = ent.getAttribute(AttributeCompat.maxHealth());
       if (attr != null) attr.setBaseValue(health);
     }
   }
@@ -364,8 +369,8 @@ public final class FppBotImpl implements FppBot {
     if (ent == null) return;
     GameMode old = ent.getGameMode();
     if (old == mode) return;
-    var gmEvt = new me.bill.fakePlayerPlugin.api.event.FppBotGameModeChangeEvent(this, old, mode);
-    org.bukkit.Bukkit.getPluginManager().callEvent(gmEvt);
+    var gmEvt = new FppBotGameModeChangeEvent(this, old, mode);
+    Bukkit.getPluginManager().callEvent(gmEvt);
     if (gmEvt.isCancelled()) return;
     ent.setGameMode(gmEvt.getNewMode());
   }
@@ -590,7 +595,7 @@ public final class FppBotImpl implements FppBot {
   }
 
   @Override
-  public @NotNull java.util.Map<String, Object> getMetadataMap() {
+  public @NotNull Map<String, Object> getMetadataMap() {
     return fp.getMetadataMap();
   }
 
@@ -656,7 +661,7 @@ public final class FppBotImpl implements FppBot {
     if (ent == null) return 3.0;
     double base = 3.0;
     try {
-      var attr = ent.getAttribute(org.bukkit.attribute.Attribute.BLOCK_INTERACTION_RANGE);
+      var attr = ent.getAttribute(Attribute.BLOCK_INTERACTION_RANGE);
       if (attr != null) base = attr.getValue();
     } catch (Throwable ignored) {
     }

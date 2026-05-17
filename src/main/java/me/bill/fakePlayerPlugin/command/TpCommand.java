@@ -9,6 +9,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -89,7 +90,7 @@ public class TpCommand implements FppCommand {
       }
     }
 
-    org.bukkit.entity.Entity body = target.getPhysicsEntity();
+    Entity body = target.getPhysicsEntity();
     Location dest =
         (body != null && body.isValid()) ? body.getLocation() : target.getSpawnLocation();
 

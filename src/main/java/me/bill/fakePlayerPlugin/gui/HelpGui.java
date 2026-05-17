@@ -1,5 +1,6 @@
 package me.bill.fakePlayerPlugin.gui;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.FppCommandExtension;
 import me.bill.fakePlayerPlugin.command.CommandManager;
@@ -611,7 +612,7 @@ public final class HelpGui implements Listener {
     ItemStack item = new ItemStack(Material.PLAYER_HEAD);
     SkullMeta skull = (SkullMeta) item.getItemMeta();
 
-    com.destroystokyo.paper.profile.PlayerProfile profile = Bukkit.createProfile(ownerUuid);
+    PlayerProfile profile = Bukkit.createProfile(ownerUuid);
     skull.setPlayerProfile(profile);
 
     skull.displayName(

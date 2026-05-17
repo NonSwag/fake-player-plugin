@@ -6,6 +6,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import org.bukkit.Bukkit;
@@ -14,16 +15,22 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public final class SkinManager {
 
-  private static final java.util.List<String> DEFAULT_FALLBACK_ACCOUNT_POOL =
-      java.util.List.of(
+  private static final List<String> DEFAULT_FALLBACK_ACCOUNT_POOL =
+      List.of(
           "1Dont3now_tv",
           "1ns0mn1a_bot",
           "20JP",
@@ -1030,7 +1037,7 @@ public final class SkinManager {
 
   public static @NotNull String pickRandomPoolName() {
     return DEFAULT_FALLBACK_ACCOUNT_POOL.get(
-        java.util.concurrent.ThreadLocalRandom.current()
+        ThreadLocalRandom.current()
             .nextInt(DEFAULT_FALLBACK_ACCOUNT_POOL.size()));
   }
 
@@ -1108,20 +1115,20 @@ public final class SkinManager {
 
   private void resolvePlayerModeSkin(
       @NotNull FakePlayer fp, @NotNull Consumer<@Nullable SkinProfile> callback) {
-    resolvePlayerModeSkin(fp, fp.getSkinName(), 0, new java.util.HashSet<>(), callback);
+    resolvePlayerModeSkin(fp, fp.getSkinName(), 0, new HashSet<>(), callback);
   }
 
   private void resolvePlayerModeSkin(
       @NotNull FakePlayer fp,
       @NotNull String skinName,
       int fallbackCount,
-      @NotNull java.util.Set<String> triedNames,
+      @NotNull Set<String> triedNames,
       @NotNull Consumer<@Nullable SkinProfile> callback) {
-    triedNames.add(skinName.toLowerCase(java.util.Locale.ROOT));
+    triedNames.add(skinName.toLowerCase(Locale.ROOT));
 
     if (fallbackCount == 0 && plugin.getDatabaseManager() != null) {
       try {
-        me.bill.fakePlayerPlugin.database.DatabaseManager.SkinCacheEntry cached =
+        DatabaseManager.SkinCacheEntry cached =
             plugin.getDatabaseManager().getCachedSkin(skinName);
         if (cached != null && cached.isValid()) {
           SkinProfile skin =
@@ -1219,16 +1226,16 @@ public final class SkinManager {
   }
 
   private @Nullable String pickRandomFallbackAccountName(
-      @NotNull java.util.Set<String> triedNames) {
+      @NotNull Set<String> triedNames) {
 
-    java.util.List<String> candidates =
+    List<String> candidates =
         DEFAULT_FALLBACK_ACCOUNT_POOL.stream()
-            .filter(name -> !triedNames.contains(name.toLowerCase(java.util.Locale.ROOT)))
+            .filter(name -> !triedNames.contains(name.toLowerCase(Locale.ROOT)))
             .toList();
     if (!candidates.isEmpty()) {
       String selected =
           candidates.get(
-              java.util.concurrent.ThreadLocalRandom.current().nextInt(candidates.size()));
+              ThreadLocalRandom.current().nextInt(candidates.size()));
       Config.debugSkin(
           "SkinManager: picking random fallback account '"
               + selected
@@ -1353,7 +1360,7 @@ public final class SkinManager {
     }
 
     if (plugin.getDatabaseManager() != null) {
-      me.bill.fakePlayerPlugin.database.DatabaseManager.SkinCacheEntry cached =
+      DatabaseManager.SkinCacheEntry cached =
           plugin.getDatabaseManager().getCachedSkin(username);
       if (cached != null && cached.isValid()) {
         SkinProfile skin = new SkinProfile(
@@ -1719,7 +1726,7 @@ public final class SkinManager {
   }
 
   private @NotNull CompletableFuture<Boolean> runOnMainThread(
-      java.util.concurrent.Callable<Boolean> action) {
+      Callable<Boolean> action) {
     CompletableFuture<Boolean> future = new CompletableFuture<>();
     FppScheduler.runSync(
         plugin,

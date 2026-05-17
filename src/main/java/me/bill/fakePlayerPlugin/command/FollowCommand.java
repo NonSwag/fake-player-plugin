@@ -1,7 +1,10 @@
 package me.bill.fakePlayerPlugin.command;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.api.event.FppBotFollowEvent;
+import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
+import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
@@ -181,12 +184,12 @@ public final class FollowCommand implements FppCommand {
   }
 
   private void startFollowing(@NotNull FakePlayer fp, @NotNull Player target) {
-    FppApiImpl.fireTaskEvent(fp, "follow", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.START);
-    var followEvt = new me.bill.fakePlayerPlugin.api.event.FppBotFollowEvent(
-        new me.bill.fakePlayerPlugin.api.impl.FppBotImpl(fp),
-        me.bill.fakePlayerPlugin.api.event.FppBotFollowEvent.Action.START,
+    FppApiImpl.fireTaskEvent(fp, "follow", FppBotTaskEvent.Action.START);
+    var followEvt = new FppBotFollowEvent(
+        new FppBotImpl(fp),
+        FppBotFollowEvent.Action.START,
         target);
-    org.bukkit.Bukkit.getPluginManager().callEvent(followEvt);
+    Bukkit.getPluginManager().callEvent(followEvt);
     final UUID botUuid = fp.getUuid();
     final UUID targetUuid = target.getUniqueId();
     activeFollows.put(botUuid, targetUuid);
@@ -220,12 +223,12 @@ public final class FollowCommand implements FppCommand {
   public void stopFollowing(@NotNull UUID botUuid) {
     FakePlayer fp = manager.getByUuid(botUuid);
     if (fp != null) {
-      FppApiImpl.fireTaskEvent(fp, "follow", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.STOP);
-      var followEvt = new me.bill.fakePlayerPlugin.api.event.FppBotFollowEvent(
-          new me.bill.fakePlayerPlugin.api.impl.FppBotImpl(fp),
-          me.bill.fakePlayerPlugin.api.event.FppBotFollowEvent.Action.STOP,
+      FppApiImpl.fireTaskEvent(fp, "follow", FppBotTaskEvent.Action.STOP);
+      var followEvt = new FppBotFollowEvent(
+          new FppBotImpl(fp),
+          FppBotFollowEvent.Action.STOP,
           null);
-      org.bukkit.Bukkit.getPluginManager().callEvent(followEvt);
+      Bukkit.getPluginManager().callEvent(followEvt);
     }
     if (activeFollows.remove(botUuid) != null) {
       pathfinding.cancel(botUuid);

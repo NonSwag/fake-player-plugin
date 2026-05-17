@@ -2,6 +2,7 @@ package me.bill.fakePlayerPlugin.lang;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.TextUtil;
 import me.bill.fakePlayerPlugin.util.YamlFileSyncer;
 import net.kyori.adventure.text.Component;
@@ -46,7 +47,7 @@ public final class Lang {
                 new InputStreamReader(jarStream, StandardCharsets.UTF_8));
         disk.setDefaults(jarDefaults);
       } catch (Exception e) {
-        me.bill.fakePlayerPlugin.util.FppLogger.warn(
+        FppLogger.warn(
             "Lang: failed to load JAR defaults for language/en.yml: " + e.getMessage());
       }
     }

@@ -1,6 +1,8 @@
 package me.bill.fakePlayerPlugin.util;
 
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -10,6 +12,7 @@ import org.bukkit.plugin.Plugin;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -74,7 +77,7 @@ public final class UpdateChecker {
 
     if (info.error != null) {
 
-      Component failMsg = me.bill.fakePlayerPlugin.lang.Lang.get("update-failed");
+      Component failMsg = Lang.get("update-failed");
       FppLogger.warn(
           stripLangPrefix(PlainTextComponentSerializer.plainText().serialize(failMsg))
               + " ("
@@ -105,14 +108,14 @@ public final class UpdateChecker {
               + MODRINTH_PAGE);
 
       Component msg =
-          me.bill.fakePlayerPlugin.lang.Lang.get(
+          Lang.get(
               "update-available", "current", currentClean, "latest", latestClean);
 
       for (Player p : plugin.getServer().getOnlinePlayers()) {
         if (Perm.hasOrOp(p, Perm.OP)) p.sendMessage(msg);
       }
 
-      if (plugin instanceof me.bill.fakePlayerPlugin.FakePlayerPlugin fpp) {
+      if (plugin instanceof FakePlayerPlugin fpp) {
         fpp.setUpdateNotification(msg);
         fpp.setLatestKnownVersion(latestClean);
       }
@@ -129,14 +132,14 @@ public final class UpdateChecker {
               + MODRINTH_PAGE);
 
       Component msg =
-          me.bill.fakePlayerPlugin.lang.Lang.get(
+          Lang.get(
               "update-beta", "current", currentClean, "latest", latestClean);
 
       for (Player p : plugin.getServer().getOnlinePlayers()) {
         if (Perm.hasOrOp(p, Perm.OP)) p.sendMessage(msg);
       }
 
-      if (plugin instanceof me.bill.fakePlayerPlugin.FakePlayerPlugin fpp) {
+      if (plugin instanceof FakePlayerPlugin fpp) {
         fpp.setUpdateNotification(msg);
         fpp.setLatestKnownVersion(latestClean);
         fpp.setRunningBeta(true);
@@ -145,10 +148,10 @@ public final class UpdateChecker {
     } else {
 
       Component ok =
-          me.bill.fakePlayerPlugin.lang.Lang.get("update-up-to-date", "current", currentClean);
+          Lang.get("update-up-to-date", "current", currentClean);
       FppLogger.success(stripLangPrefix(PlainTextComponentSerializer.plainText().serialize(ok)));
 
-      if (plugin instanceof me.bill.fakePlayerPlugin.FakePlayerPlugin fpp) {
+      if (plugin instanceof FakePlayerPlugin fpp) {
         fpp.setUpdateNotification(null);
         fpp.setRunningBeta(false);
       }
@@ -216,7 +219,7 @@ public final class UpdateChecker {
 
   private static String stripLangPrefix(String plain) {
     try {
-      String prefixRaw = me.bill.fakePlayerPlugin.lang.Lang.raw("prefix");
+      String prefixRaw = Lang.raw("prefix");
       String prefixPlain =
           PlainTextComponentSerializer.plainText().serialize(TextUtil.colorize(prefixRaw));
       if (plain.startsWith(prefixPlain)) return plain.substring(prefixPlain.length()).strip();
@@ -321,7 +324,7 @@ public final class UpdateChecker {
       info.downloadUrl = downloadUrl;
       return info;
 
-    } catch (java.net.SocketTimeoutException e) {
+    } catch (SocketTimeoutException e) {
       info.error = "timeout connecting to " + url;
     } catch (Exception e) {
       info.error = e.getClass().getSimpleName() + ": " + e.getMessage() + " - " + url;

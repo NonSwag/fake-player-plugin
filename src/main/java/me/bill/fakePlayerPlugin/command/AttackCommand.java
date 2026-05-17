@@ -1,6 +1,8 @@
 package me.bill.fakePlayerPlugin.command;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.api.event.FppBotAttackEvent;
+import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
@@ -21,11 +23,17 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Ghast;
+import org.bukkit.entity.Hoglin;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
+import org.bukkit.entity.Phantom;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Shulker;
+import org.bukkit.entity.Slime;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -514,7 +522,7 @@ public final class AttackCommand implements FppCommand {
   }
 
   private void lockAndStartClassic(FakePlayer fp, boolean once, Location lockLoc) {
-    FppApiImpl.fireTaskEvent(fp, "attack", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.START);
+    FppApiImpl.fireTaskEvent(fp, "attack", FppBotTaskEvent.Action.START);
     UUID uuid = fp.getUuid();
     Player bot = fp.getPlayer();
     if (bot == null) return;
@@ -728,9 +736,9 @@ public final class AttackCommand implements FppCommand {
 
     b.swingMainHand();
 
-    var atkEvt = new me.bill.fakePlayerPlugin.api.event.FppBotAttackEvent(
+    var atkEvt = new FppBotAttackEvent(
         new FppBotImpl(fp), bukkit, 1.0);
-    org.bukkit.Bukkit.getPluginManager().callEvent(atkEvt);
+    Bukkit.getPluginManager().callEvent(atkEvt);
     if (atkEvt.isCancelled()) return;
 
     NmsPlayerSpawner.performAttack(b, bukkit, 1.0);
@@ -825,9 +833,9 @@ public final class AttackCommand implements FppCommand {
 
     b.swingMainHand();
 
-    var atkEvt2 = new me.bill.fakePlayerPlugin.api.event.FppBotAttackEvent(
+    var atkEvt2 = new FppBotAttackEvent(
         new FppBotImpl(fp), currentTarget, 1.0);
-    org.bukkit.Bukkit.getPluginManager().callEvent(atkEvt2);
+    Bukkit.getPluginManager().callEvent(atkEvt2);
     if (atkEvt2.isCancelled()) return;
     NmsPlayerSpawner.performAttack(b, currentTarget, 1.0);
 
@@ -872,12 +880,12 @@ public final class AttackCommand implements FppCommand {
       } else {
 
         if (!(le instanceof Monster)
-            && !(le instanceof org.bukkit.entity.Slime)
-            && !(le instanceof org.bukkit.entity.Shulker)
-            && !(le instanceof org.bukkit.entity.Phantom)
-            && !(le instanceof org.bukkit.entity.EnderDragon)
-            && !(le instanceof org.bukkit.entity.Ghast)
-            && !(le instanceof org.bukkit.entity.Hoglin)) continue;
+            && !(le instanceof Slime)
+            && !(le instanceof Shulker)
+            && !(le instanceof Phantom)
+            && !(le instanceof EnderDragon)
+            && !(le instanceof Ghast)
+            && !(le instanceof Hoglin)) continue;
       }
 
       double dist = le.getLocation().distance(botLoc);
@@ -978,7 +986,7 @@ public final class AttackCommand implements FppCommand {
 
     FakePlayer fp = manager.getByUuid(botUuid);
     if (fp != null) {
-      FppApiImpl.fireTaskEvent(fp, "attack", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.STOP);
+      FppApiImpl.fireTaskEvent(fp, "attack", FppBotTaskEvent.Action.STOP);
     }
 
     activeAttackLocations.remove(botUuid);

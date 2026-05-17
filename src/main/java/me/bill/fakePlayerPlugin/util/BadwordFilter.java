@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -142,7 +143,7 @@ public final class BadwordFilter {
     List<String> pool = BotNameConfig.getNames();
     if (pool.isEmpty()) return null;
 
-    java.util.Random rand = new java.util.Random();
+    Random rand = new Random();
     for (int i = 0; i < Math.min(10, pool.size()); i++) {
       String candidate = pool.get(rand.nextInt(pool.size()));
       if (candidate.length() <= 16 && candidate.matches("[a-zA-Z0-9_]+") && isAllowed(candidate)) {

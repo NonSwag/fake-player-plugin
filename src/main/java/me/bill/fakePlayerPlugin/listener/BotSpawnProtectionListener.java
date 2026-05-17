@@ -5,6 +5,7 @@ import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -43,11 +44,11 @@ public class BotSpawnProtectionListener implements Listener {
     // ~15 ticks after the PlayerJoinEvent.  Using 20 ticks covers both cases
     // universally without affecting legitimate movement commands (which use
     // NMS-level position updates, not Bukkit teleport events).
-    org.bukkit.World.Environment env = player.getWorld().getEnvironment();
+    World.Environment env = player.getWorld().getEnvironment();
     boolean isVanillaDimension =
-        env == org.bukkit.World.Environment.NORMAL
-            || env == org.bukkit.World.Environment.NETHER
-            || env == org.bukkit.World.Environment.THE_END;
+        env == World.Environment.NORMAL
+            || env == World.Environment.NETHER
+            || env == World.Environment.THE_END;
     long protectionTicks = isVanillaDimension ? 5L : 20L;
 
     Config.debugNms(
@@ -123,7 +124,7 @@ public class BotSpawnProtectionListener implements Listener {
     // Fallback: check active-player registry by UUID.
     // This path fires during the very first PlayerJoinEvent emitted inside
     // placeNewPlayer(), before the PDC key has been written.
-    me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager manager =
+    FakePlayerManager manager =
         plugin.getFakePlayerManager();
     return manager != null && manager.getByUuid(player.getUniqueId()) != null;
   }

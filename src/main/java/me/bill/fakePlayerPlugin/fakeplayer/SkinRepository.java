@@ -6,14 +6,17 @@ import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadLocalRandom;
@@ -86,7 +89,7 @@ public final class SkinRepository {
 
   public void resolve(
       String botName,
-      java.util.function.Consumer<@org.jetbrains.annotations.Nullable SkinProfile> callback) {
+      Consumer<@Nullable SkinProfile> callback) {
     if (botName == null || botName.isBlank()) {
       deliver(callback, null);
       return;
@@ -355,22 +358,22 @@ public final class SkinRepository {
       return;
     }
 
-    tryAnyValidSkinFromPool(callback, 0, 3, new java.util.HashSet<>());
+    tryAnyValidSkinFromPool(callback, 0, 3, new HashSet<>());
   }
 
   private void tryAnyValidSkinFromPool(
-      Consumer<SkinProfile> callback, int attempt, int maxAttempts, java.util.Set<String> tried) {
+      Consumer<SkinProfile> callback, int attempt, int maxAttempts, Set<String> tried) {
     if (attempt >= maxAttempts) {
       Config.debugSkin("SkinRepository: all guaranteed-skin pool attempts failed — bot will use default skin.");
       callback.accept(null);
       return;
     }
     String randomName = SkinManager.pickRandomPoolName();
-    if (randomName == null || tried.contains(randomName.toLowerCase(java.util.Locale.ROOT))) {
+    if (randomName == null || tried.contains(randomName.toLowerCase(Locale.ROOT))) {
       tryAnyValidSkinFromPool(callback, attempt + 1, maxAttempts, tried);
       return;
     }
-    tried.add(randomName.toLowerCase(java.util.Locale.ROOT));
+    tried.add(randomName.toLowerCase(Locale.ROOT));
     FppLogger.debug(
         "SkinRepository: guaranteed-skin → on-demand fetch from built-in pool for '"
             + randomName
@@ -420,7 +423,7 @@ public final class SkinRepository {
     sessionCache.clear();
   }
 
-  public @org.jetbrains.annotations.Nullable SkinProfile getSessionCached(String botName) {
+  public @Nullable SkinProfile getSessionCached(String botName) {
     if (botName == null || botName.isBlank()) return null;
     return sessionCache.get(
         buildCacheKey(normalizeMode(Config.skinMode()), botName.trim().toLowerCase(Locale.ROOT)));
@@ -446,11 +449,11 @@ public final class SkinRepository {
   }
 
   private void deliver(
-      Consumer<@org.jetbrains.annotations.Nullable SkinProfile> callback,
-      @org.jetbrains.annotations.Nullable SkinProfile profile) {
+      Consumer<@Nullable SkinProfile> callback,
+      @Nullable SkinProfile profile) {
 
     Plugin effectivePlugin =
-        (plugin != null) ? plugin : me.bill.fakePlayerPlugin.FakePlayerPlugin.getInstance();
+        (plugin != null) ? plugin : FakePlayerPlugin.getInstance();
     if (effectivePlugin != null && effectivePlugin.isEnabled() && !Bukkit.isPrimaryThread()) {
       FppScheduler.runSync(effectivePlugin, () -> callback.accept(profile));
       return;

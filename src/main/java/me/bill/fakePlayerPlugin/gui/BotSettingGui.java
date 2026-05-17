@@ -45,12 +45,14 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1150,7 +1152,7 @@ public final class BotSettingGui implements Listener {
     }
 
     if (slot == MOB_SLOT_CLEAR) {
-      bot.setPveMobTypes(new java.util.LinkedHashSet<>());
+      bot.setPveMobTypes(new LinkedHashSet<>());
       manager.persistBotSettings(bot);
       restartPveIfActive(bot);
       playUiClick(player, 1.2f);
@@ -1436,7 +1438,7 @@ public final class BotSettingGui implements Listener {
     bot.setPveRange(Config.attackMobDefaultRange());
     bot.setPvePriority(Config.attackMobDefaultPriority());
     bot.setPveSmartAttackMode(FakePlayer.PveSmartAttackMode.OFF);
-    bot.setPveMobTypes(new java.util.LinkedHashSet<>());
+    bot.setPveMobTypes(new LinkedHashSet<>());
 
     bot.setNavParkour(Config.pathfindingParkour());
     bot.setNavBreakBlocks(Config.pathfindingBreakBlocks());
@@ -1924,7 +1926,7 @@ public final class BotSettingGui implements Listener {
       manager.lockForAction(botUuid, player.getLocation());
       NmsPlayerSpawner.setMovementForward(player, 0f);
       player.setSprinting(false);
-      player.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+      player.setVelocity(new Vector(0, 0, 0));
     }
   }
 

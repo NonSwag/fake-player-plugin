@@ -10,6 +10,7 @@ import me.bill.fakePlayerPlugin.command.MoveCommand;
 import me.bill.fakePlayerPlugin.command.PlaceCommand;
 import me.bill.fakePlayerPlugin.command.UseCommand;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.util.BotDataYaml;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
@@ -20,6 +21,8 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -30,12 +33,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 public final class BotPersistence {
 
@@ -286,10 +292,10 @@ public final class BotPersistence {
           if (attackMode != null && !attackMode.equals("classic")) {
             attackRange = attackCommand.getAttackRange(fp.getUuid());
             attackPriority = attackCommand.getAttackPriority(fp.getUuid());
-            Set<org.bukkit.entity.EntityType> types = attackCommand.getAttackFilterTypes(fp.getUuid());
+            Set<EntityType> types = attackCommand.getAttackFilterTypes(fp.getUuid());
             if (types != null && !types.isEmpty()) {
               StringBuilder sb = new StringBuilder();
-              for (org.bukkit.entity.EntityType et : types) {
+              for (EntityType et : types) {
                 if (sb.length() > 0) sb.append(',');
                 sb.append(et.name());
               }
@@ -303,7 +309,7 @@ public final class BotPersistence {
 
       String followTargetUuid = null;
       if (followCommand != null && followCommand.isFollowing(fp.getUuid())) {
-        java.util.UUID targetUuid = followCommand.getFollowTarget(fp.getUuid());
+        UUID targetUuid = followCommand.getFollowTarget(fp.getUuid());
         if (targetUuid != null) followTargetUuid = targetUuid.toString();
       }
 
@@ -472,22 +478,22 @@ public final class BotPersistence {
       FppLogger.error("Failed to save bot tasks: " + ex.getMessage());
     }
 
-    me.bill.fakePlayerPlugin.database.DatabaseManager db = plugin.getDatabaseManager();
+    DatabaseManager db = plugin.getDatabaseManager();
     if (db != null) {
       db.saveBotTasks(buildTaskRows(snap));
     }
   }
 
-  private List<me.bill.fakePlayerPlugin.database.DatabaseManager.BotTaskRow> buildTaskRows(
+  private List<DatabaseManager.BotTaskRow> buildTaskRows(
       Map<String, TaskEntry> snap) {
-    List<me.bill.fakePlayerPlugin.database.DatabaseManager.BotTaskRow> rows = new ArrayList<>();
-    String serverId = me.bill.fakePlayerPlugin.config.Config.serverId();
+    List<DatabaseManager.BotTaskRow> rows = new ArrayList<>();
+    String serverId = Config.serverId();
     for (Map.Entry<String, TaskEntry> e : snap.entrySet()) {
       String uuid = e.getKey();
       TaskEntry t = e.getValue();
       if (t.mineWorld() != null) {
         rows.add(
-            new me.bill.fakePlayerPlugin.database.DatabaseManager.BotTaskRow(
+            new DatabaseManager.BotTaskRow(
                 uuid,
                 serverId,
                 "MINE",
@@ -503,7 +509,7 @@ public final class BotPersistence {
       }
       if (t.useWorld() != null) {
         rows.add(
-            new me.bill.fakePlayerPlugin.database.DatabaseManager.BotTaskRow(
+            new DatabaseManager.BotTaskRow(
                 uuid,
                 serverId,
                 "USE",
@@ -519,7 +525,7 @@ public final class BotPersistence {
       }
       if (t.placeWorld() != null) {
         rows.add(
-            new me.bill.fakePlayerPlugin.database.DatabaseManager.BotTaskRow(
+            new DatabaseManager.BotTaskRow(
                 uuid,
                 serverId,
                 "PLACE",
@@ -550,7 +556,7 @@ public final class BotPersistence {
           attackExtraBool = t.attackMode().equals("hunt");
         }
         rows.add(
-            new me.bill.fakePlayerPlugin.database.DatabaseManager.BotTaskRow(
+            new DatabaseManager.BotTaskRow(
                 uuid,
                 serverId,
                 "ATTACK",
@@ -566,7 +572,7 @@ public final class BotPersistence {
       }
       if (t.followTargetUuid() != null) {
         rows.add(
-            new me.bill.fakePlayerPlugin.database.DatabaseManager.BotTaskRow(
+            new DatabaseManager.BotTaskRow(
                 uuid,
                 serverId,
                 "FOLLOW",
@@ -582,7 +588,7 @@ public final class BotPersistence {
       }
       if (t.roamWorld() != null) {
         rows.add(
-            new me.bill.fakePlayerPlugin.database.DatabaseManager.BotTaskRow(
+            new DatabaseManager.BotTaskRow(
                 uuid,
                 serverId,
                 "ROAM",
@@ -706,11 +712,11 @@ public final class BotPersistence {
   private List<Object> buildList(Iterable<FakePlayer> players) {
     List<Object> list = new ArrayList<>();
     for (FakePlayer fp : players) {
-      org.bukkit.entity.Entity body = fp.getPhysicsEntity();
+      Entity body = fp.getPhysicsEntity();
       Location loc = (body != null && body.isValid()) ? body.getLocation() : fp.getSpawnLocation();
       if (loc == null || loc.getWorld() == null) continue;
 
-      var section = new java.util.LinkedHashMap<String, Object>();
+      var section = new LinkedHashMap<String, Object>();
       section.put("name", fp.getName());
       section.put("uuid", fp.getUuid().toString());
       section.put("display-name", fp.getDisplayName());
@@ -806,10 +812,10 @@ public final class BotPersistence {
     boolean commandExtensionLoaded = isExtensionLoaded("FPP-Command");
     boolean pingExtensionLoaded = isExtensionLoaded("FPP-Ping");
 
-    me.bill.fakePlayerPlugin.database.DatabaseManager db = plugin.getDatabaseManager();
+    DatabaseManager db = plugin.getDatabaseManager();
     if (db != null) {
 
-      List<me.bill.fakePlayerPlugin.database.DatabaseManager.ActiveBotRow> rows =
+      List<DatabaseManager.ActiveBotRow> rows =
           db.getActiveBotsForThisServer();
       if (!rows.isEmpty()) {
         Map<String, SkinProfile> yamlSkinFallback = loadYamlSkinFallback();
@@ -817,7 +823,7 @@ public final class BotPersistence {
             "Restoring "
                 + rows.size()
                 + " bot(s) from database (server='"
-                + me.bill.fakePlayerPlugin.config.Config.serverId()
+                + Config.serverId()
                 + "')...");
 
         db.clearActiveBots();
@@ -831,7 +837,7 @@ public final class BotPersistence {
             UUID storedUuid = parseUuidOrNull(row.botUuid());
             UUID effectiveUuid = resolveRestoredUuid(row.botName(), storedUuid);
             if (effectiveUuid == null) continue;
-            SkinProfile fallbackSkin = yamlSkinFallback.get(row.botName().toLowerCase(java.util.Locale.ROOT));
+            SkinProfile fallbackSkin = yamlSkinFallback.get(row.botName().toLowerCase(Locale.ROOT));
             String skinTexture = skinExtensionLoaded ? row.skinTexture() : null;
             String skinSignature = skinExtensionLoaded ? row.skinSignature() : null;
             if (skinExtensionLoaded
@@ -932,7 +938,7 @@ public final class BotPersistence {
 
     List<SavedBot> saved = new ArrayList<>();
     for (Object obj : raw) {
-      if (!(obj instanceof java.util.Map<?, ?> map)) continue;
+      if (!(obj instanceof Map<?, ?> map)) continue;
       try {
         String name = (String) map.get("name");
         UUID storedUuid = parseUuidOrNull((String) map.get("uuid"));
@@ -1119,7 +1125,7 @@ public final class BotPersistence {
         Object signatureRaw = map.get("skin-signature");
         String signature = signatureRaw instanceof String sig ? sig : null;
         fallback.put(
-            name.toLowerCase(java.util.Locale.ROOT),
+            name.toLowerCase(Locale.ROOT),
             new SkinProfile(texture, signature, "yaml-fallback:" + name));
       }
     } catch (Exception e) {
@@ -1210,7 +1216,7 @@ public final class BotPersistence {
         fp.setUserPing(-1);
         int min = Config.pingMin();
         int max = Config.pingMax();
-        int base = min + java.util.concurrent.ThreadLocalRandom.current()
+        int base = min + ThreadLocalRandom.current()
             .nextInt(Math.max(1, max - min + 1));
         fp.setBasePing(base);
         fp.setPing(base);
@@ -1420,7 +1426,7 @@ public final class BotPersistence {
                           task.attackPitch());
                   String mode = task.attackMode();
                   if ("hunt".equals(mode)) {
-                    Set<org.bukkit.entity.EntityType> filterTypes = parseEntityTypes(task.attackMobTypes());
+                    Set<EntityType> filterTypes = parseEntityTypes(task.attackMobTypes());
                     attackCommand.resumeHuntAttacking(
                         restored,
                         task.attackRange(),
@@ -1429,12 +1435,12 @@ public final class BotPersistence {
                         attackLoc);
                     Config.debug("Resumed hunt attack task for bot '" + restored.getName() + "'.");
                   } else if ("mob".equals(mode)) {
-                    Set<org.bukkit.entity.EntityType> filterTypes = parseEntityTypes(task.attackMobTypes());
-                    me.bill.fakePlayerPlugin.fakeplayer.FakePlayer.PveSmartAttackMode smartMode =
-                        me.bill.fakePlayerPlugin.fakeplayer.FakePlayer.PveSmartAttackMode.OFF;
+                    Set<EntityType> filterTypes = parseEntityTypes(task.attackMobTypes());
+                    FakePlayer.PveSmartAttackMode smartMode =
+                        FakePlayer.PveSmartAttackMode.OFF;
                     if (task.attackSmartMode() != null) {
                       try {
-                        smartMode = me.bill.fakePlayerPlugin.fakeplayer.FakePlayer.PveSmartAttackMode.valueOf(task.attackSmartMode());
+                        smartMode = FakePlayer.PveSmartAttackMode.valueOf(task.attackSmartMode());
                       } catch (IllegalArgumentException ignored) {
                       }
                     }
@@ -1455,8 +1461,8 @@ public final class BotPersistence {
 
               if (task.followTargetUuid() != null && followCommand != null) {
                 try {
-                  java.util.UUID targetUuid =
-                      java.util.UUID.fromString(task.followTargetUuid());
+                  UUID targetUuid =
+                      UUID.fromString(task.followTargetUuid());
                   followCommand.resumeFollowing(restored, targetUuid);
                   Config.debug("Resumed follow task for bot '" + restored.getName() + "'.");
                 } catch (IllegalArgumentException ignored) {
@@ -1611,9 +1617,9 @@ public final class BotPersistence {
   private void loadTasksFile() {
     loadedTasks = new HashMap<>();
 
-    me.bill.fakePlayerPlugin.database.DatabaseManager db = plugin.getDatabaseManager();
+    DatabaseManager db = plugin.getDatabaseManager();
     if (db != null) {
-      List<me.bill.fakePlayerPlugin.database.DatabaseManager.BotTaskRow> dbRows =
+      List<DatabaseManager.BotTaskRow> dbRows =
           db.loadBotTasksForThisServer();
       if (!dbRows.isEmpty()) {
         loadedTasks = buildTasksFromDbRows(dbRows);
@@ -1697,8 +1703,8 @@ public final class BotPersistence {
       float attackPitch = (float) sec.getDouble("attack-pitch");
       boolean attackOnce = sec.getBoolean("attack-once", false);
       String attackMode = sec.getString("attack-mode");
-      double attackRange = sec.getDouble("attack-range", me.bill.fakePlayerPlugin.config.Config.attackMobDefaultRange());
-      String attackPriority = sec.getString("attack-priority", me.bill.fakePlayerPlugin.config.Config.attackMobDefaultPriority());
+      double attackRange = sec.getDouble("attack-range", Config.attackMobDefaultRange());
+      String attackPriority = sec.getString("attack-priority", Config.attackMobDefaultPriority());
       String attackMobTypes = sec.getString("attack-mob-types");
       String attackSmartMode = sec.getString("attack-smart-mode");
 
@@ -1768,9 +1774,9 @@ public final class BotPersistence {
   }
 
   private Map<String, TaskEntry> buildTasksFromDbRows(
-      List<me.bill.fakePlayerPlugin.database.DatabaseManager.BotTaskRow> rows) {
+      List<DatabaseManager.BotTaskRow> rows) {
 
-    Map<String, Map<String, me.bill.fakePlayerPlugin.database.DatabaseManager.BotTaskRow>> byUuid =
+    Map<String, Map<String, DatabaseManager.BotTaskRow>> byUuid =
         new LinkedHashMap<>();
     for (var row : rows) {
       byUuid.computeIfAbsent(row.botUuid(), k -> new LinkedHashMap<>()).put(row.taskType(), row);
@@ -1827,8 +1833,8 @@ public final class BotPersistence {
               attack != null ? attack.posPitch() : 0f,
               attack != null && attack.onceFlag(),
               attack != null && attack.extraStr() != null ? parseAttackMode(attack.extraStr()) : null,
-              attack != null && attack.extraStr() != null ? parseAttackRange(attack.extraStr()) : me.bill.fakePlayerPlugin.config.Config.attackMobDefaultRange(),
-              attack != null && attack.extraStr() != null ? parseAttackPriority(attack.extraStr()) : me.bill.fakePlayerPlugin.config.Config.attackMobDefaultPriority(),
+              attack != null && attack.extraStr() != null ? parseAttackRange(attack.extraStr()) : Config.attackMobDefaultRange(),
+              attack != null && attack.extraStr() != null ? parseAttackPriority(attack.extraStr()) : Config.attackMobDefaultPriority(),
               attack != null && attack.extraStr() != null ? parseAttackMobTypes(attack.extraStr()) : null,
               attack != null && attack.extraStr() != null ? parseAttackSmartMode(attack.extraStr()) : null,
               follow != null ? follow.extraStr() : null,
@@ -1875,8 +1881,8 @@ public final class BotPersistence {
     if (key == null) return;
 
     int removed = 0;
-    for (org.bukkit.World world : org.bukkit.Bukkit.getWorlds()) {
-      for (org.bukkit.entity.Entity entity : world.getEntities()) {
+    for (World world : Bukkit.getWorlds()) {
+      for (Entity entity : world.getEntities()) {
         if (!entity.getPersistentDataContainer().has(key, PersistentDataType.STRING)) continue;
         String val = entity.getPersistentDataContainer().get(key, PersistentDataType.STRING);
 
@@ -1965,7 +1971,7 @@ public final class BotPersistence {
   }
 
   private UUID resolveRestoredUuid(String botName, UUID storedUuid) {
-    me.bill.fakePlayerPlugin.fakeplayer.BotIdentityCache identityCache = plugin.getBotIdentityCache();
+    BotIdentityCache identityCache = plugin.getBotIdentityCache();
     UUID resolved =
         identityCache != null && botName != null && !botName.isBlank()
             ? identityCache.lookupOrCreate(botName)
@@ -2009,12 +2015,12 @@ public final class BotPersistence {
     }
   }
 
-  private static Set<org.bukkit.entity.EntityType> parseEntityTypes(String mobTypes) {
-    Set<org.bukkit.entity.EntityType> result = new java.util.HashSet<>();
+  private static Set<EntityType> parseEntityTypes(String mobTypes) {
+    Set<EntityType> result = new HashSet<>();
     if (mobTypes == null || mobTypes.isEmpty()) return result;
     for (String name : mobTypes.split(",")) {
       try {
-        result.add(org.bukkit.entity.EntityType.valueOf(name));
+        result.add(EntityType.valueOf(name));
       } catch (IllegalArgumentException ignored) {
       }
     }

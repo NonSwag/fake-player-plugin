@@ -12,12 +12,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -641,7 +643,7 @@ public class DatabaseManager {
                        + " table_schema=DATABASE() AND table_name=?"
                      : "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?")) {
       ps.setString(1, tableName);
-      try (java.sql.ResultSet rs = ps.executeQuery()) {
+      try (ResultSet rs = ps.executeQuery()) {
         return rs.next();
       }
     } catch (Exception e) {
@@ -837,7 +839,7 @@ public class DatabaseManager {
         "SELECT texture_value, texture_signature, source, cached_at FROM fpp_skin_cache"
             + " WHERE skin_name=?";
     try (PreparedStatement ps = connection.prepareStatement(sql)) {
-      ps.setString(1, skinName.toLowerCase(java.util.Locale.ROOT));
+      ps.setString(1, skinName.toLowerCase(Locale.ROOT));
       try (ResultSet rs = ps.executeQuery()) {
         if (rs.next()) {
           long cachedAt = rs.getLong("cached_at");
@@ -890,7 +892,7 @@ public class DatabaseManager {
                     + " VALUES(?,?,?,?,?)";
 
           try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            String lowerName = skinName.toLowerCase(java.util.Locale.ROOT);
+            String lowerName = skinName.toLowerCase(Locale.ROOT);
             long now = System.currentTimeMillis();
 
             ps.setString(1, lowerName);
@@ -2071,7 +2073,7 @@ public class DatabaseManager {
       ps.setString(18, entityType);
       ps.setLong(19, spawnedAtMs);
       if (removedAtMs != null) ps.setLong(20, removedAtMs);
-      else ps.setNull(20, java.sql.Types.BIGINT);
+      else ps.setNull(20, Types.BIGINT);
       ps.setString(21, removeReason);
       ps.setString(22, serverId);
       ps.executeUpdate();
@@ -2190,7 +2192,7 @@ public class DatabaseManager {
                        "UPDATE fpp_active_bots SET chat_enabled=?,chat_tier=? WHERE bot_uuid=?")) {
             ps.setBoolean(1, chatEnabled);
             if (chatTier != null && !chatTier.isBlank()) ps.setString(2, chatTier);
-            else ps.setNull(2, java.sql.Types.VARCHAR);
+            else ps.setNull(2, Types.VARCHAR);
             ps.setString(3, uuid);
             ps.executeUpdate();
           } catch (SQLException e) {
@@ -2234,7 +2236,7 @@ public class DatabaseManager {
                    connection.prepareStatement(
                        "UPDATE fpp_active_bots SET " + column + "=? WHERE bot_uuid=?")) {
             if (value != null && !value.isBlank()) ps.setString(1, value);
-            else ps.setNull(1, java.sql.Types.VARCHAR);
+            else ps.setNull(1, Types.VARCHAR);
             ps.setString(2, uuid);
             ps.executeUpdate();
           } catch (SQLException e) {
@@ -2334,9 +2336,9 @@ public class DatabaseManager {
             ps.setBoolean(12, pveEnabled);
             ps.setDouble(13, pveRange);
             if (pvePri != null) ps.setString(14, pvePri);
-            else ps.setNull(14, java.sql.Types.VARCHAR);
+            else ps.setNull(14, Types.VARCHAR);
             if (pveMob != null) ps.setString(15, pveMob);
-            else ps.setNull(15, java.sql.Types.VARCHAR);
+            else ps.setNull(15, Types.VARCHAR);
             if (pveMode != null) ps.setString(16, pveMode);
             else ps.setString(16, "OFF");
             ps.setBoolean(17, autoMilkEnabled);
@@ -2344,15 +2346,15 @@ public class DatabaseManager {
             ps.setBoolean(19, respawnOnDeath);
             ps.setBoolean(20, chatEnabled);
             if (chatTier != null && !chatTier.isBlank()) ps.setString(21, chatTier);
-            else ps.setNull(21, java.sql.Types.VARCHAR);
+            else ps.setNull(21, Types.VARCHAR);
             if (rightClickCmd != null && !rightClickCmd.isBlank()) ps.setString(22, rightClickCmd);
-            else ps.setNull(22, java.sql.Types.VARCHAR);
+            else ps.setNull(22, Types.VARCHAR);
             if (aiPersonality != null && !aiPersonality.isBlank()) ps.setString(23, aiPersonality);
-            else ps.setNull(23, java.sql.Types.VARCHAR);
+            else ps.setNull(23, Types.VARCHAR);
             ps.setInt(24, ping);
             ps.setBoolean(25, pingUserSet);
             if (luckpermsGroup != null && !luckpermsGroup.isBlank()) ps.setString(26, luckpermsGroup);
-            else ps.setNull(26, java.sql.Types.VARCHAR);
+            else ps.setNull(26, Types.VARCHAR);
             ps.setString(27, uuid);
             ps.executeUpdate();
           } catch (SQLException e) {
@@ -2370,9 +2372,9 @@ public class DatabaseManager {
                    connection.prepareStatement(
                        "UPDATE fpp_active_bots SET skin_texture=?,skin_signature=? WHERE bot_uuid=?")) {
             if (skinTexture != null && !skinTexture.isBlank()) ps.setString(1, skinTexture);
-            else ps.setNull(1, java.sql.Types.CLOB);
+            else ps.setNull(1, Types.CLOB);
             if (skinSignature != null && !skinSignature.isBlank()) ps.setString(2, skinSignature);
-            else ps.setNull(2, java.sql.Types.CLOB);
+            else ps.setNull(2, Types.CLOB);
             ps.setString(3, uuid);
             ps.executeUpdate();
           } catch (SQLException e) {
@@ -2426,7 +2428,7 @@ public class DatabaseManager {
             ps.setString(2, ext);
             ps.setString(3, key);
             if (dataValue != null) ps.setString(4, dataValue);
-            else ps.setNull(4, java.sql.Types.CLOB);
+            else ps.setNull(4, Types.CLOB);
             ps.setLong(5, System.currentTimeMillis());
             ps.executeUpdate();
           } catch (SQLException e) {
@@ -2495,7 +2497,7 @@ public class DatabaseManager {
   }
 
   private static String normalizeExtensionKey(String extensionKey) {
-    return extensionKey == null ? "" : extensionKey.trim().toLowerCase(java.util.Locale.ROOT);
+    return extensionKey == null ? "" : extensionKey.trim().toLowerCase(Locale.ROOT);
   }
 
   public void saveBotTasks(List<BotTaskRow> rows) {
@@ -2534,7 +2536,7 @@ public class DatabaseManager {
               ps.setString(2, row.serverId());
               ps.setString(3, row.taskType());
               if (row.worldName() != null) ps.setString(4, row.worldName());
-              else ps.setNull(4, java.sql.Types.VARCHAR);
+              else ps.setNull(4, Types.VARCHAR);
               ps.setDouble(5, row.posX());
               ps.setDouble(6, row.posY());
               ps.setDouble(7, row.posZ());
@@ -2542,7 +2544,7 @@ public class DatabaseManager {
               ps.setFloat(9, row.posPitch());
               ps.setBoolean(10, row.onceFlag());
               if (row.extraStr() != null) ps.setString(11, row.extraStr());
-              else ps.setNull(11, java.sql.Types.VARCHAR);
+              else ps.setNull(11, Types.VARCHAR);
               ps.setBoolean(12, row.extraBool());
               ps.addBatch();
             }
@@ -2627,9 +2629,9 @@ public class DatabaseManager {
             ps.setInt(5, xpLevel);
             ps.setFloat(6, xpProgress);
             if (skinTex != null) ps.setString(7, skinTex);
-            else ps.setNull(7, java.sql.Types.CLOB);
+            else ps.setNull(7, Types.CLOB);
             if (skinSig != null) ps.setString(8, skinSig);
-            else ps.setNull(8, java.sql.Types.CLOB);
+            else ps.setNull(8, Types.CLOB);
             ps.setLong(9, savedAt);
             ps.executeUpdate();
             Config.debugDatabase(

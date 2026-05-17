@@ -2,6 +2,9 @@ package me.bill.fakePlayerPlugin.listener;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.api.event.FppBotDamageEvent;
+import me.bill.fakePlayerPlugin.api.event.FppBotDeathEvent;
+import me.bill.fakePlayerPlugin.api.event.FppBotInventoryEvent;
+import me.bill.fakePlayerPlugin.api.event.FppBotTargetEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.BotBroadcast;
@@ -9,6 +12,7 @@ import me.bill.fakePlayerPlugin.fakeplayer.ChunkLoader;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerBody;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
+import me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner;
 import me.bill.fakePlayerPlugin.fakeplayer.PacketHelper;
 import me.bill.fakePlayerPlugin.util.AttributeCompat;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
@@ -25,9 +29,11 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityPortalEvent;
+import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -102,11 +108,11 @@ public class FakePlayerEntityListener implements Listener {
   }
 
   @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-  public void onEntityTarget(org.bukkit.event.entity.EntityTargetLivingEntityEvent event) {
+  public void onEntityTarget(EntityTargetLivingEntityEvent event) {
     if (!(event.getTarget() instanceof Player targetPlayer)) return;
     FakePlayer fp = manager.getByEntity(targetPlayer);
     if (fp == null) return;
-    var targetEvt = new me.bill.fakePlayerPlugin.api.event.FppBotTargetEvent(
+    var targetEvt = new FppBotTargetEvent(
         new FppBotImpl(fp), event.getEntity());
     Bukkit.getPluginManager().callEvent(targetEvt);
     if (targetEvt.isCancelled()) event.setCancelled(true);
@@ -139,8 +145,8 @@ public class FakePlayerEntityListener implements Listener {
   @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
   public void onEntityTeleport(EntityTeleportEvent event) {
     if (!isFakeBotBody(event.getEntity())) return;
-    org.bukkit.Location from = event.getFrom();
-    org.bukkit.Location to = event.getTo();
+    Location from = event.getFrom();
+    Location to = event.getTo();
     if (to == null || from.getWorld() == null || to.getWorld() == null) return;
     if (!from.getWorld().equals(to.getWorld())) {
 
@@ -175,10 +181,10 @@ public class FakePlayerEntityListener implements Listener {
     // Fire API death event.
     var fppApi = plugin.getFppApi();
     if (fppApi != null) {
-      me.bill.fakePlayerPlugin.api.event.FppBotDeathEvent deathEvt =
-          new me.bill.fakePlayerPlugin.api.event.FppBotDeathEvent(
-              new me.bill.fakePlayerPlugin.api.impl.FppBotImpl(fp), killer);
-      org.bukkit.Bukkit.getPluginManager().callEvent(deathEvt);
+      FppBotDeathEvent deathEvt =
+          new FppBotDeathEvent(
+              new FppBotImpl(fp), killer);
+      Bukkit.getPluginManager().callEvent(deathEvt);
     }
 
     final String name = fp.getName();
@@ -251,7 +257,7 @@ public class FakePlayerEntityListener implements Listener {
     } else {
 
       if (chunkLoader != null) chunkLoader.releaseForBot(fp);
-      String deathDespawnName = me.bill.fakePlayerPlugin.fakeplayer.BotBroadcast.resolveDisplayName(fp);
+      String deathDespawnName = BotBroadcast.resolveDisplayName(fp);
       final UUID deathDespawnUuid = fp.getUuid();
       if (deadPlayer != null) {
         manager.markDespawning(deadPlayer.getUniqueId(), deathDespawnName);
@@ -262,10 +268,10 @@ public class FakePlayerEntityListener implements Listener {
             manager.broadcastSyntheticQuit(
                 fp,
                 deathDespawnName,
-                me.bill.fakePlayerPlugin.config.Config.leaveMessage(),
-                org.bukkit.event.player.PlayerQuitEvent.QuitReason.DISCONNECTED);
+                Config.leaveMessage(),
+                PlayerQuitEvent.QuitReason.DISCONNECTED);
 
-            if (me.bill.fakePlayerPlugin.config.Config.leaveMessage()) {
+            if (Config.leaveMessage()) {
               var vc = plugin.getVelocityChannel();
               if (vc != null) vc.broadcastLeaveToNetwork(deathDespawnName);
             }
@@ -277,9 +283,9 @@ public class FakePlayerEntityListener implements Listener {
             if (deadPlayer != null) {
               try {
                 if (manager.isExplicitUuidBot(fp)) {
-                  me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner.removeFakePlayerFast(deadPlayer);
+                  NmsPlayerSpawner.removeFakePlayerFast(deadPlayer);
                 } else {
-                  me.bill.fakePlayerPlugin.fakeplayer.NmsPlayerSpawner.removeFakePlayer(deadPlayer);
+                  NmsPlayerSpawner.removeFakePlayer(deadPlayer);
                 }
               } finally {
                 fp.setPlayer(null);
@@ -310,9 +316,9 @@ public class FakePlayerEntityListener implements Listener {
     FakePlayer fp = manager.getByUuid(event.getEntity().getUniqueId());
     if (fp == null) return;
 
-    var invEvt = new me.bill.fakePlayerPlugin.api.event.FppBotInventoryEvent(
+    var invEvt = new FppBotInventoryEvent(
         new FppBotImpl(fp),
-        me.bill.fakePlayerPlugin.api.event.FppBotInventoryEvent.Action.PICKUP,
+        FppBotInventoryEvent.Action.PICKUP,
         event.getItem().getItemStack(),
         -1);
     Bukkit.getPluginManager().callEvent(invEvt);

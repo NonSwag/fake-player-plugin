@@ -1,6 +1,7 @@
 package me.bill.fakePlayerPlugin.fakeplayer.network;
 
 import io.netty.channel.AbstractChannel;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
 import io.netty.channel.ChannelMetadata;
 import io.netty.channel.ChannelOutboundBuffer;
@@ -33,7 +34,7 @@ public final class FakeChannel extends AbstractChannel {
     this.address = address;
   }
 
-  public FakeChannel(io.netty.channel.Channel parent, InetAddress address) {
+  public FakeChannel(Channel parent, InetAddress address) {
     super(parent);
     this.address = address;
   }

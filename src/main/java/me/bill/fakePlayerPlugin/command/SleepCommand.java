@@ -1,7 +1,11 @@
 package me.bill.fakePlayerPlugin.command;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.api.event.FppBotSleepEndEvent;
+import me.bill.fakePlayerPlugin.api.event.FppBotSleepStartEvent;
+import me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent;
 import me.bill.fakePlayerPlugin.api.impl.FppApiImpl;
+import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
@@ -12,6 +16,7 @@ import me.bill.fakePlayerPlugin.permission.Perm;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -23,6 +28,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -565,7 +571,7 @@ public final class SleepCommand implements FppCommand {
 
     // Zero any residual navigation momentum so the bot lies flat on the bed
     // rather than appearing to slide or crouch when startSleepInBed fires.
-    bot.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+    bot.setVelocity(new Vector(0, 0, 0));
 
     // Try NMS first (bypasses vanilla distance/monster checks).
     boolean slept = false;
@@ -588,10 +594,10 @@ public final class SleepCommand implements FppCommand {
     }
 
     if (slept) {
-      FppApiImpl.fireTaskEvent(fp, "sleep", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.START);
-      var sleepStartEvt = new me.bill.fakePlayerPlugin.api.event.FppBotSleepStartEvent(
-          new me.bill.fakePlayerPlugin.api.impl.FppBotImpl(fp), bedLoc);
-      org.bukkit.Bukkit.getPluginManager().callEvent(sleepStartEvt);
+      FppApiImpl.fireTaskEvent(fp, "sleep", FppBotTaskEvent.Action.START);
+      var sleepStartEvt = new FppBotSleepStartEvent(
+          new FppBotImpl(fp), bedLoc);
+      Bukkit.getPluginManager().callEvent(sleepStartEvt);
       if (sleepStartEvt.isCancelled()) {
         resumePreviousTask(fp);
         return;
@@ -617,13 +623,13 @@ public final class SleepCommand implements FppCommand {
    */
   private void wakeBot(@NotNull FakePlayer fp, boolean resumeTask) {
     if (!fp.isSleeping()) return;
-    FppApiImpl.fireTaskEvent(fp, "sleep", me.bill.fakePlayerPlugin.api.event.FppBotTaskEvent.Action.STOP);
+    FppApiImpl.fireTaskEvent(fp, "sleep", FppBotTaskEvent.Action.STOP);
     UUID uuid = fp.getUuid();
     Player bot = fp.getPlayer();
 
-    var sleepEndEvt = new me.bill.fakePlayerPlugin.api.event.FppBotSleepEndEvent(
-        new me.bill.fakePlayerPlugin.api.impl.FppBotImpl(fp), bot != null ? bot.getLocation() : null);
-    org.bukkit.Bukkit.getPluginManager().callEvent(sleepEndEvt);
+    var sleepEndEvt = new FppBotSleepEndEvent(
+        new FppBotImpl(fp), bot != null ? bot.getLocation() : null);
+    Bukkit.getPluginManager().callEvent(sleepEndEvt);
     fp.setSleeping(false);
     manager.unlockAction(uuid);
 
@@ -870,7 +876,7 @@ public final class SleepCommand implements FppCommand {
     } else if (args.length == 2) {
       String in = args[1].toLowerCase();
       if ("--stop".startsWith(in)) out.add("--stop");
-      if (org.bukkit.command.CommandSender.class.isInstance(sender)
+      if (CommandSender.class.isInstance(sender)
           && sender instanceof Player p) {
         Location loc = p.getLocation();
         String coords = loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ();

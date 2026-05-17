@@ -1,12 +1,21 @@
 package me.bill.fakePlayerPlugin.fakeplayer;
 
+import com.destroystokyo.paper.profile.ProfileProperty;
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.util.AttributeCompat;
 import me.bill.fakePlayerPlugin.util.FppLogger;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
+import me.bill.fakePlayerPlugin.util.TextUtil;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.Vector;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.function.Consumer;
 
 public final class FakePlayerBody {
 
@@ -55,11 +64,11 @@ public final class FakePlayerBody {
   /**
    * Callback-based body spawn compatibility wrapper.
    */
-  public static void spawnAsync(FakePlayer fp, Location loc, java.util.function.Consumer<Player> callback) {
+  public static void spawnAsync(FakePlayer fp, Location loc, Consumer<Player> callback) {
     spawnAsync(fp, loc, -1, callback);
   }
 
-  public static void spawnAsync(FakePlayer fp, Location loc, int initialPing, java.util.function.Consumer<Player> callback) {
+  public static void spawnAsync(FakePlayer fp, Location loc, int initialPing, Consumer<Player> callback) {
     if (loc == null || loc.getWorld() == null) {
       callback.accept(null);
       return;
@@ -119,7 +128,7 @@ public final class FakePlayerBody {
         fp.getRawDisplayName() != null ? fp.getRawDisplayName() : fp.getDisplayName();
     if (displayName != null && !displayName.isEmpty()) {
       try {
-        player.displayName(me.bill.fakePlayerPlugin.util.TextUtil.colorize(displayName));
+        player.displayName(TextUtil.colorize(displayName));
       } catch (Exception e) {
         FppLogger.debug(
             "Failed to set display name for " + fp.getName() + ": " + e.getMessage());
@@ -128,7 +137,7 @@ public final class FakePlayerBody {
 
     try {
       var maxHpAttr =
-          player.getAttribute(me.bill.fakePlayerPlugin.util.AttributeCompat.MAX_HEALTH);
+          player.getAttribute(AttributeCompat.MAX_HEALTH);
       if (maxHpAttr != null) {
         double hp = Config.maxHealth();
         maxHpAttr.setBaseValue(hp);
@@ -146,7 +155,7 @@ public final class FakePlayerBody {
     } catch (Throwable ignored) {
     }
     if (shouldNudgeDown) {
-      player.setVelocity(new org.bukkit.util.Vector(0, -0.001, 0));
+      player.setVelocity(new Vector(0, -0.001, 0));
     }
 
     Config.debug(
@@ -193,9 +202,9 @@ public final class FakePlayerBody {
       FakePlayer fp,
       Location loc,
       Runnable onReady,
-      @org.jetbrains.annotations.Nullable Runnable onSkinApplied) {
-    me.bill.fakePlayerPlugin.FakePlayerPlugin fpp =
-        me.bill.fakePlayerPlugin.FakePlayerPlugin.getInstance();
+      @Nullable Runnable onSkinApplied) {
+    FakePlayerPlugin fpp =
+        FakePlayerPlugin.getInstance();
     SkinManager skinManager = fpp != null ? fpp.getSkinManager() : null;
     if (skinManager == null) {
       onReady.run();
@@ -242,19 +251,19 @@ public final class FakePlayerBody {
   }
 
   public static void applyResolvedSkin(
-      Plugin plugin, FakePlayer fp, org.bukkit.entity.Entity body) {
+      Plugin plugin, FakePlayer fp, Entity body) {
     if (!(body instanceof Player player)) return;
-    me.bill.fakePlayerPlugin.FakePlayerPlugin fpp =
-        me.bill.fakePlayerPlugin.FakePlayerPlugin.getInstance();
+    FakePlayerPlugin fpp =
+        FakePlayerPlugin.getInstance();
     applyPaperSkin(player, fp.getResolvedSkin());
   }
 
   private static void applyPaperSkin(Player bot, SkinProfile skin) {
     if (skin == null || !skin.isValid()) return;
-    me.bill.fakePlayerPlugin.FakePlayerPlugin fpp =
-        me.bill.fakePlayerPlugin.FakePlayerPlugin.getInstance();
+    FakePlayerPlugin fpp =
+        FakePlayerPlugin.getInstance();
     if (fpp != null && fpp.getSkinManager() != null) {
-      me.bill.fakePlayerPlugin.fakeplayer.FakePlayer fp =
+      FakePlayer fp =
           fpp.getFakePlayerManager() != null
               ? fpp.getFakePlayerManager().getByUuid(bot.getUniqueId())
               : null;
@@ -272,7 +281,7 @@ public final class FakePlayerBody {
       var profile = bot.getPlayerProfile();
       profile.removeProperty("textures");
       profile.setProperty(
-          new com.destroystokyo.paper.profile.ProfileProperty(
+          new ProfileProperty(
               "textures", skin.getValue(), skin.getSignature() != null ? skin.getSignature() : ""));
       bot.setPlayerProfile(profile);
       Config.debugSkin(
@@ -288,8 +297,8 @@ public final class FakePlayerBody {
   public static void removeNametag(FakePlayer fp) {
   }
 
-  public static org.bukkit.entity.Entity spawnNametag(
-      FakePlayer fp, org.bukkit.entity.Entity body) {
+  public static Entity spawnNametag(
+      FakePlayer fp, Entity body) {
 
     return null;
   }

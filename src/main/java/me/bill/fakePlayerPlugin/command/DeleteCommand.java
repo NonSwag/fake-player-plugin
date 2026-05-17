@@ -147,7 +147,7 @@ public class DeleteCommand implements FppCommand {
   @Override
   public List<String> tabComplete(CommandSender sender, String[] args) {
     if (args.length == 1) {
-      List<String> suggestions = new java.util.ArrayList<>();
+      List<String> suggestions = new ArrayList<>();
       String typed = args[0].toLowerCase();
       if (Perm.has(sender, Perm.DELETE_ALL) && "--all".startsWith(typed)) suggestions.add("--all");
       if (Perm.has(sender, Perm.DELETE)) {
@@ -167,7 +167,7 @@ public class DeleteCommand implements FppCommand {
       if (prev.equals("--count") || prev.equals("--random")) {
         if (prev.equals("--random") && "--count".startsWith(typed)) return List.of("--count");
         if (prev.equals("--count")) {
-          List<String> counts = new java.util.ArrayList<>();
+          List<String> counts = new ArrayList<>();
           int max = Math.min(manager.getCount(), 10);
           for (int i = 1; i <= max; i++) {
             String s = String.valueOf(i);
@@ -182,7 +182,7 @@ public class DeleteCommand implements FppCommand {
         && args[0].equalsIgnoreCase("--random")
         && args[1].equalsIgnoreCase("--count")) {
       String typed = args[2];
-      List<String> counts = new java.util.ArrayList<>();
+      List<String> counts = new ArrayList<>();
       int max = Math.min(manager.getCount(), 10);
       for (int i = 1; i <= max; i++) {
         String s = String.valueOf(i);

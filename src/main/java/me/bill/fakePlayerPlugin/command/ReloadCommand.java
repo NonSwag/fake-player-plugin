@@ -3,6 +3,7 @@ package me.bill.fakePlayerPlugin.command;
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
 import me.bill.fakePlayerPlugin.config.BotNameConfig;
 import me.bill.fakePlayerPlugin.config.Config;
+import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
@@ -226,7 +227,7 @@ public class ReloadCommand implements FppCommand {
     String taskPersistDetail =
         taskPersistActive
             ? "db + yaml  (schema v"
-              + me.bill.fakePlayerPlugin.database.DatabaseManager.getCurrentSchemaVersion()
+              + DatabaseManager.getCurrentSchemaVersion()
               + ")"
             : Config.persistOnRestart() ? "yaml only  (DB disabled)" : "disabled";
     sendStep(sender, "Task persistence — " + taskPersistDetail);

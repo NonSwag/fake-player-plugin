@@ -1,9 +1,13 @@
 package me.bill.fakePlayerPlugin.command;
 
+import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.api.event.FppBotFreezeEvent;
+import me.bill.fakePlayerPlugin.api.impl.FppBotImpl;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayer;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -108,11 +112,11 @@ public class FreezeCommand implements FppCommand {
   }
 
   private static void applyFreeze(FakePlayer fp, boolean freeze) {
-    var api = me.bill.fakePlayerPlugin.FakePlayerPlugin.getInstance();
+    var api = FakePlayerPlugin.getInstance();
     if (api != null) {
-      var freezeEvt = new me.bill.fakePlayerPlugin.api.event.FppBotFreezeEvent(
-          new me.bill.fakePlayerPlugin.api.impl.FppBotImpl(fp), freeze);
-      org.bukkit.Bukkit.getPluginManager().callEvent(freezeEvt);
+      var freezeEvt = new FppBotFreezeEvent(
+          new FppBotImpl(fp), freeze);
+      Bukkit.getPluginManager().callEvent(freezeEvt);
       if (freezeEvt.isCancelled()) return;
     }
     fp.setFrozen(freeze);

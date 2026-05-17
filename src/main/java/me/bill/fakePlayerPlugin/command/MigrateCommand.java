@@ -1,12 +1,14 @@
 package me.bill.fakePlayerPlugin.command;
 
 import me.bill.fakePlayerPlugin.FakePlayerPlugin;
+import me.bill.fakePlayerPlugin.config.BotNameConfig;
 import me.bill.fakePlayerPlugin.config.Config;
 import me.bill.fakePlayerPlugin.database.DatabaseManager;
 import me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager;
 import me.bill.fakePlayerPlugin.lang.Lang;
 import me.bill.fakePlayerPlugin.permission.Perm;
 import me.bill.fakePlayerPlugin.util.BackupManager;
+import me.bill.fakePlayerPlugin.util.BadwordFilter;
 import me.bill.fakePlayerPlugin.util.ConfigMigrator;
 import me.bill.fakePlayerPlugin.util.DataMigrator;
 import me.bill.fakePlayerPlugin.util.FppScheduler;
@@ -456,9 +458,9 @@ public class MigrateCommand implements FppCommand {
     try {
       plugin.reloadConfig();
       Config.reload();
-      me.bill.fakePlayerPlugin.lang.Lang.reload();
-      me.bill.fakePlayerPlugin.config.BotNameConfig.reload();
-      me.bill.fakePlayerPlugin.util.BadwordFilter.reload(plugin);
+      Lang.reload();
+      BotNameConfig.reload();
+      BadwordFilter.reload(plugin);
       msg(
           sender,
           GREEN
@@ -476,13 +478,13 @@ public class MigrateCommand implements FppCommand {
       msg(sender, RED + "  ✘ " + GRAY + "FakePlayerManager not available — skipping badword step.");
     } else if (!Config.isBadwordFilterEnabled()) {
       msg(sender, YELLOW + "  ⚠ " + GRAY + "Badword filter is disabled — skipping rename step.");
-    } else if (me.bill.fakePlayerPlugin.util.BadwordFilter.getBadwordCount() == 0) {
+    } else if (BadwordFilter.getBadwordCount() == 0) {
       msg(sender, YELLOW + "  ⚠ " + GRAY + "No badword sources are active — skipping rename step.");
     } else {
 
       long flaggedCount =
           manager.getActivePlayers().stream()
-              .filter(fp -> !me.bill.fakePlayerPlugin.util.BadwordFilter.isAllowed(fp.getName()))
+              .filter(fp -> !BadwordFilter.isAllowed(fp.getName()))
               .count();
       if (flaggedCount == 0) {
         msg(

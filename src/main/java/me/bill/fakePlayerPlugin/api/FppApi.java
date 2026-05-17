@@ -2,6 +2,7 @@ package me.bill.fakePlayerPlugin.api;
 
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -139,5 +140,5 @@ public interface FppApi {
 
   void saveDefaultExtensionConfig(@NotNull String extensionName);
 
-  @Nullable org.bukkit.configuration.file.YamlConfiguration getExtensionConfig(@NotNull String extensionName);
+  @Nullable YamlConfiguration getExtensionConfig(@NotNull String extensionName);
 }
